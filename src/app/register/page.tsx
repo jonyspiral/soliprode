@@ -1,43 +1,31 @@
+import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
-import { ActionTile, PageStack } from "@/components/placeholder-primitives";
+import { RegisterForm } from "@/components/auth/register-form";
+import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-const registerSteps = [
-  {
-    title: "Crear perfil",
-    description: "Alta inicial para entrar al prode, guardar pronósticos y participar en rankings.",
-    actionLabel: "Nombre, email y clave",
-  },
-  {
-    title: "Elegir grupo",
-    description: "Podrás unirte a un grupo existente o seguir con perfil individual antes de competir.",
-    actionLabel: "Grupo opcional",
-  },
-  {
-    title: "Entrar a competir",
-    description: "Acceso directo al dashboard con el próximo partido listo para pronosticar.",
-    actionLabel: "Ir al panel",
-  },
-];
+export default async function RegisterPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function RegisterPage() {
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <PageStack>
       <PageHero
         title="Creá tu cuenta de SoliProde."
-        description="Pantalla base para el registro futuro. Mantiene la jerarquía visual y el recorrido esperado sin activar todavía autenticación real."
+        description="Primer flujo real de alta sobre Supabase Auth. Crea tu usuario, guarda tu perfil y deja tu participación en estado pendiente."
       />
-      <SurfaceCard title="Flujo esperado" description="Placeholder de onboarding inicial.">
-        <div className="grid gap-4 md:grid-cols-3">
-          {registerSteps.map((step) => (
-            <ActionTile
-              key={step.title}
-              title={step.title}
-              description={step.description}
-              actionLabel={step.actionLabel}
-            />
-          ))}
-        </div>
+      <SurfaceCard
+        title="Registro"
+        description="Comunidad y grupo quedan visibles en el formulario, pero su creación todavía no se ejecuta en esta etapa."
+      >
+        <RegisterForm />
       </SurfaceCard>
     </PageStack>
   );

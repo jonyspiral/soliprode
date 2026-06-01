@@ -1,30 +1,87 @@
+import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
 import { PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const [{ data: profile }, { data: participation }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, public_alias, whatsapp, email, role")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("participations")
+      .select("payment_status, created_at")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
   return (
     <PageStack>
       <PageHero
         title="Tu panel de juego."
-        description="Resumen placeholder de rendimiento, posiciones y próximo partido a pronosticar. No hay datos reales todavía, pero la estructura ya refleja la prioridad del producto."
+        description="Vista protegida por sesión. Muestra el perfil base y el estado inicial de participación, sin pagos ni predicciones todavía."
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Puntos totales" value="128" detail="Base visual para puntaje acumulado." />
-        <StatCard label="Ranking general" value="#42" detail="Posición frente a todos los jugadores." />
-        <StatCard label="Ranking de grupo" value="#5" detail="Comparativa dentro de tu grupo principal." />
-        <StatCard label="Ranking comunidad" value="#2" detail="Lugar dentro de tu oficina o comunidad." />
-        <StatCard label="Próximo partido" value="BRA vs ARG" detail="Siguiente evento pendiente de predicción." />
+        <StatCard
+          label="Alias público"
+          value={profile?.public_alias ?? "Pendiente"}
+          detail="Nombre visible en rankings y competencia."
+        />
+        <StatCard
+          label="Estado de inscripción"
+          value={participation?.payment_status ?? "pending"}
+          detail="La participación se crea en pending hasta el flujo de pago."
+        />
+        <StatCard
+          label="Rol"
+          value={profile?.role ?? "player"}
+          detail="Rol inicial del usuario dentro del sistema."
+        />
+        <StatCard
+          label="Email"
+          value={profile?.email ?? user.email ?? "Sin email"}
+          detail="Cuenta autenticada actual."
+        />
+        <StatCard
+          label="WhatsApp"
+          value={profile?.whatsapp ?? "No cargado"}
+          detail="Contacto opcional para próximas etapas."
+        />
       </section>
-      <SurfaceCard
-        title="Próxima predicción"
-        description="Espacio reservado para llevar al usuario directo al próximo partido abierto."
-      >
-        <div className="rounded-[1.5rem] border border-dashed border-[var(--color-line)] bg-slate-50 p-5">
-          <p className="text-sm font-semibold text-[var(--color-ink)]">Brasil vs Argentina</p>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Placeholder para resumen, deadline de carga y CTA para pronosticar en un toque.
-          </p>
+      <SurfaceCard title="Perfil base" description="Datos guardados al momento del alta.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Nombre completo
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
+              {profile?.full_name ?? "Pendiente"}
+            </p>
+          </div>
+          <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Participación
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
+              {participation
+                ? `Creada ${new Date(participation.created_at).toLocaleDateString("es-AR")}`
+                : "Pendiente de creación"}
+            </p>
+          </div>
         </div>
       </SurfaceCard>
     </PageStack>

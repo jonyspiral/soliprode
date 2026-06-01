@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  getSupabaseAnonKey,
+  getSupabasePublishableKey,
   getSupabaseUrl,
   hasSupabaseServiceRoleKey,
 } from "@/lib/supabase/config";
@@ -8,11 +8,11 @@ import {
 export async function GET() {
   try {
     const supabaseUrl = getSupabaseUrl();
-    const supabaseAnonKey = getSupabaseAnonKey();
+    const supabasePublishableKey = getSupabasePublishableKey();
 
     const response = await fetch(`${supabaseUrl}/auth/v1/settings`, {
       headers: {
-        apikey: supabaseAnonKey,
+        apikey: supabasePublishableKey,
       },
       cache: "no-store",
     });

@@ -1,11 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
+import { createBrowserClient } from "@supabase/ssr";
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/config";
 
 export function createBrowserSupabaseClient() {
-  return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  });
+  return createBrowserClient(getSupabaseUrl(), getSupabasePublishableKey());
 }

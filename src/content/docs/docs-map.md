@@ -24,6 +24,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Guía para nuevos agentes | `src/content/docs/agents/README.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
+| Base Auth | `src/content/docs/auth-base.md` |
 
 ## Áreas esperadas a futuro
 

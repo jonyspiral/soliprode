@@ -4,7 +4,13 @@ export function getSupabaseUrl() {
   return getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
 }
 
-export function getSupabaseAnonKey() {
+export function getSupabasePublishableKey() {
+  const publishableKey = getOptionalEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+
+  if (publishableKey) {
+    return publishableKey;
+  }
+
   return getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 }
 

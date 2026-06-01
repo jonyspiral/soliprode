@@ -37,6 +37,6 @@ SUPABASE_DB_PASSWORD=
 
 ## Siguiente paso recomendado
 
-1. Completar `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-2. Definir si el proyecto usará auth email/password, magic link o social login.
-3. Incorporar helpers SSR/cookies cuando se implemente sesión real.
+1. Completar `NEXT_PUBLIC_SUPABASE_ANON_KEY` o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+2. Definir si el proyecto usará confirmación de email obligatoria o login inmediato después del signup.
+3. Extender el flujo hacia pagos, comunidades, grupos y bonus predictions.
