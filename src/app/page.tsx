@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
+import { ActionTile, PageStack } from "@/components/placeholder-primitives";
+import { SurfaceCard } from "@/components/surface-card";
 
 const landingSections = [
   {
@@ -29,53 +31,74 @@ const landingSections = [
 ];
 
 const quickLinks = [
-  { href: "/dashboard", label: "Ver dashboard" },
+  { href: "/dashboard", label: "Abrir dashboard" },
   { href: "/matches", label: "Explorar partidos" },
   { href: "/rankings", label: "Abrir rankings" },
 ];
 
+const appHighlights = [
+  {
+    title: "Predicciones rápidas",
+    description:
+      "Flujo pensado para móvil con acceso directo al próximo partido y estados claros para cada predicción.",
+    actionLabel: "Ver partidos",
+  },
+  {
+    title: "Competencia por niveles",
+    description:
+      "La base ya contempla ranking general, ranking de grupo y ranking de comunidad sin mezclar responsabilidades.",
+    actionLabel: "Ver rankings",
+  },
+  {
+    title: "Crecimiento ordenado",
+    description:
+      "La estructura actual deja espacio para auth, Supabase y operación admin sin rehacer la shell.",
+    actionLabel: "Ver admin",
+  },
+];
+
 export default function Home() {
   return (
-    <div className="flex flex-col gap-6 pb-24 sm:gap-8 sm:pb-0">
+    <PageStack>
       <PageHero
         title="Jugá el Mundial, competí con tu grupo y ayudá a financiar una tesis."
         description="SoliProde es la base del Prode Mundial Solidario 2026: una PWA mobile-first preparada para crecer con autenticación, comunidades y rankings en tiempo real."
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/login"
+            href="/register"
             className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
           >
-            Empezar
+            Crear cuenta
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            Ya tengo cuenta
           </Link>
           <Link
             href="/dashboard"
             className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
           >
-            Ver estructura base
+            Ver demo de producto
           </Link>
         </div>
       </PageHero>
 
       <section className="grid gap-4 md:grid-cols-[1.3fr_0.7fr]">
-        <article className="rounded-[2rem] border border-[var(--color-line)] bg-[linear-gradient(135deg,#0f172a_0%,#1e3a5f_100%)] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.18)] sm:p-8">
-          <p className="text-sm uppercase tracking-[0.16em] text-sky-200">
-            SoliProde
-          </p>
+        <SurfaceCard tone="dark">
           <h2 className="mt-3 font-serif text-2xl leading-tight sm:text-4xl">
-            Base lista para crecer sobre App Router y desplegar en Vercel.
+            Una base visual clara para convertir el prode en experiencia cotidiana.
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-            Esta versión inicial prioriza estructura, navegación y consistencia
-            visual para que la siguiente etapa incorpore autenticación,
-            persistencia y reglas del juego sin rehacer la base.
+            Esta iteración ordena la shell, la navegación y cada superficie
+            principal del producto para que el siguiente tramo agregue lógica
+            real sin rehacer el frontend.
           </p>
-        </article>
+        </SurfaceCard>
 
-        <aside className="rounded-[2rem] border border-[var(--color-line)] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)]">
-            Accesos rápidos
-          </h2>
+        <SurfaceCard title="Accesos rápidos">
           <div className="mt-4 flex flex-col gap-3">
             {quickLinks.map((link) => (
               <Link
@@ -87,7 +110,18 @@ export default function Home() {
               </Link>
             ))}
           </div>
-        </aside>
+        </SurfaceCard>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {appHighlights.map((item) => (
+          <ActionTile
+            key={item.title}
+            title={item.title}
+            description={item.description}
+            actionLabel={item.actionLabel}
+          />
+        ))}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -105,6 +139,6 @@ export default function Home() {
           </article>
         ))}
       </section>
-    </div>
+    </PageStack>
   );
 }

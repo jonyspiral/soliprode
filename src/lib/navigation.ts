@@ -1,6 +1,5 @@
 export const navItems = [
   { href: "/", label: "Inicio" },
-  { href: "/login", label: "Login" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/matches", label: "Partidos" },
   { href: "/rankings", label: "Rankings" },
@@ -10,9 +9,9 @@ export const navItems = [
 ];
 
 export const mobileNavItems = [
-  { href: "/", label: "Inicio" },
+  { href: "/dashboard", label: "Panel" },
   { href: "/matches", label: "Partidos" },
   { href: "/rankings", label: "Ranking" },
   { href: "/groups", label: "Grupos" },
-  { href: "/dashboard", label: "Panel" },
+  { href: "/communities", label: "Comunidad" },
 ];

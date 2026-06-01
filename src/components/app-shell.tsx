@@ -19,6 +19,7 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const isAuthScreen = pathname === "/login" || pathname === "/register";
 
   return (
     <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,#f5f7ff,transparent_32%),linear-gradient(180deg,#fcfdff_0%,#f3f7fb_100%)]">
@@ -32,12 +33,20 @@ export function AppShell({ children }: AppShellProps) {
               Prode Mundial Solidario 2026
             </p>
           </div>
-          <Link
-            href="/login"
-            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
-          >
-            Ingresar
-          </Link>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Link
+              href="/login"
+              className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              Ingresar
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
+            >
+              Crear cuenta
+            </Link>
+          </div>
         </div>
         <nav className="mx-auto flex w-full max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6">
           {navItems.map((item) => {
@@ -61,7 +70,12 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+      <main
+        className={[
+          "mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8",
+          isAuthScreen ? "max-w-3xl" : "",
+        ].join(" ")}
+      >
         {children}
       </main>
 
@@ -75,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={[
-                  "flex min-w-0 flex-1 justify-center rounded-2xl px-2 py-3 text-center text-xs font-semibold transition",
+                  "flex min-w-0 flex-1 justify-center rounded-2xl px-2 py-3 text-center text-[11px] font-semibold transition",
                   active
                     ? "bg-[var(--color-accent)] text-white"
                     : "text-[var(--color-muted)] hover:bg-white",
