@@ -23,6 +23,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Deploy | `src/content/docs/runbooks/deploy-main.md` |
 | Guía para nuevos agentes | `src/content/docs/agents/README.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
+| Esquema de base de datos | `src/content/docs/database-schema.md` |
 
 ## Áreas esperadas a futuro
 

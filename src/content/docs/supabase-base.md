@@ -25,6 +25,8 @@ SUPABASE_DB_PASSWORD=
 | `src/lib/supabase/client.ts` | Cliente browser con `anon key` |
 | `src/lib/supabase/server.ts` | Cliente server con `anon key` y helper opcional de `service role` |
 | `src/app/api/health/supabase/route.ts` | Healthcheck mínimo del proyecto Supabase |
+| `supabase/migrations/001_initial_schema.sql` | Primera migración del esquema |
+| `src/content/docs/database-schema.md` | Documentación del esquema inicial |
 
 ## Criterios actuales
 

@@ -1,0 +1,158 @@
+---
+title: "Database Schema"
+description: "Esquema inicial de base de datos para SoliProde en Supabase."
+lastUpdated: "2026-06-01"
+---
+
+# Database Schema
+
+Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base relacional, índices y RLS listos sin conectar todavía UI, auth aplicada ni lógica de negocio completa.
+
+## Migración inicial
+
+- Archivo: `supabase/migrations/001_initial_schema.sql`
+
+## Tablas
+
+### `profiles`
+
+Perfil extendido del usuario autenticado.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK, referencia a `auth.users(id)` |
+| `full_name` | `text` | Nombre completo opcional |
+| `public_alias` | `text` | Alias público obligatorio |
+| `whatsapp` | `text` | Contacto opcional |
+| `email` | `text` | Copia opcional del email |
+| `role` | `text` | Default `player` |
+| `created_at` | `timestamptz` | Default `now()` |
+| `updated_at` | `timestamptz` | Default `now()`, con trigger |
+
+### `promoters`
+
+Promotores o referidores del torneo.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK, `gen_random_uuid()` |
+| `code` | `text` | Único |
+| `name` | `text` | Obligatorio |
+| `profile_id` | `uuid` | FK opcional a `profiles` |
+| `active` | `boolean` | Default `true` |
+| `created_at` | `timestamptz` | Default `now()` |
+
+### `communities`
+
+Oficinas, comunidades o estructuras organizadoras.
+
+### `groups`
+
+Subgrupos competitivos, opcionalmente dentro de una comunidad.
+
+### `participations`
+
+Relación de inscripción de un perfil dentro del juego y sus ámbitos de competencia.
+
+### `teams`
+
+Catálogo de selecciones o equipos del Mundial.
+
+### `matches`
+
+Fixture del torneo con estado y score final cuando exista.
+
+### `predictions`
+
+Pronósticos partido a partido por usuario.
+
+Restricción importante:
+- `unique(profile_id, match_id)` para impedir duplicados.
+
+### `bonus_predictions`
+
+Pronósticos especiales por perfil, por ejemplo campeón y subcampeón.
+
+Restricción importante:
+- `unique(profile_id)` para permitir solo una fila por usuario.
+
+### `rankings_cache`
+
+Cache de rankings precalculados para lectura rápida por tipo y alcance.
+
+## Relaciones principales
+
+- `profiles.id -> auth.users.id`
+- `promoters.profile_id -> profiles.id`
+- `communities.owner_profile_id -> profiles.id`
+- `groups.community_id -> communities.id`
+- `groups.owner_profile_id -> profiles.id`
+- `participations.profile_id -> profiles.id`
+- `participations.promoter_id -> promoters.id`
+- `participations.community_id -> communities.id`
+- `participations.group_id -> groups.id`
+- `matches.home_team_id -> teams.id`
+- `matches.away_team_id -> teams.id`
+- `predictions.profile_id -> profiles.id`
+- `predictions.match_id -> matches.id`
+- `bonus_predictions.profile_id -> profiles.id`
+- `bonus_predictions.champion_team_id -> teams.id`
+- `bonus_predictions.runner_up_team_id -> teams.id`
+- `rankings_cache.profile_id -> profiles.id`
+
+## Índices
+
+La migración agrega índices útiles para:
+
+- claves foráneas,
+- búsquedas por `status`,
+- lecturas por `starts_at`,
+- lookup de rankings por `ranking_type + scope_id + position`,
+- consultas de predicciones por `match_id`.
+
+No se agrega seed data en esta etapa.
+
+## RLS inicial
+
+RLS queda habilitado en todas las tablas.
+
+### Lectura pública
+
+Se permite `select` público en:
+
+- `teams`
+- `matches`
+- `rankings_cache`
+
+Motivo: son tablas de lectura del torneo o resultados agregados visibles para todos.
+
+### Lectura autenticada propia
+
+Se permite que usuarios autenticados lean solo sus propios registros en:
+
+- `profiles`
+- `participations`
+- `predictions`
+
+### Escritura autenticada propia
+
+Se permite que usuarios autenticados inserten y actualicen solo sus propias filas en:
+
+- `predictions`
+
+### Sin escritura pública
+
+No se agregan políticas de escritura pública en ninguna tabla.
+
+## Decisiones de esta etapa
+
+- Se usa `gen_random_uuid()` en todas las PK que no dependen de `auth.users`.
+- Se usan `created_at default now()` en tablas de dominio.
+- Se agregan triggers de `updated_at` donde ese campo existe.
+- Se dejan checks básicos en `role`, `visibility`, `payment_status`, `match status` y scores no negativos.
+
+## Próximos pasos sugeridos
+
+1. Agregar políticas adicionales cuando se definan flujos reales de perfil, bonus predictions y administración.
+2. Crear migraciones siguientes para vistas, funciones o materialización de rankings.
+3. Recién después conectar este esquema con auth y UI.
