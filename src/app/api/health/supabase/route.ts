@@ -6,6 +6,25 @@ import {
   hasSupabaseServiceRoleKey,
 } from "@/lib/supabase/config";
 
+function sanitizeProjectUrl(projectUrl: string) {
+  try {
+    return new URL(projectUrl).origin;
+  } catch {
+    return "invalid_url";
+  }
+}
+
+async function readSafeResponseBody(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json") && !contentType.startsWith("text/")) {
+    return null;
+  }
+
+  const body = await response.text();
+  return body.slice(0, 500);
+}
+
 export async function GET() {
   const serviceRoleConfigured = hasSupabaseServiceRoleKey();
   const publishableKeyConfigured = hasSupabasePublishableKey();
@@ -13,23 +32,29 @@ export async function GET() {
   try {
     const supabaseUrl = getSupabaseUrl();
     const supabasePublishableKey = getSupabasePublishableKey();
+    const projectUrl = sanitizeProjectUrl(supabaseUrl);
 
-    const response = await fetch(`${supabaseUrl}/auth/v1/settings`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/teams?select=id&limit=1`, {
       headers: {
         apikey: supabasePublishableKey,
+        Authorization: `Bearer ${supabasePublishableKey}`,
       },
       cache: "no-store",
     });
 
-    if (!response.ok) {
+    if (response.status !== 200) {
+      const responseBody = await readSafeResponseBody(response);
+
       return NextResponse.json(
         {
           ok: false,
           status: response.status,
+          statusText: response.statusText,
           reason: response.status === 401 || response.status === 403 ? "invalid_publishable_key" : "upstream_error",
-          projectUrl: supabaseUrl,
+          projectUrl,
           publishableKeyConfigured,
           serviceRoleConfigured,
+          responseBody,
         },
         { status: 502 },
       );
@@ -38,7 +63,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       status: response.status,
-      projectUrl: supabaseUrl,
+      projectUrl,
       publishableKeyConfigured,
       serviceRoleConfigured,
     });
