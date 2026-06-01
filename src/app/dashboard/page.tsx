@@ -1,12 +1,6 @@
 import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
-import {
-  ActionTile,
-  InfoNotice,
-  PageStack,
-  ScopeCard,
-  StatCard,
-} from "@/components/placeholder-primitives";
+import { ActionTile, InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -30,7 +24,7 @@ export default async function DashboardPage() {
       }
     | null = null;
   let fallbackMessage =
-    "No pudimos validar tu sesión con Supabase en este momento. Reintentá en unos minutos o volvé a ingresar.";
+    "No pudimos revisar tu sesión en este momento. Reintentá en unos minutos o volvé a ingresar.";
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -65,21 +59,15 @@ export default async function DashboardPage() {
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =
-        "Tu sesión existe, pero no pudimos leer tu perfil o participación. Reintentá en unos minutos o volvé a ingresar.";
+        "Tu sesión está abierta, pero no pudimos leer tu cuenta completa. Reintentá en unos minutos.";
     }
   }
 
   if (!hasAuthenticatedUser) {
     return (
       <PageStack>
-        <PageHero
-          title="Tu panel de juego."
-          description="No pudimos validar tu sesión con Supabase en este momento."
-        />
-        <SurfaceCard
-          title="Estado temporal"
-          description="Fallback seguro cuando Supabase no responde durante la validación de sesión."
-        >
+        <PageHero title="Tu panel." description="No pudimos revisar tu acceso en este momento." />
+        <SurfaceCard title="Estado temporal" description="Podés volver a intentar en unos minutos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
       </PageStack>
@@ -89,113 +77,123 @@ export default async function DashboardPage() {
   if (hasAuthenticatedUser && !profile && !participation) {
     return (
       <PageStack>
-        <PageHero
-          title="Tu panel de juego."
-          description="No pudimos cargar tu perfil desde Supabase en este momento."
-        />
-        <SurfaceCard title="Estado temporal" description="Fallback seguro cuando Supabase no responde.">
+        <PageHero title="Tu panel." description="No pudimos cargar tu cuenta en este momento." />
+        <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
       </PageStack>
     );
   }
 
+  const participationDate = participation
+    ? new Date(participation.created_at).toLocaleDateString("es-AR")
+    : "Pendiente";
+
   return (
     <PageStack>
       <PageHero
-        title="Tu panel de juego."
-        description="Vista protegida por sesión. La base ya ordena perfil, inscripción y superficies de competencia para sumar puntos, pronósticos y comunidades sin rehacer el panel."
+        title={`Hola${profile?.public_alias ? `, ${profile.public_alias}` : ""}.`}
+        description="Este es tu punto de entrada para revisar tu cuenta, tu inscripción y los próximos pasos del torneo."
       />
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Alias público"
-          value={profile?.public_alias ?? "Pendiente"}
-          detail="Nombre visible en rankings y competencia."
-        />
-        <StatCard
-          label="Estado de inscripción"
+          label="Inscripción"
           value={participation?.payment_status ?? "pending"}
-          detail="La participación se crea en pending hasta el flujo de pago."
+          detail="Tu participación inicial queda creada en estado pendiente."
         />
         <StatCard
-          label="Rol"
-          value={profile?.role ?? "player"}
-          detail="Rol inicial del usuario dentro del sistema."
+          label="Alias"
+          value={profile?.public_alias ?? "Pendiente"}
+          detail="Es el nombre con el que vas a aparecer en competencia."
         />
         <StatCard
           label="Email"
           value={profile?.email ?? userEmail ?? "Sin email"}
-          detail="Cuenta autenticada actual."
+          detail="Cuenta con la que ingresaste a SoliProde."
         />
         <StatCard
           label="WhatsApp"
-          value={profile?.whatsapp ?? "No cargado"}
-          detail="Contacto opcional para próximas etapas."
+          value={profile?.whatsapp ?? "Opcional"}
+          detail="Lo usamos como dato de contacto cuando esté disponible."
         />
       </section>
+
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <SurfaceCard
-          title="Próximo foco del jugador"
-          description="El panel queda preparado para abrir siempre con la acción más importante del torneo."
+          title="Tu inscripción"
+          description="Acá ves el estado actual de tu cuenta dentro del torneo."
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <ActionTile
-              title="Próximo partido a pronosticar"
-              description="Brasil vs Argentina · Miércoles 18 Jun · 20:00. Este bloque va a concentrar el CTA principal del jugador."
-              actionLabel="Cargar pronóstico"
-            />
-            <ActionTile
-              title="Estado de tu circuito"
-              description="Tu participación ya existe y el siguiente paso funcional es completar predicciones, grupos y comunidad."
-              actionLabel="Ver estado"
-            />
+            <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                Estado actual
+              </p>
+              <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">
+                {participation?.payment_status ?? "pending"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Cuando el flujo completo esté operativo, desde acá también vas a seguir el avance
+                de tu inscripción.
+              </p>
+            </div>
+            <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                Fecha de alta
+              </p>
+              <p className="mt-2 text-base font-semibold text-[var(--color-ink)]">
+                {participationDate}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Tu participación ya fue creada y quedó asociada a esta cuenta.
+              </p>
+            </div>
           </div>
         </SurfaceCard>
 
         <SurfaceCard
-          title="Capas de competencia"
-          description="La estructura ya distingue claramente los distintos planos del juego."
+          title="Qué sigue"
+          description="El panel ya te marca el próximo paso sin mandarte a buscarlo entre módulos."
         >
           <div className="grid gap-4">
-            <ScopeCard
-              title="General"
-              summary="Posición contra todos los jugadores del torneo."
-              status="Visible"
-              detail="Este alcance va a combinar puntos por partido, bonus y ritmo de aciertos."
+            <ActionTile
+              title="Esperar el fixture"
+              description="Cuando los partidos estén cargados, el próximo paso principal va a ser pronosticar desde la pantalla de Partidos."
+              actionLabel="Ir a Partidos"
             />
-            <ScopeCard
-              title="Grupo"
-              summary="Comparación cerrada entre amigos, oficina o equipo."
-              status="Reservado"
-              detail="Queda listo para integrarse apenas exista la asignación real a grupos."
-            />
-            <ScopeCard
-              title="Comunidad"
-              summary="Vista compartida por oficina o comunidad organizadora."
-              status="Reservado"
-              detail="La idea es sostener identidad colectiva sin perder la tabla general."
+            <ActionTile
+              title="Completar tu contexto"
+              description="Más adelante vas a poder sumarte a un grupo o una comunidad sin rehacer tu cuenta."
+              actionLabel="Ver opciones"
             />
           </div>
         </SurfaceCard>
       </section>
-      <SurfaceCard title="Perfil base" description="Datos guardados al momento del alta.">
-        <div className="grid gap-3 sm:grid-cols-2">
+
+      <SurfaceCard title="Tu cuenta" description="Datos básicos guardados hasta ahora.">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Nombre completo
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Nombre
             </p>
             <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
               {profile?.full_name ?? "Pendiente"}
             </p>
           </div>
           <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Participación
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Rol
+            </p>
+            <p className="mt-2 text-sm font-semibold capitalize text-[var(--color-ink)]">
+              {profile?.role ?? "player"}
+            </p>
+          </div>
+          <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Cuenta
             </p>
             <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
-              {participation
-                ? `Creada ${new Date(participation.created_at).toLocaleDateString("es-AR")}`
-                : "Pendiente de creación"}
+              {profile?.email ?? userEmail ?? "Sin email"}
             </p>
           </div>
         </div>

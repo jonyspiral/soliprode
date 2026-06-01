@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { PageHero } from "@/components/page-hero";
-import { InfoNotice } from "@/components/placeholder-primitives";
 import { LoginForm } from "@/components/auth/login-form";
-import { PageStack } from "@/components/placeholder-primitives";
+import { PageHero } from "@/components/page-hero";
+import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -27,7 +26,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     }
   } catch {
     authErrorMessage =
-      "No pudimos validar tu sesión con Supabase en este momento. Podés intentar ingresar igual o reintentar en unos minutos.";
+      "No pudimos revisar tu sesión en este momento. Igual podés intentar ingresar.";
   }
 
   const params = searchParams ? await searchParams : undefined;
@@ -36,13 +35,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <PageStack>
       <PageHero
-        title="Ingresá a tu cuenta."
-        description="Accedé con tu email y contraseña para entrar al panel de SoliProde y retomar tu inscripción."
+        title="Volvé a tu cuenta."
+        description="Entrá con tu email y contraseña para seguir tu inscripción y tus próximos pasos dentro de SoliProde."
       />
-      <SurfaceCard
-        title="Acceso"
-        description="Primer flujo real de login sobre Supabase Auth. La recuperación de acceso queda para la próxima iteración."
-      >
+      <SurfaceCard title="Ingresar" description="Usá la misma cuenta con la que te registraste.">
         {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
         <LoginForm nextPath={nextPath} />
       </SurfaceCard>

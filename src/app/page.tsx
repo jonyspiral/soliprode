@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
 import {
-  ActionTile,
   FlowStep,
   HighlightMetric,
   PageStack,
@@ -9,42 +8,21 @@ import {
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 
-const landingMetrics = [
+const impactMetrics = [
   {
-    value: "3 niveles",
-    label: "competencia simultánea",
-    detail: "General, grupo y comunidad con la misma base de puntos.",
+    value: "1 tablero",
+    label: "para jugar y seguir tus posiciones",
+    detail: "Entrás, cargás tus pronósticos y volvés a ver cómo venís.",
   },
   {
-    value: "Mobile first",
-    label: "carga rápida de pronósticos",
-    detail: "Pensado para abrir, predecir y seguir el ranking desde el teléfono.",
+    value: "3 niveles",
+    label: "de competencia al mismo tiempo",
+    detail: "General, grupo y comunidad con una sola base de puntos.",
   },
   {
     value: "1 causa",
-    label: "objetivo solidario concreto",
-    detail: "El torneo acompaña la financiación de una tesis con una experiencia compartida.",
-  },
-];
-
-const systemScopes = [
-  {
-    title: "Panel del jugador",
-    summary: "Seguimiento personal con foco en el próximo partido, puntos y situación de inscripción.",
-    status: "Base lista",
-    detail: "El dashboard ya está planteado para crecer con puntos, predicciones, bonus y estado de pago.",
-  },
-  {
-    title: "Competencia social",
-    summary: "Grupos, oficinas y comunidades como capas de juego, no como afterthought.",
-    status: "Modelo definido",
-    detail: "La estructura contempla rankings paralelos y comparativas sin mezclar reglas ni vistas.",
-  },
-  {
-    title: "Operación admin",
-    summary: "Módulos reservados para usuarios, promotores, partidos, resultados y rankings.",
-    status: "Shell armada",
-    detail: "El sistema ya muestra la anatomía del backoffice para sumar operación real sin rediseño.",
+    label: "que le da sentido al juego",
+    detail: "Cada inscripción acompaña la financiación de una tesis.",
   },
 ];
 
@@ -52,35 +30,38 @@ const gameFlow = [
   {
     step: "Paso 1",
     title: "Creás tu cuenta",
-    description: "Entrás con email, definís tu alias público y quedás listo para competir.",
+    description: "Elegís tu alias, confirmás tu email y quedás listo para entrar al juego.",
   },
   {
     step: "Paso 2",
     title: "Cargás tus pronósticos",
-    description: "Cada partido abierto aparece en un flujo simple, rápido y natural para móvil.",
+    description: "Vas a encontrar tus partidos abiertos en una pantalla simple y rápida para móvil.",
   },
   {
     step: "Paso 3",
     title: "Seguís tu posición",
-    description: "Ves ranking general, de grupo y de comunidad sin perder contexto.",
+    description: "Podés comparar tu rendimiento en la tabla general, en tu grupo y en tu comunidad.",
   },
 ];
 
-const moduleHighlights = [
+const playerBenefits = [
   {
-    title: "Matches",
-    description: "Próximos partidos, estado de carga y espacios reservados para pronóstico rápido.",
-    actionLabel: "Abrir partidos",
+    title: "Una experiencia clara",
+    summary: "Todo está orientado a entrar rápido, pronosticar y volver a mirar cómo venís.",
+    status: "Jugador",
+    detail: "La app evita ruido técnico y prioriza las decisiones que importan durante el torneo.",
   },
   {
-    title: "Rankings",
-    description: "Comparativas separadas por alcance para que el juego escale sin confusión.",
-    actionLabel: "Abrir rankings",
+    title: "Competencia con contexto",
+    summary: "No jugás solo contra todos: también competís con tu grupo y tu comunidad.",
+    status: "Social",
+    detail: "Eso le da identidad al juego sin complicar la lectura del ranking.",
   },
   {
-    title: "Comunidades",
-    description: "Una superficie dedicada a oficinas, equipos y grupos organizados.",
-    actionLabel: "Abrir comunidades",
+    title: "Un motivo real para jugar",
+    summary: "SoliProde junta competencia amistosa con una meta solidaria concreta.",
+    status: "Solidario",
+    detail: "La causa no aparece como adorno; es parte central de la propuesta.",
   },
 ];
 
@@ -89,7 +70,7 @@ export default function Home() {
     <PageStack>
       <PageHero
         title="Jugá el Mundial, competí con tu grupo y ayudá a financiar una tesis."
-        description="SoliProde convierte el Prode Mundial Solidario 2026 en una experiencia clara, rápida y organizada para jugadores, grupos, oficinas y comunidades."
+        description="SoliProde convierte el Prode Mundial Solidario 2026 en una experiencia simple para entrar, pronosticar y seguir tu posición desde el teléfono."
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
@@ -104,30 +85,18 @@ export default function Home() {
           >
             Ingresar
           </Link>
-          <Link
-            href="/matches"
-            className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          >
-            Ver partidos
-          </Link>
         </div>
       </PageHero>
 
-      <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <SurfaceCard tone="dark">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">
-            Prode Mundial Solidario 2026
-          </p>
-          <h2 className="mt-3 max-w-3xl font-serif text-3xl leading-tight sm:text-4xl">
-            Un sistema pensado para que la competencia y la causa convivan en la misma experiencia.
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-            La base actual ya separa panel de jugador, flujo de partidos, rankings por alcance y
-            operación administrativa. El siguiente crecimiento suma lógica real sobre una estructura
-            que ya está ordenada.
+          <p className="text-sm leading-7 text-slate-200">
+            SoliProde está pensado para que cualquier jugador entienda rápido qué hacer:
+            registrarse, entrar al panel, cargar sus pronósticos y seguir su posición sin perderse
+            entre módulos o pantallas técnicas.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {landingMetrics.map((metric) => (
+            {impactMetrics.map((metric) => (
               <HighlightMetric
                 key={metric.label}
                 value={metric.value}
@@ -138,19 +107,29 @@ export default function Home() {
           </div>
         </SurfaceCard>
 
-        <SurfaceCard title="Qué resuelve SoliProde" description="La plataforma ordena tres capas del juego desde el inicio.">
+        <SurfaceCard
+          title="Qué vas a encontrar"
+          description="Una base clara para jugar el torneo y seguir tu avance."
+        >
           <div className="space-y-4">
-            {systemScopes.map((scope) => (
-              <div key={scope.title} className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-[var(--color-ink)]">{scope.title}</h3>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--color-accent)] ring-1 ring-[var(--color-line)]">
-                    {scope.status}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{scope.summary}</p>
-              </div>
-            ))}
+            <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold text-[var(--color-ink)]">Tu panel personal</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Estado de tu cuenta, de tu inscripción y próximos pasos dentro del torneo.
+              </p>
+            </div>
+            <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold text-[var(--color-ink)]">Tus partidos</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Fixture abierto para cargar pronósticos de forma rápida y desde móvil.
+              </p>
+            </div>
+            <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold text-[var(--color-ink)]">Tus posiciones</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Ranking general, de grupo y de comunidad cuando el juego ya esté en marcha.
+              </p>
+            </div>
           </div>
         </SurfaceCard>
       </section>
@@ -166,61 +145,46 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <SurfaceCard
-          title="Sistema preparado para escalar"
-          description="Cada superficie principal ya tiene una responsabilidad clara dentro del producto."
-        >
-          <div className="grid gap-4">
-            {systemScopes.map((scope) => (
-              <ScopeCard
-                key={scope.title}
-                title={scope.title}
-                summary={scope.summary}
-                status={scope.status}
-                detail={scope.detail}
-              />
-            ))}
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard title="Módulos visibles hoy" description="La navegación actual ya muestra las piezas del sistema que van a crecer en las próximas iteraciones.">
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
-            {moduleHighlights.map((item) => (
-              <ActionTile
-                key={item.title}
-                title={item.title}
-                description={item.description}
-                actionLabel={item.actionLabel}
-              />
-            ))}
-          </div>
-        </SurfaceCard>
-      </section>
+      <SurfaceCard
+        title="Por qué se siente distinto"
+        description="La experiencia está pensada para jugadores reales, no para navegar una demo del sistema."
+      >
+        <div className="grid gap-4 lg:grid-cols-3">
+          {playerBenefits.map((item) => (
+            <ScopeCard
+              key={item.title}
+              title={item.title}
+              summary={item.summary}
+              status={item.status}
+              detail={item.detail}
+            />
+          ))}
+        </div>
+      </SurfaceCard>
 
       <SurfaceCard tone="accent">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <h2 className="font-serif text-3xl leading-tight text-[var(--color-ink)]">
-              La landing ya cuenta la propuesta y el sistema ya deja ver el producto.
+              Competí, seguí tus posiciones y ayudá a sostener una causa concreta.
             </h2>
             <p className="mt-3 text-sm leading-7 text-[var(--color-muted)] sm:text-base">
-              El próximo tramo natural es cerrar el circuito real de registro, login y primer uso
-              del panel, y después conectar partidos, rankings y grupos sobre Supabase.
+              Si ya tenés cuenta, podés volver a ingresar. Si recién empezás, el siguiente paso es
+              crear tu perfil y quedar listo para el fixture.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/dashboard"
+              href="/register"
               className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
             >
-              Ver panel
+              Empezar ahora
             </Link>
             <Link
-              href="/admin"
+              href="/login"
               className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             >
-              Ver admin
+              Ya tengo cuenta
             </Link>
           </div>
         </div>

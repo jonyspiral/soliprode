@@ -39,7 +39,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
       if (signInError) {
         setError(
-          mapAuthError(signInError, "No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo."),
+          mapAuthError(signInError, "No pudimos ingresar con esos datos. Revisalos e intentá de nuevo."),
         );
         return;
       }
@@ -47,7 +47,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       const user = data.user;
 
       if (!user) {
-        setError("La sesión se abrió, pero no pudimos recuperar tu usuario. Intentá nuevamente.");
+        setError("Entraste, pero no pudimos recuperar tu cuenta todavía. Intentá de nuevo.");
         return;
       }
 
@@ -62,7 +62,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       router.replace(nextPath);
       router.refresh();
     } catch {
-      setError("No pudimos iniciar sesión en este momento. Intentá de nuevo.");
+      setError("No pudimos ingresar en este momento. Intentá de nuevo.");
     } finally {
       setPending(false);
     }
@@ -130,7 +130,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <p className="text-sm text-[var(--color-muted)]">
         ¿Todavía no tenés cuenta?{" "}
         <Link href="/register" className="font-semibold text-[var(--color-accent)]">
-          Crear cuenta
+          Creala acá
         </Link>
       </p>
     </form>

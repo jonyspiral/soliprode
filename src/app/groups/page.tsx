@@ -1,48 +1,40 @@
 import { PageHero } from "@/components/page-hero";
-import { ActionTile, PageStack, ScopeCard } from "@/components/placeholder-primitives";
+import { ActionTile, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 
 export default function GroupsPage() {
   return (
     <PageStack>
       <PageHero
-        title="Grupos del torneo."
-        description="Espacio base para crear grupos, sumarse a uno existente y compartir invitaciones sin mezclar todavía reglas reales ni persistencia."
+        title="Tus grupos."
+        description="Acá vas a poder crear un grupo, unirte a uno existente y compartir la invitación cuando esa parte del juego ya esté activa."
       />
+
       <section className="grid gap-4 md:grid-cols-3">
         <ActionTile
           title="Crear grupo"
-          description="Placeholder para iniciar un grupo propio de amigos, oficina o comunidad."
+          description="Para jugar con amigos, compañeros o un equipo más chico."
           actionLabel="Crear"
         />
         <ActionTile
-          title="Unirse a un grupo"
-          description="Carril reservado para código, enlace o invitación directa."
-          actionLabel="Unirse"
+          title="Unirte a un grupo"
+          description="Con un código o invitación cuando ese flujo esté habilitado."
+          actionLabel="Unirme"
         />
         <ActionTile
-          title="Link de invitación"
-          description="Módulo visual para compartir un enlace único cuando exista backend real."
-          actionLabel="Copiar link"
+          title="Invitar"
+          description="Más adelante vas a compartir un link simple desde este mismo espacio."
+          actionLabel="Compartir"
         />
       </section>
-      <section className="grid gap-4 lg:grid-cols-2">
-        <ScopeCard
-          title="Competencia cerrada"
-          summary="Cada grupo va a tener ranking, actividad y acceso rápido a invitaciones."
-          status="Diseñado"
-          detail="La página ya separa alta, ingreso y distribución de invitaciones como carriles distintos."
-        />
-        <ScopeCard
-          title="Uso esperado"
-          summary="Oficinas, amigos o comunidades chicas con ganas de competir entre sí."
-          status="Listo para crecer"
-          detail="El siguiente salto funcional es conectar código de invitación, owner y ranking interno real."
-        />
-      </section>
-      <SurfaceCard title="Vista futura del grupo" description="Placeholder para ranking interno y actividad del grupo.">
-        <div className="rounded-[1.5rem] border border-dashed border-[var(--color-line)] bg-slate-50 p-5 text-sm leading-6 text-[var(--color-muted)]">
-          Esta superficie va a alojar standings internos, comparación entre miembros y CTA de invitación.
+
+      <SurfaceCard
+        title="Qué vas a encontrar acá"
+        description="La idea es que el grupo sea una capa simple para competir de forma más cercana."
+      >
+        <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-5 text-sm leading-6 text-[var(--color-muted)]">
+          Cuando el flujo esté completo, esta pantalla va a concentrar ranking interno, miembros e
+          invitaciones sin mezclarlo con el resto del torneo.
         </div>
       </SurfaceCard>
     </PageStack>

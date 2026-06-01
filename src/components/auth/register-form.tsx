@@ -60,13 +60,13 @@ export function RegisterForm() {
       }
 
       if (!data.user) {
-        setError("No pudimos completar el registro. Intentá de nuevo.");
+        setError("No pudimos completar el alta. Intentá de nuevo.");
         return;
       }
 
       if (!data.session) {
         setSuccess(
-          "Tu cuenta fue creada. Antes de continuar necesitás confirmar tu email y después iniciar sesión.",
+          "Tu cuenta ya fue creada. Confirmá tu email y después ingresá con la misma cuenta.",
         );
         router.replace("/login");
         router.refresh();
@@ -187,38 +187,16 @@ export function RegisterForm() {
             placeholder="Opcional por ahora"
           />
           <p className="text-xs leading-5 text-[var(--color-muted)]">
-            Queda visible en el flujo, pero todavía no se vincula automáticamente al registro.
+            Si llegaste por una invitación o promotor, podés dejarlo cargado ahora.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <label htmlFor="community_name" className="text-sm font-semibold text-[var(--color-ink)]">
-              Comunidad
-            </label>
-            <input
-              id="community_name"
-              name="community_name"
-              type="text"
-              disabled
-              className="rounded-2xl border border-dashed border-[var(--color-line)] bg-white px-4 py-3 text-sm text-slate-400"
-              placeholder="Próximamente"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <label htmlFor="group_name" className="text-sm font-semibold text-[var(--color-ink)]">
-              Grupo
-            </label>
-            <input
-              id="group_name"
-              name="group_name"
-              type="text"
-              disabled
-              className="rounded-2xl border border-dashed border-[var(--color-line)] bg-white px-4 py-3 text-sm text-slate-400"
-              placeholder="Próximamente"
-            />
-          </div>
+        <div className="rounded-[1.25rem] border border-dashed border-[var(--color-line)] bg-white p-4">
+          <p className="text-sm font-semibold text-[var(--color-ink)]">Grupo y comunidad</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+            Los vas a elegir después de entrar. Primero necesitamos crear tu cuenta y dejar lista
+            tu inscripción.
+          </p>
         </div>
       </div>
 

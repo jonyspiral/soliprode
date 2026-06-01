@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { mobileNavItems, navItems } from "@/lib/navigation";
+import {
+  mobileNavItemsAuthenticated,
+  mobileNavItemsLoggedOut,
+  primaryNavItemsAuthenticated,
+  primaryNavItemsLoggedOut,
+  secondaryNavItems,
+} from "@/lib/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = {
@@ -85,24 +91,28 @@ export function AppShell({ children }: AppShellProps) {
     router.refresh();
   }
 
+  const primaryNavItems =
+    authReady && isAuthenticated ? primaryNavItemsAuthenticated : primaryNavItemsLoggedOut;
+  const mobileNavItems =
+    authReady && isAuthenticated ? mobileNavItemsAuthenticated : mobileNavItemsLoggedOut;
+
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,#f5f7ff,transparent_32%),linear-gradient(180deg,#fcfdff_0%,#f3f7fb_100%)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--color-line)]/70 bg-[color:var(--color-surface)]/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
-            <Link href="/" className="font-serif text-xl font-semibold tracking-tight">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f5f9ff,transparent_30%),linear-gradient(180deg,#fdfefe_0%,#f3f7fb_100%)]">
+      <header className="sticky top-0 z-40 border-b border-[var(--color-line)]/80 bg-[color:var(--color-surface)]/92 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0">
+            <Link href="/" className="font-serif text-[1.75rem] font-semibold tracking-tight">
               SoliProde
             </Link>
-            <p className="text-sm text-[var(--color-muted)]">
-              Prode Mundial Solidario 2026
-            </p>
+            <p className="text-sm text-[var(--color-muted)]">Prode Mundial Solidario 2026</p>
           </div>
+
           <div className="hidden items-center gap-2 sm:flex">
             {!authReady || !isAuthenticated ? (
               <>
                 <Link
                   href="/login"
-                  className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:text-[var(--color-accent)]"
                 >
                   Ingresar
                 </Link>
@@ -132,26 +142,46 @@ export function AppShell({ children }: AppShellProps) {
             )}
           </div>
         </div>
-        <nav className="mx-auto flex w-full max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6">
-          {navItems.map((item) => {
-            const active = isActive(pathname, item.href);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition",
-                  active
-                    ? "bg-[var(--color-accent)] text-white"
-                    : "bg-white text-[var(--color-muted)] ring-1 ring-[var(--color-line)] hover:text-[var(--color-ink)]",
-                ].join(" ")}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 pb-4 sm:px-6">
+          <nav className="flex gap-2 overflow-x-auto">
+            {primaryNavItems.map((item) => {
+              const active = isActive(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={[
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition",
+                    active
+                      ? "bg-[var(--color-accent)] text-white"
+                      : "bg-white text-[var(--color-ink)] ring-1 ring-[var(--color-line)] hover:text-[var(--color-accent)]",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <nav className="hidden items-center gap-4 text-sm text-[var(--color-muted)] sm:flex">
+            <span className="font-semibold text-[var(--color-ink)]">Más</span>
+            {secondaryNavItems.map((item) => {
+              const active = isActive(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "font-semibold text-[var(--color-accent)]" : "hover:text-[var(--color-ink)]"}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </header>
 
       <main
@@ -163,8 +193,8 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[color:var(--color-surface)]/95 px-2 py-2 backdrop-blur sm:hidden">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-1">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[color:var(--color-surface)]/96 px-2 py-2 backdrop-blur sm:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-2">
           {mobileNavItems.map((item) => {
             const active = isActive(pathname, item.href);
 
@@ -176,8 +206,23 @@ export function AppShell({ children }: AppShellProps) {
                   "flex min-w-0 flex-1 justify-center rounded-2xl px-2 py-3 text-center text-[11px] font-semibold transition",
                   active
                     ? "bg-[var(--color-accent)] text-white"
-                    : "text-[var(--color-muted)] hover:bg-white",
+                    : "bg-white text-[var(--color-muted)] ring-1 ring-[var(--color-line)] hover:text-[var(--color-ink)]",
                 ].join(" ")}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="mx-auto mt-2 flex max-w-md justify-center gap-4 text-[11px] font-medium text-[var(--color-muted)]">
+          {secondaryNavItems.map((item) => {
+            const active = isActive(pathname, item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "text-[var(--color-accent)]" : undefined}
               >
                 {item.label}
               </Link>
