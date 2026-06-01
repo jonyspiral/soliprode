@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import {
+  hasSupabasePublishableKey,
   getSupabasePublishableKey,
   getSupabaseUrl,
   hasSupabaseServiceRoleKey,
 } from "@/lib/supabase/config";
 
 export async function GET() {
+  const serviceRoleConfigured = hasSupabaseServiceRoleKey();
+  const publishableKeyConfigured = hasSupabasePublishableKey();
+
   try {
     const supabaseUrl = getSupabaseUrl();
     const supabasePublishableKey = getSupabasePublishableKey();
@@ -22,8 +26,10 @@ export async function GET() {
         {
           ok: false,
           status: response.status,
+          reason: response.status === 401 || response.status === 403 ? "invalid_publishable_key" : "upstream_error",
           projectUrl: supabaseUrl,
-          serviceRoleConfigured: hasSupabaseServiceRoleKey(),
+          publishableKeyConfigured,
+          serviceRoleConfigured,
         },
         { status: 502 },
       );
@@ -33,15 +39,23 @@ export async function GET() {
       ok: true,
       status: response.status,
       projectUrl: supabaseUrl,
-      serviceRoleConfigured: hasSupabaseServiceRoleKey(),
+      publishableKeyConfigured,
+      serviceRoleConfigured,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Supabase error";
+    const missingEnv =
+      message.includes("NEXT_PUBLIC_SUPABASE_URL") || message.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Unknown Supabase error",
+        error: message,
+        reason: missingEnv ? "missing_env" : "network_or_supabase_unreachable",
+        publishableKeyConfigured,
+        serviceRoleConfigured,
       },
-      { status: 500 },
+      { status: missingEnv ? 500 : 503 },
     );
   }
 }

@@ -14,6 +14,13 @@ export function getSupabasePublishableKey() {
   return getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 }
 
+export function hasSupabasePublishableKey() {
+  return Boolean(
+    getOptionalEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ||
+      getOptionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  );
+}
+
 export function getSupabaseServiceRoleKey() {
   return getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
