@@ -22,6 +22,11 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 - Archivo: `supabase/migrations/003_harden_promoter_view_and_bonus_policies.sql`
 - Objetivo: endurecer grants de `public.active_promoters_public` y versionar las policies propias de `bonus_predictions`.
 
+## Migración correctiva de grants públicos
+
+- Archivo: `supabase/migrations/004_fix_public_read_grants.sql`
+- Objetivo: alinear los `grant select` de `teams`, `matches` y `rankings_cache` con las policies públicas de lectura ya definidas por RLS.
+
 ## Tablas
 
 ### `profiles`
@@ -135,6 +140,10 @@ Se permite `select` público en:
 - `rankings_cache`
 
 Motivo: son tablas de lectura del torneo o resultados agregados visibles para todos.
+
+Importante:
+- además de la policy RLS, estas tablas necesitan `grant select` a `anon` y `authenticated`;
+- la migración `004_fix_public_read_grants.sql` corrige ese punto para evitar errores `permission denied` aun cuando la policy exista.
 
 ### Lectura autenticada propia
 
