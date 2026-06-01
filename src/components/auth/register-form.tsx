@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mapAuthError } from "@/lib/supabase/auth";
+import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function RegisterForm() {
@@ -68,6 +69,13 @@ export function RegisterForm() {
         );
         router.replace("/login");
         router.refresh();
+        return;
+      }
+
+      const bootstrapResult = await ensureBrowserUserRecords(supabase, data.user);
+
+      if (!bootstrapResult.ok) {
+        setError(bootstrapResult.error);
         return;
       }
 

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginAction, initialAuthFormState } from "@/app/login/actions";
-import { SubmitButton } from "@/components/auth/submit-button";
+import { mapAuthError } from "@/lib/supabase/auth";
+import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
   nextPath: string;
@@ -12,19 +13,68 @@ type LoginFormProps = {
 
 export function LoginForm({ nextPath }: LoginFormProps) {
   const router = useRouter();
-  const [state, formAction] = useActionState(loginAction, initialAuthFormState);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  useEffect(() => {
-    if (!state.redirectTo) {
-      return;
+  async function handleSubmit(formData: FormData) {
+    setError(null);
+    setSuccess(null);
+    setPending(true);
+
+    try {
+      const email = String(formData.get("email") ?? "").trim();
+      const password = String(formData.get("password") ?? "").trim();
+
+      if (!email || !password) {
+        setError("Completá email y contraseña para continuar.");
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(
+          mapAuthError(signInError, "No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo."),
+        );
+        return;
+      }
+
+      const user = data.user;
+
+      if (!user) {
+        setError("La sesión se abrió, pero no pudimos recuperar tu usuario. Intentá nuevamente.");
+        return;
+      }
+
+      const bootstrapResult = await ensureBrowserUserRecords(supabase, user);
+
+      if (!bootstrapResult.ok) {
+        setError(bootstrapResult.error);
+        return;
+      }
+
+      setSuccess("Sesión iniciada correctamente. Redirigiendo.");
+      router.replace(nextPath);
+      router.refresh();
+    } catch {
+      setError("No pudimos iniciar sesión en este momento. Intentá de nuevo.");
+    } finally {
+      setPending(false);
     }
-
-    router.replace(state.redirectTo);
-    router.refresh();
-  }, [router, state.redirectTo]);
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={async (formData) => {
+        await handleSubmit(formData);
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name="next" value={nextPath} />
 
       <div className="grid gap-2">
@@ -57,19 +107,25 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         />
       </div>
 
-      {state.error ? (
+      {error ? (
         <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {state.error}
+          {error}
         </p>
       ) : null}
 
-      {state.success ? (
+      {success ? (
         <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {state.success}
+          {success}
         </p>
       ) : null}
 
-      <SubmitButton idleLabel="Ingresar" pendingLabel="Ingresando..." />
+      <button
+        type="submit"
+        disabled={pending}
+        className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {pending ? "Ingresando..." : "Ingresar"}
+      </button>
 
       <p className="text-sm text-[var(--color-muted)]">
         ¿Todavía no tenés cuenta?{" "}
