@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SoliProde
+
+SoliProde es la base del **Prode Mundial Solidario 2026**.
+
+Objetivo inicial: una PWA mobile-first para jugar el Mundial, competir en grupos y sostener una causa solidaria, con una base técnica simple de extender.
+
+## Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- ESLint
+- `src/` directory
+- alias `@/*`
+- deploy compatible con Vercel
 
 ## Getting Started
 
-First, run the development server:
+Primero levantá el entorno local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev
+npm run lint
+npm run build
+```
 
-## Learn More
+## Rutas base
 
-To learn more about Next.js, take a look at the following resources:
+- `/`
+- `/login`
+- `/dashboard`
+- `/matches`
+- `/rankings`
+- `/groups`
+- `/communities`
+- `/admin`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estructura para agentes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Antes de trabajar en el repo:
 
-## Deploy on Vercel
+1. Leer [AGENTS.md](AGENTS.md)
+2. Leer [.antigravity-context.md](.antigravity-context.md)
+3. Leer `src/content/docs/protocolo-agentes.md`
+4. Leer `src/content/docs/docs-map.md`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estado actual
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Base visual y navegación compartida creadas.
+- Landing inicial de SoliProde activa.
+- Placeholders listos para las rutas principales.
+- Sin auth, sin pagos, sin Supabase y sin lógica de negocio todavía.
+
+## Deploy
+
+El proyecto está preparado para desplegarse en Vercel. Antes de publicar cambios, seguir `src/content/docs/runbooks/deploy-main.md`.
+
+## Próximos pasos sugeridos
+
+- Definir auth y sesión.
+- Modelar partidos y predicciones.
+- Construir rankings, grupos y comunidades.
+- Integrar Supabase cuando la base funcional esté cerrada.
