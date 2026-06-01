@@ -17,6 +17,11 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 - Archivo: `supabase/migrations/002_registration_policies.sql`
 - Objetivo: habilitar el primer flujo de registro con policies mínimas sobre `profiles`, `participations`, `communities` y `groups`.
 
+## Migración correctiva
+
+- Archivo: `supabase/migrations/003_harden_promoter_view_and_bonus_policies.sql`
+- Objetivo: endurecer grants de `public.active_promoters_public` y versionar las policies propias de `bonus_predictions`.
+
 ## Tablas
 
 ### `profiles`
@@ -198,6 +203,25 @@ La vista expone únicamente:
 
 Y solo para promotores activos.
 
+La migración correctiva posterior endurece los grants de la vista con:
+
+- `revoke all` para `anon`
+- `revoke all` para `authenticated`
+- `grant select` explícito para `anon`
+- `grant select` explícito para `authenticated`
+
+De ese modo la superficie pública queda reducida a lectura explícita solamente.
+
+### `bonus_predictions`
+
+La migración correctiva agrega o refresca estas policies:
+
+- `authenticated users can read own bonus predictions`
+- `authenticated users can insert own bonus predictions`
+- `authenticated users can update own bonus predictions`
+
+Regla: cada usuario autenticado solo puede leer, crear o editar la fila cuyo `profile_id = auth.uid()`.
+
 ## Decisiones de esta etapa
 
 - Se usa `gen_random_uuid()` en todas las PK que no dependen de `auth.users`.
@@ -205,9 +229,10 @@ Y solo para promotores activos.
 - Se agregan triggers de `updated_at` donde ese campo existe.
 - Se dejan checks básicos en `role`, `visibility`, `payment_status`, `match status` y scores no negativos.
 - La lectura pública limitada de promotores activos se resuelve con vista, no con RLS directa sobre columnas.
+- Los grants de la vista pública de promotores se endurecen en una migración correctiva separada para sincronizar repo y base real.
 
 ## Próximos pasos sugeridos
 
-1. Agregar políticas adicionales cuando se definan bonus predictions, administración y lectura privada de owners en grupos/comunidades no públicas.
+1. Agregar políticas adicionales cuando se definan administración y lectura privada de owners en grupos/comunidades no públicas.
 2. Crear migraciones siguientes para vistas, funciones o materialización de rankings.
 3. Recién después conectar este esquema con auth y UI.
