@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/config";
+import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 const protectedRoutes = ["/dashboard"];
 const authRoutes = ["/login", "/register"];
@@ -36,7 +37,10 @@ export async function updateSession(request: NextRequest) {
   try {
     const {
       data: { user: sessionUser },
-    } = await supabase.auth.getUser();
+    } = await withSupabaseTimeout(
+      supabase.auth.getUser(),
+      "Supabase session check timed out in proxy",
+    );
 
     user = sessionUser;
   } catch {

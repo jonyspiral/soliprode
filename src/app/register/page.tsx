@@ -5,6 +5,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 export default async function RegisterPage() {
   let authErrorMessage: string | null = null;
@@ -13,7 +14,7 @@ export default async function RegisterPage() {
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     if (user) {
       redirect("/dashboard");

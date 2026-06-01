@@ -3,6 +3,7 @@ import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 export default async function DashboardPage() {
   let hasAuthenticatedUser = false;
@@ -29,7 +30,7 @@ export default async function DashboardPage() {
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     if (!user) {
       redirect("/login");
@@ -38,20 +39,23 @@ export default async function DashboardPage() {
     hasAuthenticatedUser = true;
     userEmail = user.email ?? null;
 
-    [{ data: profile }, { data: participation }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, public_alias, whatsapp, email, role")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("participations")
-        .select("payment_status, created_at")
-        .eq("profile_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    [{ data: profile }, { data: participation }] = await withSupabaseTimeout(
+      Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, public_alias, whatsapp, email, role")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("participations")
+          .select("payment_status, created_at")
+          .eq("profile_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+      ]),
+      "Supabase dashboard query timed out",
+    );
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =

@@ -5,6 +5,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 type LoginPageProps = {
   searchParams?: Promise<{
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     if (user) {
       redirect("/dashboard");
