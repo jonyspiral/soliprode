@@ -12,6 +12,11 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 
 - Archivo: `supabase/migrations/001_initial_schema.sql`
 
+## Migración de registro
+
+- Archivo: `supabase/migrations/002_registration_policies.sql`
+- Objetivo: habilitar el primer flujo de registro con policies mínimas sobre `profiles`, `participations`, `communities` y `groups`.
+
 ## Tablas
 
 ### `profiles`
@@ -144,15 +149,65 @@ Se permite que usuarios autenticados inserten y actualicen solo sus propias fila
 
 No se agregan políticas de escritura pública en ninguna tabla.
 
+## Policies de registro
+
+La segunda migración agrega solo el mínimo necesario para el primer flujo de alta.
+
+### `profiles`
+
+- `authenticated users can insert own profile`
+- `authenticated users can update own profile`
+
+Regla: el usuario autenticado solo puede insertar o editar la fila cuyo `id = auth.uid()`.
+
+### `participations`
+
+- `authenticated users can insert own participations`
+- `authenticated users can update own pending participations`
+
+Regla: el usuario autenticado solo puede crear participaciones propias y solo puede editar participaciones propias cuyo `payment_status = 'pending'`.
+
+### `communities`
+
+- `public can read public communities`
+- `authenticated users can insert own communities`
+- `owners can update own communities`
+
+Regla: lectura pública únicamente cuando `visibility = 'public'`. La escritura queda reservada al owner.
+
+### `groups`
+
+- `public can read public groups`
+- `authenticated users can insert own groups`
+- `owners can update own groups`
+
+Regla: mismo criterio de visibilidad pública y ownership que en comunidades.
+
+### `promoters`
+
+RLS sola no permite exponer solo algunas columnas; filtra filas, no columnas.
+
+Por eso la migración agrega:
+
+- vista `public.active_promoters_public`
+
+La vista expone únicamente:
+
+- `code`
+- `name`
+
+Y solo para promotores activos.
+
 ## Decisiones de esta etapa
 
 - Se usa `gen_random_uuid()` en todas las PK que no dependen de `auth.users`.
 - Se usan `created_at default now()` en tablas de dominio.
 - Se agregan triggers de `updated_at` donde ese campo existe.
 - Se dejan checks básicos en `role`, `visibility`, `payment_status`, `match status` y scores no negativos.
+- La lectura pública limitada de promotores activos se resuelve con vista, no con RLS directa sobre columnas.
 
 ## Próximos pasos sugeridos
 
-1. Agregar políticas adicionales cuando se definan flujos reales de perfil, bonus predictions y administración.
+1. Agregar políticas adicionales cuando se definan bonus predictions, administración y lectura privada de owners en grupos/comunidades no públicas.
 2. Crear migraciones siguientes para vistas, funciones o materialización de rankings.
 3. Recién después conectar este esquema con auth y UI.
