@@ -8,6 +8,7 @@ import {
   readRequiredString,
   type AuthFormState,
 } from "@/lib/supabase/auth";
+import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export { initialAuthFormState };
@@ -26,6 +27,9 @@ export async function registerAction(
     const whatsapp = readOptionalString(formData, "whatsapp");
     const email = readRequiredString(formData, "email");
     const password = readRequiredString(formData, "password");
+    const promoterCode = readOptionalString(formData, "promoter_code");
+    const communityName = readOptionalString(formData, "community_name");
+    const groupName = readOptionalString(formData, "group_name");
 
     if (publicAlias.length < 3) {
       return {
@@ -42,6 +46,9 @@ export async function registerAction(
           full_name: fullName,
           public_alias: publicAlias,
           whatsapp,
+          promoter_code: promoterCode,
+          community_name: communityName,
+          group_name: groupName,
         },
       },
     });
@@ -71,55 +78,11 @@ export async function registerAction(
       };
     }
 
-    const { error: profileError } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        full_name: fullName,
-        public_alias: publicAlias,
-        whatsapp,
-        email,
-        role: "player",
-      },
-      {
-        onConflict: "id",
-      },
-    );
+    const bootstrapResult = await ensureRegisteredUserRecords(user);
 
-    if (profileError) {
+    if (!bootstrapResult.ok) {
       return {
-        error:
-          "La cuenta se creó, pero no pudimos guardar tu perfil. Intentá ingresar nuevamente en unos minutos.",
-      };
-    }
-
-    const { data: existingParticipation, error: participationReadError } = await supabase
-      .from("participations")
-      .select("id")
-      .eq("profile_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (participationReadError) {
-      return {
-        error:
-          "La cuenta se creó, pero no pudimos verificar tu inscripción inicial. Intentá ingresar nuevamente.",
-      };
-    }
-
-    if (!existingParticipation) {
-      const { error: participationInsertError } = await supabase.from("participations").insert({
-        profile_id: user.id,
-        payment_status: "pending",
-        promoter_id: null,
-        community_id: null,
-        group_id: null,
-      });
-
-      if (participationInsertError) {
-        return {
-          error:
-            "La cuenta se creó, pero no pudimos completar tu inscripción inicial. Intentá ingresar nuevamente.",
-        };
+        error: bootstrapResult.error,
       }
     }
   } catch (error) {

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import { mobileNavItems, navItems } from "@/lib/navigation";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = {
   children: ReactNode;
@@ -19,7 +20,54 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isAuthScreen = pathname === "/login" || pathname === "/register";
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const supabase = createBrowserSupabaseClient();
+    let active = true;
+
+    async function syncUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!active) {
+        return;
+      }
+
+      setIsAuthenticated(Boolean(user));
+      setAuthReady(true);
+    }
+
+    void syncUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) {
+        return;
+      }
+
+      setIsAuthenticated(Boolean(session?.user));
+      setAuthReady(true);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,#f5f7ff,transparent_32%),linear-gradient(180deg,#fcfdff_0%,#f3f7fb_100%)]">
@@ -34,18 +82,38 @@ export function AppShell({ children }: AppShellProps) {
             </p>
           </div>
           <div className="hidden items-center gap-2 sm:flex">
-            <Link
-              href="/login"
-              className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-            >
-              Ingresar
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
-            >
-              Crear cuenta
-            </Link>
+            {!authReady || !isAuthenticated ? (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                >
+                  Ingresar
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
+                >
+                  Crear cuenta
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                >
+                  Mi panel
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
+                >
+                  Salir
+                </button>
+              </>
+            )}
           </div>
         </div>
         <nav className="mx-auto flex w-full max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6">

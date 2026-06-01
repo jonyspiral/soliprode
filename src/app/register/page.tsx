@@ -1,18 +1,26 @@
 import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
+import { InfoNotice } from "@/components/placeholder-primitives";
 import { RegisterForm } from "@/components/auth/register-form";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function RegisterPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let authErrorMessage: string | null = null;
 
-  if (user) {
-    redirect("/dashboard");
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      redirect("/dashboard");
+    }
+  } catch {
+    authErrorMessage =
+      "No pudimos validar la conexión con Supabase en este momento. El formulario sigue disponible, pero si el problema persiste no se va a completar el alta.";
   }
 
   return (
@@ -25,6 +33,7 @@ export default async function RegisterPage() {
         title="Registro"
         description="Comunidad y grupo quedan visibles en el formulario, pero su creación todavía no se ejecuta en esta etapa."
       >
+        {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
         <RegisterForm />
       </SurfaceCard>
     </PageStack>

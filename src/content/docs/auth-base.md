@@ -14,7 +14,9 @@ Estado: registro y login básicos implementados con Supabase Auth sobre Next.js 
 - Inserción de `profiles` después del signup.
 - Inserción de `participations` con `payment_status = 'pending'`.
 - Login con email y password.
+- Logout básico desde la shell.
 - Dashboard protegido por sesión.
+- Bootstrap automático de `profiles` y `participations` en el primer login si el signup quedó frenado por confirmación de email.
 
 ## Archivos clave
 
@@ -22,6 +24,7 @@ Estado: registro y login básicos implementados con Supabase Auth sobre Next.js 
 |---|---|
 | `src/app/register/actions.ts` | Alta de usuario, perfil y participación |
 | `src/app/login/actions.ts` | Login con email/password |
+| `src/lib/supabase/bootstrap.ts` | Repara o completa perfil + participación en el primer login |
 | `src/lib/supabase/server.ts` | Cliente SSR con cookies |
 | `src/lib/supabase/middleware.ts` | Refresh de sesión y guards de ruta |
 | `src/proxy.ts` | Entrada de proxy de sesión en Next 16 |

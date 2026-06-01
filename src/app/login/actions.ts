@@ -7,6 +7,7 @@ import {
   readRequiredString,
   type AuthFormState,
 } from "@/lib/supabase/auth";
+import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export { initialAuthFormState };
@@ -28,6 +29,24 @@ export async function loginAction(
     if (error) {
       return {
         error: mapAuthError(error, "No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo."),
+      };
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        error: "La sesión se abrió, pero no pudimos recuperar tu usuario. Intentá nuevamente.",
+      };
+    }
+
+    const bootstrapResult = await ensureRegisteredUserRecords(user);
+
+    if (!bootstrapResult.ok) {
+      return {
+        error: bootstrapResult.error,
       };
     }
   } catch (error) {

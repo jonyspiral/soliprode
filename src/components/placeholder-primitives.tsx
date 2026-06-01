@@ -99,3 +99,17 @@ type PageStackProps = {
 export function PageStack({ children }: PageStackProps) {
   return <div className="flex flex-col gap-5 pb-24 sm:gap-6 sm:pb-0">{children}</div>;
 }
+
+type InfoNoticeProps = {
+  message: string;
+  tone?: "info" | "error";
+};
+
+export function InfoNotice({ message, tone = "info" }: InfoNoticeProps) {
+  const toneClass =
+    tone === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-700"
+      : "border-sky-200 bg-sky-50 text-sky-700";
+
+  return <p className={`rounded-2xl border px-4 py-3 text-sm ${toneClass}`}>{message}</p>;
+}

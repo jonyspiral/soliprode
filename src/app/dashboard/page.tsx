@@ -1,33 +1,94 @@
 import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
-import { PageStack, StatCard } from "@/components/placeholder-primitives";
+import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let hasAuthenticatedUser = false;
+  let userEmail: string | null = null;
+  let profile:
+    | {
+        full_name: string | null;
+        public_alias: string;
+        whatsapp: string | null;
+        email: string | null;
+        role: string;
+      }
+    | null = null;
+  let participation:
+    | {
+        payment_status: string;
+        created_at: string;
+      }
+    | null = null;
+  let fallbackMessage =
+    "No pudimos validar tu sesión con Supabase en este momento. Reintentá en unos minutos o volvé a ingresar.";
 
-  if (!user) {
-    redirect("/login");
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/login");
+    }
+
+    hasAuthenticatedUser = true;
+    userEmail = user.email ?? null;
+
+    [{ data: profile }, { data: participation }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, public_alias, whatsapp, email, role")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("participations")
+        .select("payment_status, created_at")
+        .eq("profile_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+  } catch {
+    if (hasAuthenticatedUser) {
+      fallbackMessage =
+        "Tu sesión existe, pero no pudimos leer tu perfil o participación. Reintentá en unos minutos o volvé a ingresar.";
+    }
   }
 
-  const [{ data: profile }, { data: participation }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("full_name, public_alias, whatsapp, email, role")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("participations")
-      .select("payment_status, created_at")
-      .eq("profile_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  if (!hasAuthenticatedUser) {
+    return (
+      <PageStack>
+        <PageHero
+          title="Tu panel de juego."
+          description="No pudimos validar tu sesión con Supabase en este momento."
+        />
+        <SurfaceCard
+          title="Estado temporal"
+          description="Fallback seguro cuando Supabase no responde durante la validación de sesión."
+        >
+          <InfoNotice tone="error" message={fallbackMessage} />
+        </SurfaceCard>
+      </PageStack>
+    );
+  }
+
+  if (hasAuthenticatedUser && !profile && !participation) {
+    return (
+      <PageStack>
+        <PageHero
+          title="Tu panel de juego."
+          description="No pudimos cargar tu perfil desde Supabase en este momento."
+        />
+        <SurfaceCard title="Estado temporal" description="Fallback seguro cuando Supabase no responde.">
+          <InfoNotice tone="error" message={fallbackMessage} />
+        </SurfaceCard>
+      </PageStack>
+    );
+  }
 
   return (
     <PageStack>
@@ -53,7 +114,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           label="Email"
-          value={profile?.email ?? user.email ?? "Sin email"}
+          value={profile?.email ?? userEmail ?? "Sin email"}
           detail="Cuenta autenticada actual."
         />
         <StatCard
