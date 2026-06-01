@@ -14,7 +14,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://soliprode.vercel.app"),
+  metadataBase: new URL("https://www.soliprode.com"),
   title: {
     default: "SoliProde",
     template: "%s | SoliProde",
