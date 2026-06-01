@@ -24,6 +24,7 @@ Objetivo: centralizar los planes activos y evitar duplicados mientras SoliProde 
 | Policies de registro | `plans/2026-06-01-registration-rls-policies.md` | Datos / seguridad | IMPLEMENTADO | Policies mínimas para perfil, participación, comunidades y grupos del flujo de registro | P1 | Continuar con auth y writes reales apoyados en estas policies | Agente técnico |
 | Correctivo de vista promoters y bonus policies | `plans/2026-06-01-corrective-promoter-view-and-bonus-policies.md` | Datos / seguridad | IMPLEMENTADO | Alinea grants de la vista pública y policies propias de bonus_predictions | P1 | Construir el flujo de bonus predictions sobre esta base | Agente técnico |
 | Correctivo de grants públicos de lectura | `supabase/migrations/004_fix_public_read_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL de `teams`, `matches` y `rankings_cache` con sus policies públicas RLS | P1 | Aplicar la migración en Supabase para habilitar lectura pública efectiva | Agente técnico |
+| Correctivo de grants autenticados de runtime | `supabase/migrations/005_fix_authenticated_runtime_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL del rol `authenticated` con las policies RLS ya definidas para bootstrap de perfil, participación y módulos interactivos | P0 | Aplicar la migración en Supabase para estabilizar login, registro y writes del usuario | Agente técnico |
 
 ## Backlog sugerido todavía no planificado
 

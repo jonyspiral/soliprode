@@ -27,6 +27,11 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 - Archivo: `supabase/migrations/004_fix_public_read_grants.sql`
 - Objetivo: alinear los `grant select` de `teams`, `matches` y `rankings_cache` con las policies públicas de lectura ya definidas por RLS.
 
+## Migración correctiva de grants autenticados
+
+- Archivo: `supabase/migrations/005_fix_authenticated_runtime_grants.sql`
+- Objetivo: alinear los `grant` SQL del rol `authenticated` con las policies RLS ya definidas para `profiles`, `participations`, `communities`, `groups`, `predictions` y `bonus_predictions`.
+
 ## Tablas
 
 ### `profiles`
@@ -159,6 +164,10 @@ Se permite que usuarios autenticados inserten y actualicen solo sus propias fila
 
 - `predictions`
 
+Importante:
+- además de la policy RLS, el rol `authenticated` necesita privilegios SQL explícitos para ejercer esas lecturas y escrituras;
+- la migración `005_fix_authenticated_runtime_grants.sql` normaliza esos `grant` para las tablas operativas del runtime autenticado y evita errores de bootstrap como "la sesión se abrió, pero no pudimos verificar tu perfil".
+
 ### Sin escritura pública
 
 No se agregan políticas de escritura pública en ninguna tabla.
@@ -239,6 +248,7 @@ Regla: cada usuario autenticado solo puede leer, crear o editar la fila cuyo `pr
 - Se dejan checks básicos en `role`, `visibility`, `payment_status`, `match status` y scores no negativos.
 - La lectura pública limitada de promotores activos se resuelve con vista, no con RLS directa sobre columnas.
 - Los grants de la vista pública de promotores se endurecen en una migración correctiva separada para sincronizar repo y base real.
+- Los grants SQL del rol `authenticated` se corrigen en una migración dedicada para que las policies RLS ya definidas sean utilizables desde el cliente autenticado sin ir corrigiendo tabla por tabla en producción.
 
 ## Próximos pasos sugeridos
 
