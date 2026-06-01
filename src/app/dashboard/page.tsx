@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import { PageHero } from "@/components/page-hero";
-import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
+import {
+  ActionTile,
+  InfoNotice,
+  PageStack,
+  ScopeCard,
+  StatCard,
+} from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -98,7 +104,7 @@ export default async function DashboardPage() {
     <PageStack>
       <PageHero
         title="Tu panel de juego."
-        description="Vista protegida por sesión. Muestra el perfil base y el estado inicial de participación, sin pagos ni predicciones todavía."
+        description="Vista protegida por sesión. La base ya ordena perfil, inscripción y superficies de competencia para sumar puntos, pronósticos y comunidades sin rehacer el panel."
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
@@ -126,6 +132,51 @@ export default async function DashboardPage() {
           value={profile?.whatsapp ?? "No cargado"}
           detail="Contacto opcional para próximas etapas."
         />
+      </section>
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <SurfaceCard
+          title="Próximo foco del jugador"
+          description="El panel queda preparado para abrir siempre con la acción más importante del torneo."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <ActionTile
+              title="Próximo partido a pronosticar"
+              description="Brasil vs Argentina · Miércoles 18 Jun · 20:00. Este bloque va a concentrar el CTA principal del jugador."
+              actionLabel="Cargar pronóstico"
+            />
+            <ActionTile
+              title="Estado de tu circuito"
+              description="Tu participación ya existe y el siguiente paso funcional es completar predicciones, grupos y comunidad."
+              actionLabel="Ver estado"
+            />
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard
+          title="Capas de competencia"
+          description="La estructura ya distingue claramente los distintos planos del juego."
+        >
+          <div className="grid gap-4">
+            <ScopeCard
+              title="General"
+              summary="Posición contra todos los jugadores del torneo."
+              status="Visible"
+              detail="Este alcance va a combinar puntos por partido, bonus y ritmo de aciertos."
+            />
+            <ScopeCard
+              title="Grupo"
+              summary="Comparación cerrada entre amigos, oficina o equipo."
+              status="Reservado"
+              detail="Queda listo para integrarse apenas exista la asignación real a grupos."
+            />
+            <ScopeCard
+              title="Comunidad"
+              summary="Vista compartida por oficina o comunidad organizadora."
+              status="Reservado"
+              detail="La idea es sostener identidad colectiva sin perder la tabla general."
+            />
+          </div>
+        </SurfaceCard>
       </section>
       <SurfaceCard title="Perfil base" description="Datos guardados al momento del alta.">
         <div className="grid gap-3 sm:grid-cols-2">

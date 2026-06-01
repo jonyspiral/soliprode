@@ -6,7 +6,6 @@ import {
   readRequiredString,
   type AuthFormState,
 } from "@/lib/supabase/auth";
-import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export { initialAuthFormState };
@@ -84,15 +83,11 @@ export async function registerAction(
       };
     }
 
-    const bootstrapResult = await ensureRegisteredUserRecords(user);
-
-    if (!bootstrapResult.ok) {
-      return {
-        error: bootstrapResult.error,
-        success: null,
-        redirectTo: null,
-      };
-    }
+    return {
+      error: null,
+      success: "Cuenta creada correctamente. Redirigiendo al panel.",
+      redirectTo: "/dashboard",
+    };
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("missing:")) {
       return {
@@ -108,10 +103,4 @@ export async function registerAction(
       redirectTo: null,
     };
   }
-
-  return {
-    error: null,
-    success: "Cuenta creada correctamente. Redirigiendo al panel.",
-    redirectTo: "/dashboard",
-  };
 }

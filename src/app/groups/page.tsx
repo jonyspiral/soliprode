@@ -1,5 +1,5 @@
 import { PageHero } from "@/components/page-hero";
-import { ActionTile, PageStack } from "@/components/placeholder-primitives";
+import { ActionTile, PageStack, ScopeCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 
 export default function GroupsPage() {
@@ -24,6 +24,20 @@ export default function GroupsPage() {
           title="Link de invitación"
           description="Módulo visual para compartir un enlace único cuando exista backend real."
           actionLabel="Copiar link"
+        />
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ScopeCard
+          title="Competencia cerrada"
+          summary="Cada grupo va a tener ranking, actividad y acceso rápido a invitaciones."
+          status="Diseñado"
+          detail="La página ya separa alta, ingreso y distribución de invitaciones como carriles distintos."
+        />
+        <ScopeCard
+          title="Uso esperado"
+          summary="Oficinas, amigos o comunidades chicas con ganas de competir entre sí."
+          status="Listo para crecer"
+          detail="El siguiente salto funcional es conectar código de invitación, owner y ranking interno real."
         />
       </section>
       <SurfaceCard title="Vista futura del grupo" description="Placeholder para ranking interno y actividad del grupo.">

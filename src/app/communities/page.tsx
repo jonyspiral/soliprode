@@ -1,5 +1,5 @@
 import { PageHero } from "@/components/page-hero";
-import { ActionTile, PageStack } from "@/components/placeholder-primitives";
+import { ActionTile, PageStack, ScopeCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 
 export default function CommunitiesPage() {
@@ -24,6 +24,20 @@ export default function CommunitiesPage() {
           title="Ranking de comunidad"
           description="Entrada visual al ranking compartido y comparación entre miembros."
           actionLabel="Ver ranking"
+        />
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ScopeCard
+          title="Estructura compartida"
+          summary="Una comunidad puede sostener identidad, ranking y propósito solidario en una sola capa."
+          status="Modelo listo"
+          detail="La base contempla owner, visibilidad, invitaciones y futura comparación con otras comunidades."
+        />
+        <ScopeCard
+          title="Uso esperado"
+          summary="Oficinas, colectivos, promociones o equipos extendidos que compiten con narrativa propia."
+          status="Listo para crecer"
+          detail="El siguiente paso funcional es conectar alta real, invitación y ranking de comunidad con Supabase."
         />
       </section>
       <SurfaceCard title="Estructura prevista" description="Placeholder de operación y visibilidad por comunidad.">

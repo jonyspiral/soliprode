@@ -1,59 +1,86 @@
 import Link from "next/link";
 import { PageHero } from "@/components/page-hero";
-import { ActionTile, PageStack } from "@/components/placeholder-primitives";
+import {
+  ActionTile,
+  FlowStep,
+  HighlightMetric,
+  PageStack,
+  ScopeCard,
+} from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 
-const landingSections = [
+const landingMetrics = [
   {
-    title: "Qué es SoliProde",
-    body: "Una experiencia simple para vivir el Mundial con pronósticos entre amigos, equipos y comunidades, con un objetivo solidario concreto detrás.",
+    value: "3 niveles",
+    label: "competencia simultánea",
+    detail: "General, grupo y comunidad con la misma base de puntos.",
   },
   {
-    title: "Cómo se juega",
-    body: "Cada participante completa sus predicciones partido a partido, suma puntos por aciertos y sigue su rendimiento desde un panel claro y rápido.",
+    value: "Mobile first",
+    label: "carga rápida de pronósticos",
+    detail: "Pensado para abrir, predecir y seguir el ranking desde el teléfono.",
   },
   {
-    title: "Competencia individual",
-    body: "Cada usuario ve su progreso, aciertos, próximos desafíos y evolución durante el torneo desde una interfaz pensada primero para móvil.",
-  },
-  {
-    title: "Grupos y oficinas",
-    body: "Equipos de trabajo, comunidades y grupos de amigos podrán competir en rankings propios sin perder la tabla general del torneo.",
-  },
-  {
-    title: "Ranking solidario",
-    body: "El juego acompaña una causa concreta: ayudar a financiar una tesis mientras se genera participación, seguimiento y comunidad.",
-  },
-  {
-    title: "Próximamente",
-    body: "Login real, resultados automáticos, comunidades avanzadas, tablero admin y futura integración con Supabase para persistencia y gestión.",
+    value: "1 causa",
+    label: "objetivo solidario concreto",
+    detail: "El torneo acompaña la financiación de una tesis con una experiencia compartida.",
   },
 ];
 
-const quickLinks = [
-  { href: "/dashboard", label: "Abrir dashboard" },
-  { href: "/matches", label: "Explorar partidos" },
-  { href: "/rankings", label: "Abrir rankings" },
+const systemScopes = [
+  {
+    title: "Panel del jugador",
+    summary: "Seguimiento personal con foco en el próximo partido, puntos y situación de inscripción.",
+    status: "Base lista",
+    detail: "El dashboard ya está planteado para crecer con puntos, predicciones, bonus y estado de pago.",
+  },
+  {
+    title: "Competencia social",
+    summary: "Grupos, oficinas y comunidades como capas de juego, no como afterthought.",
+    status: "Modelo definido",
+    detail: "La estructura contempla rankings paralelos y comparativas sin mezclar reglas ni vistas.",
+  },
+  {
+    title: "Operación admin",
+    summary: "Módulos reservados para usuarios, promotores, partidos, resultados y rankings.",
+    status: "Shell armada",
+    detail: "El sistema ya muestra la anatomía del backoffice para sumar operación real sin rediseño.",
+  },
 ];
 
-const appHighlights = [
+const gameFlow = [
   {
-    title: "Predicciones rápidas",
-    description:
-      "Flujo pensado para móvil con acceso directo al próximo partido y estados claros para cada predicción.",
-    actionLabel: "Ver partidos",
+    step: "Paso 1",
+    title: "Creás tu cuenta",
+    description: "Entrás con email, definís tu alias público y quedás listo para competir.",
   },
   {
-    title: "Competencia por niveles",
-    description:
-      "La base ya contempla ranking general, ranking de grupo y ranking de comunidad sin mezclar responsabilidades.",
-    actionLabel: "Ver rankings",
+    step: "Paso 2",
+    title: "Cargás tus pronósticos",
+    description: "Cada partido abierto aparece en un flujo simple, rápido y natural para móvil.",
   },
   {
-    title: "Crecimiento ordenado",
-    description:
-      "La estructura actual deja espacio para auth, Supabase y operación admin sin rehacer la shell.",
-    actionLabel: "Ver admin",
+    step: "Paso 3",
+    title: "Seguís tu posición",
+    description: "Ves ranking general, de grupo y de comunidad sin perder contexto.",
+  },
+];
+
+const moduleHighlights = [
+  {
+    title: "Matches",
+    description: "Próximos partidos, estado de carga y espacios reservados para pronóstico rápido.",
+    actionLabel: "Abrir partidos",
+  },
+  {
+    title: "Rankings",
+    description: "Comparativas separadas por alcance para que el juego escale sin confusión.",
+    actionLabel: "Abrir rankings",
+  },
+  {
+    title: "Comunidades",
+    description: "Una superficie dedicada a oficinas, equipos y grupos organizados.",
+    actionLabel: "Abrir comunidades",
   },
 ];
 
@@ -62,7 +89,7 @@ export default function Home() {
     <PageStack>
       <PageHero
         title="Jugá el Mundial, competí con tu grupo y ayudá a financiar una tesis."
-        description="SoliProde es la base del Prode Mundial Solidario 2026: una PWA mobile-first preparada para crecer con autenticación, comunidades y rankings en tiempo real."
+        description="SoliProde convierte el Prode Mundial Solidario 2026 en una experiencia clara, rápida y organizada para jugadores, grupos, oficinas y comunidades."
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
@@ -75,70 +102,129 @@ export default function Home() {
             href="/login"
             className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
           >
-            Ya tengo cuenta
+            Ingresar
           </Link>
           <Link
-            href="/dashboard"
+            href="/matches"
             className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
           >
-            Ver demo de producto
+            Ver partidos
           </Link>
         </div>
       </PageHero>
 
-      <section className="grid gap-4 md:grid-cols-[1.3fr_0.7fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <SurfaceCard tone="dark">
-          <h2 className="mt-3 font-serif text-2xl leading-tight sm:text-4xl">
-            Una base visual clara para convertir el prode en experiencia cotidiana.
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-200">
+            Prode Mundial Solidario 2026
+          </p>
+          <h2 className="mt-3 max-w-3xl font-serif text-3xl leading-tight sm:text-4xl">
+            Un sistema pensado para que la competencia y la causa convivan en la misma experiencia.
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-            Esta iteración ordena la shell, la navegación y cada superficie
-            principal del producto para que el siguiente tramo agregue lógica
-            real sin rehacer el frontend.
+            La base actual ya separa panel de jugador, flujo de partidos, rankings por alcance y
+            operación administrativa. El siguiente crecimiento suma lógica real sobre una estructura
+            que ya está ordenada.
           </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {landingMetrics.map((metric) => (
+              <HighlightMetric
+                key={metric.label}
+                value={metric.value}
+                label={metric.label}
+                detail={metric.detail}
+              />
+            ))}
+          </div>
         </SurfaceCard>
 
-        <SurfaceCard title="Accesos rápidos">
-          <div className="mt-4 flex flex-col gap-3">
-            {quickLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-2xl border border-[var(--color-line)] px-4 py-3 text-sm font-medium text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-slate-50"
-              >
-                {link.label}
-              </Link>
+        <SurfaceCard title="Qué resuelve SoliProde" description="La plataforma ordena tres capas del juego desde el inicio.">
+          <div className="space-y-4">
+            {systemScopes.map((scope) => (
+              <div key={scope.title} className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-[var(--color-ink)]">{scope.title}</h3>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--color-accent)] ring-1 ring-[var(--color-line)]">
+                    {scope.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{scope.summary}</p>
+              </div>
             ))}
           </div>
         </SurfaceCard>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        {appHighlights.map((item) => (
-          <ActionTile
-            key={item.title}
+        {gameFlow.map((item) => (
+          <FlowStep
+            key={item.step}
+            step={item.step}
             title={item.title}
             description={item.description}
-            actionLabel={item.actionLabel}
           />
         ))}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {landingSections.map((section) => (
-          <article
-            key={section.title}
-            className="rounded-[1.75rem] border border-[var(--color-line)] bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.04)]"
-          >
-            <h2 className="font-serif text-2xl text-[var(--color-ink)]">
-              {section.title}
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <SurfaceCard
+          title="Sistema preparado para escalar"
+          description="Cada superficie principal ya tiene una responsabilidad clara dentro del producto."
+        >
+          <div className="grid gap-4">
+            {systemScopes.map((scope) => (
+              <ScopeCard
+                key={scope.title}
+                title={scope.title}
+                summary={scope.summary}
+                status={scope.status}
+                detail={scope.detail}
+              />
+            ))}
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard title="Módulos visibles hoy" description="La navegación actual ya muestra las piezas del sistema que van a crecer en las próximas iteraciones.">
+          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
+            {moduleHighlights.map((item) => (
+              <ActionTile
+                key={item.title}
+                title={item.title}
+                description={item.description}
+                actionLabel={item.actionLabel}
+              />
+            ))}
+          </div>
+        </SurfaceCard>
+      </section>
+
+      <SurfaceCard tone="accent">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <h2 className="font-serif text-3xl leading-tight text-[var(--color-ink)]">
+              La landing ya cuenta la propuesta y el sistema ya deja ver el producto.
             </h2>
             <p className="mt-3 text-sm leading-7 text-[var(--color-muted)] sm:text-base">
-              {section.body}
+              El próximo tramo natural es cerrar el circuito real de registro, login y primer uso
+              del panel, y después conectar partidos, rankings y grupos sobre Supabase.
             </p>
-          </article>
-        ))}
-      </section>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)]"
+            >
+              Ver panel
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              Ver admin
+            </Link>
+          </div>
+        </div>
+      </SurfaceCard>
     </PageStack>
   );
 }
