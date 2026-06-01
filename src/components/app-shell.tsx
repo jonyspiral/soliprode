@@ -30,16 +30,27 @@ export function AppShell({ children }: AppShellProps) {
     let active = true;
 
     async function syncUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (!active) {
-        return;
+        if (!active) {
+          return;
+        }
+
+        setIsAuthenticated(Boolean(user));
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        setIsAuthenticated(false);
+      } finally {
+        if (active) {
+          setAuthReady(true);
+        }
       }
-
-      setIsAuthenticated(Boolean(user));
-      setAuthReady(true);
     }
 
     void syncUser();
@@ -62,8 +73,13 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   async function handleSignOut() {
-    const supabase = createBrowserSupabaseClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createBrowserSupabaseClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Keep client navigation resilient even if sign out fails remotely.
+    }
+
     setIsAuthenticated(false);
     router.push("/login");
     router.refresh();
