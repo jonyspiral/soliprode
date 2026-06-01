@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { loginAction, initialAuthFormState } from "@/app/login/actions";
 import { SubmitButton } from "@/components/auth/submit-button";
 
@@ -10,7 +11,17 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ nextPath }: LoginFormProps) {
+  const router = useRouter();
   const [state, formAction] = useActionState(loginAction, initialAuthFormState);
+
+  useEffect(() => {
+    if (!state.redirectTo) {
+      return;
+    }
+
+    router.replace(state.redirectTo);
+    router.refresh();
+  }, [router, state.redirectTo]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -49,6 +60,12 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       {state.error ? (
         <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {state.error}
+        </p>
+      ) : null}
+
+      {state.success ? (
+        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {state.success}
         </p>
       ) : null}
 

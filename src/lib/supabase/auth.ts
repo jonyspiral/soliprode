@@ -2,10 +2,14 @@ import type { AuthError } from "@supabase/supabase-js";
 
 export type AuthFormState = {
   error: string | null;
+  success: string | null;
+  redirectTo: string | null;
 };
 
 export const initialAuthFormState: AuthFormState = {
   error: null,
+  success: null,
+  redirectTo: null,
 };
 
 export function readRequiredString(formData: FormData, key: string) {

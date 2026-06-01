@@ -1,6 +1,4 @@
 "use server";
-
-import { redirect } from "next/navigation";
 import {
   initialAuthFormState,
   mapAuthError,
@@ -34,6 +32,8 @@ export async function registerAction(
     if (publicAlias.length < 3) {
       return {
         error: "El alias público tiene que tener al menos 3 caracteres.",
+        success: null,
+        redirectTo: null,
       };
     }
 
@@ -59,6 +59,8 @@ export async function registerAction(
           signUpError,
           "No pudimos crear tu cuenta. Revisá tus datos e intentá de nuevo.",
         ),
+        success: null,
+        redirectTo: null,
       };
     }
 
@@ -68,13 +70,17 @@ export async function registerAction(
     if (!user) {
       return {
         error: "No pudimos completar el registro. Intentá de nuevo.",
+        success: null,
+        redirectTo: null,
       };
     }
 
     if (!session) {
       return {
-        error:
-          "Tu cuenta fue creada, pero antes de continuar necesitás confirmar tu email. Después iniciá sesión.",
+        error: null,
+        success:
+          "Tu cuenta fue creada. Antes de continuar necesitás confirmar tu email y después iniciar sesión.",
+        redirectTo: "/login",
       };
     }
 
@@ -83,19 +89,29 @@ export async function registerAction(
     if (!bootstrapResult.ok) {
       return {
         error: bootstrapResult.error,
-      }
+        success: null,
+        redirectTo: null,
+      };
     }
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("missing:")) {
       return {
         error: "Completá nombre, alias, email y contraseña para continuar.",
+        success: null,
+        redirectTo: null,
       };
     }
 
     return {
       error: "No pudimos completar el registro en este momento. Intentá de nuevo.",
+      success: null,
+      redirectTo: null,
     };
   }
 
-  redirect("/dashboard");
+  return {
+    error: null,
+    success: "Cuenta creada correctamente. Redirigiendo al panel.",
+    redirectTo: "/dashboard",
+  };
 }

@@ -1,6 +1,4 @@
 "use server";
-
-import { redirect } from "next/navigation";
 import {
   initialAuthFormState,
   mapAuthError,
@@ -29,6 +27,8 @@ export async function loginAction(
     if (error) {
       return {
         error: mapAuthError(error, "No pudimos iniciar sesión. Revisá tus datos e intentá de nuevo."),
+        success: null,
+        redirectTo: null,
       };
     }
 
@@ -39,6 +39,8 @@ export async function loginAction(
     if (!user) {
       return {
         error: "La sesión se abrió, pero no pudimos recuperar tu usuario. Intentá nuevamente.",
+        success: null,
+        redirectTo: null,
       };
     }
 
@@ -47,22 +49,33 @@ export async function loginAction(
     if (!bootstrapResult.ok) {
       return {
         error: bootstrapResult.error,
+        success: null,
+        redirectTo: null,
       };
     }
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("missing:")) {
       return {
         error: "Completá email y contraseña para continuar.",
+        success: null,
+        redirectTo: null,
       };
     }
 
     return {
       error: "No pudimos iniciar sesión en este momento. Intentá de nuevo.",
+      success: null,
+      redirectTo: null,
     };
   }
 
   const nextPath = formData.get("next");
   const safeNextPath =
     typeof nextPath === "string" && nextPath.startsWith("/") ? nextPath : "/dashboard";
-  redirect(safeNextPath);
+
+  return {
+    error: null,
+    success: "Sesión iniciada correctamente. Redirigiendo.",
+    redirectTo: safeNextPath,
+  };
 }
