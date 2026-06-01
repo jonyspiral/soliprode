@@ -1,25 +1,93 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { registerAction, initialAuthFormState } from "@/app/register/actions";
-import { SubmitButton } from "@/components/auth/submit-button";
+import { mapAuthError } from "@/lib/supabase/auth";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function RegisterForm() {
   const router = useRouter();
-  const [state, formAction] = useActionState(registerAction, initialAuthFormState);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  useEffect(() => {
-    if (!state.redirectTo) {
-      return;
+  async function handleSubmit(formData: FormData) {
+    setError(null);
+    setSuccess(null);
+    setPending(true);
+
+    try {
+      const fullName = String(formData.get("full_name") ?? "").trim();
+      const publicAlias = String(formData.get("public_alias") ?? "")
+        .trim()
+        .replace(/\s+/g, " ");
+      const whatsapp = String(formData.get("whatsapp") ?? "").trim();
+      const email = String(formData.get("email") ?? "").trim();
+      const password = String(formData.get("password") ?? "").trim();
+      const promoterCode = String(formData.get("promoter_code") ?? "").trim();
+
+      if (!fullName || !publicAlias || !email || !password) {
+        setError("Completá nombre, alias, email y contraseña para continuar.");
+        return;
+      }
+
+      if (publicAlias.length < 3) {
+        setError("El alias público tiene que tener al menos 3 caracteres.");
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            public_alias: publicAlias,
+            whatsapp: whatsapp || null,
+            promoter_code: promoterCode || null,
+          },
+        },
+      });
+
+      if (signUpError) {
+        setError(
+          mapAuthError(signUpError, "No pudimos crear tu cuenta. Revisá tus datos e intentá de nuevo."),
+        );
+        return;
+      }
+
+      if (!data.user) {
+        setError("No pudimos completar el registro. Intentá de nuevo.");
+        return;
+      }
+
+      if (!data.session) {
+        setSuccess(
+          "Tu cuenta fue creada. Antes de continuar necesitás confirmar tu email y después iniciar sesión.",
+        );
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      setSuccess("Cuenta creada correctamente. Redirigiendo al panel.");
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setError("No pudimos completar el registro en este momento. Intentá de nuevo.");
+    } finally {
+      setPending(false);
     }
-
-    router.replace(state.redirectTo);
-    router.refresh();
-  }, [router, state.redirectTo]);
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={async (formData) => {
+        await handleSubmit(formData);
+      }}
+      className="flex flex-col gap-4"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2 sm:col-span-2">
           <label htmlFor="full_name" className="text-sm font-semibold text-[var(--color-ink)]">
@@ -145,19 +213,25 @@ export function RegisterForm() {
         </div>
       </div>
 
-      {state.error ? (
+      {error ? (
         <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {state.error}
+          {error}
         </p>
       ) : null}
 
-      {state.success ? (
+      {success ? (
         <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {state.success}
+          {success}
         </p>
       ) : null}
 
-      <SubmitButton idleLabel="Crear cuenta" pendingLabel="Creando cuenta..." />
+      <button
+        type="submit"
+        disabled={pending}
+        className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {pending ? "Creando cuenta..." : "Crear cuenta"}
+      </button>
     </form>
   );
 }
