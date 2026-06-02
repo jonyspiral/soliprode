@@ -114,7 +114,7 @@ export function RegisterForm() {
               type="text"
               required
               autoComplete="name"
-              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="Nombre y apellido"
             />
           </div>
@@ -135,7 +135,7 @@ export function RegisterForm() {
               type="text"
               required
               autoComplete="nickname"
-              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="Cómo querés aparecer"
             />
           </div>
@@ -155,7 +155,7 @@ export function RegisterForm() {
               name="whatsapp"
               type="tel"
               autoComplete="tel"
-              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="+54 9 11..."
             />
           </div>
@@ -176,7 +176,7 @@ export function RegisterForm() {
               type="email"
               required
               autoComplete="email"
-              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="tu@email.com"
             />
           </div>
@@ -198,18 +198,18 @@ export function RegisterForm() {
               required
               minLength={6}
               autoComplete="new-password"
-              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-        <div className="grid gap-2">
+      <div className="grid gap-4 rounded-2xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+        <div className="grid gap-2 rounded-xl border border-[var(--color-line)] bg-white p-4">
           <label
             htmlFor="promoter_code"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]"
           >
             Código de promotor
           </label>
@@ -217,7 +217,7 @@ export function RegisterForm() {
             id="promoter_code"
             name="promoter_code"
             type="text"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
+            className="min-h-14 rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="Opcional por ahora"
           />
           <p className="text-sm leading-6 text-[var(--color-muted)]">
@@ -225,8 +225,11 @@ export function RegisterForm() {
           </p>
         </div>
 
-        <div className="border-[1.5px] border-dashed border-[var(--color-line)] bg-white p-4">
-          <p className="font-serif text-2xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+        <div className="rounded-xl border-[1.5px] border-dashed border-[var(--color-line)] bg-white p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            Se define después
+          </p>
+          <p className="mt-2 font-serif text-[1.8rem] uppercase tracking-[0.04em] text-[var(--color-primary)]">
             Grupo y comunidad
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
@@ -262,7 +265,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 py-3 font-serif text-[1.5rem] uppercase tracking-[0.04em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-[var(--color-gold-soft)] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[var(--color-ink)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Creando cuenta..." : "Crear cuenta"}
       </button>

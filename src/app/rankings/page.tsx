@@ -11,16 +11,18 @@ const rankingSections = [
 export default function RankingsPage() {
   return (
     <PageStack>
-      <section className="flex items-end justify-between">
-        <div>
-          <h1 className="font-serif text-[2.2rem] font-bold uppercase tracking-[-0.03em] text-[var(--color-primary)]">
-            Rankings
-          </h1>
-          <p className="mt-1 text-base text-[var(--color-muted)]">Tabla general • Semana 12</p>
-        </div>
-        <div className="flex rounded-lg border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-1 text-[14px]">
-          <button className="rounded bg-white px-3 py-1 font-semibold text-[var(--color-primary)] shadow-sm">General</button>
-          <button className="px-3 py-1 text-[var(--color-muted)]">Grupo</button>
+      <section className="rounded-2xl bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white shadow-[0_18px_42px_rgba(0,50,125,0.22)]">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[2.2rem] font-bold uppercase tracking-[-0.03em]">
+              Rankings
+            </h1>
+            <p className="mt-1 text-sm leading-6 text-[#dfe6ff]">Tabla general • Semana 12</p>
+          </div>
+          <div className="flex rounded-lg border border-white/20 bg-white/10 p-1 text-[14px]">
+            <button className="rounded bg-white px-3 py-1 font-semibold text-[var(--color-primary)] shadow-sm">General</button>
+            <button className="px-3 py-1 text-[#dfe6ff]">Grupo</button>
+          </div>
         </div>
       </section>
 

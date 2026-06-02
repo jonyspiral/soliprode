@@ -93,7 +93,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             type="email"
             required
             autoComplete="email"
-            className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+            className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
             placeholder="tu@email.com"
           />
         </div>
@@ -114,7 +114,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             type="password"
             required
             autoComplete="current-password"
-            className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+            className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
             placeholder="Tu contraseña"
           />
         </div>
@@ -135,12 +135,12 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 py-3 font-serif text-[1.5rem] uppercase tracking-[0.04em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-[var(--color-gold-soft)] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[var(--color-ink)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Ingresando..." : "Ingresar"}
       </button>
 
-      <p className="text-sm text-[var(--color-muted)]">
+      <p className="text-center text-sm text-[var(--color-muted)]">
         ¿Todavía no tenés cuenta?{" "}
         <Link href="/register" className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline">
           Creala acá

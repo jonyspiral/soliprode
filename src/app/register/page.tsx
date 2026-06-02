@@ -24,18 +24,21 @@ export default async function RegisterPage() {
 
   return (
     <PageStack>
-      <section className="mb-4 mt-2 text-center">
-        <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.95] tracking-[-0.03em] text-[var(--color-primary)]">
-          Sumate a la
-          <br />
-          competencia
-        </h1>
-        <p className="mt-3 text-base leading-6 text-[var(--color-muted)]">
-          La liga de pronósticos deportivos de SoliProde. Entrá rápido y dejá lista tu cuenta.
-        </p>
+      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-8 text-white shadow-[0_18px_42px_rgba(0,50,125,0.28)]">
+        <div className="mx-auto max-w-[21rem] text-center">
+          <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+            Alta de jugador
+          </div>
+          <h1 className="mt-5 font-serif text-[2.5rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
+            Creá tu cuenta y entrá al torneo
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
+            Empezás con tus datos, confirmás tu correo y después elegís dónde competir.
+          </p>
+        </div>
       </section>
 
-      <section className="relative mb-4 flex items-center justify-between px-4">
+      <section className="relative mb-2 mt-1 flex items-center justify-between px-4">
         <div className="absolute left-8 right-8 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-line)]" />
         <div className="absolute left-8 right-1/2 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-primary)]" />
         {[
@@ -68,15 +71,20 @@ export default async function RegisterPage() {
         <div className="grid gap-4">
           {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
           <RegisterForm />
-          <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-xl border-2 border-[var(--color-line)] bg-[var(--color-surface-muted)]">
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--color-bg),transparent,var(--color-bg))]" />
-            <div className="relative z-10 flex flex-col items-center">
-              <span className="mb-1 text-4xl text-[var(--color-primary)]">⚽</span>
-              <p className="text-center font-serif text-[1.6rem] font-bold uppercase leading-none text-[var(--color-primary)]">
-                Preparáte
-                <br />
-                para jugar
-              </p>
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[linear-gradient(135deg,#00327d_0%,#0047ab_62%,#0c6780_100%)] p-5 text-white">
+            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.16)_25%,rgba(255,255,255,0.16)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.16)_75%,rgba(255,255,255,0.16)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.16)_25%,rgba(255,255,255,0.16)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.16)_75%,rgba(255,255,255,0.16)_76%,transparent_77%,transparent)] [background-size:22px_22px]" />
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+                  Próximo paso
+                </p>
+                <p className="mt-2 font-serif text-[1.7rem] font-bold uppercase leading-none">
+                  Elegís grupo
+                  <br />
+                  y comunidad
+                </p>
+              </div>
+              <span className="text-5xl">⚽</span>
             </div>
           </div>
         </div>
