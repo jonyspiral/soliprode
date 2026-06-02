@@ -1,14 +1,153 @@
-import { PageStack, PodiumCard, RankedRow, StatCard } from "@/components/placeholder-primitives";
+import Link from "next/link";
+import {
+  InfoNotice,
+  PageStack,
+  PodiumCard,
+  RankedRow,
+  StatCard,
+} from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
-const rankingSections = [
-  { title: "Tabla general", rows: ["Jugador 1", "Jugador 2", "Jugador 3"] },
-  { title: "Tu grupo", rows: ["Ana", "Juan", "Sol"] },
-  { title: "Tu comunidad", rows: ["Eva", "Leo", "Dani"] },
-  { title: "Comparación de grupos", rows: ["Marketing", "Ventas", "Producto"] },
-];
+type RankingRow = {
+  profile_id: string;
+  ranking_type: string;
+  scope_id: string | null;
+  points: number;
+  position: number | null;
+  updated_at: string;
+};
 
-export default function RankingsPage() {
+type ProfileRow = {
+  id: string;
+  public_alias: string;
+};
+
+function formatPoints(points: number) {
+  return `${points.toLocaleString("es-AR")} pts`;
+}
+
+function pickPrimaryRankingType(rows: RankingRow[]) {
+  const rowsWithPosition = rows.filter((row) => row.position !== null);
+
+  if (rowsWithPosition.length === 0) {
+    return null;
+  }
+
+  const scoreByType = new Map<string, { count: number; bestPosition: number }>();
+
+  for (const row of rowsWithPosition) {
+    const current = scoreByType.get(row.ranking_type);
+    const position = row.position ?? Number.MAX_SAFE_INTEGER;
+
+    if (!current) {
+      scoreByType.set(row.ranking_type, { count: 1, bestPosition: position });
+      continue;
+    }
+
+    scoreByType.set(row.ranking_type, {
+      count: current.count + 1,
+      bestPosition: Math.min(current.bestPosition, position),
+    });
+  }
+
+  return [...scoreByType.entries()].sort((a, b) => {
+    if (b[1].count !== a[1].count) {
+      return b[1].count - a[1].count;
+    }
+
+    return a[1].bestPosition - b[1].bestPosition;
+  })[0]?.[0] ?? null;
+}
+
+export default async function RankingsPage() {
+  const supabase = await createServerSupabaseClient();
+
+  let currentUserId: string | null = null;
+  let currentAlias: string | null = null;
+  let participationStatus = "pending";
+  let userRanking: RankingRow | null = null;
+  let topRows: RankingRow[] = [];
+  let notice: string | null = null;
+
+  try {
+    const {
+      data: { user },
+    } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
+
+    currentUserId = user?.id ?? null;
+
+    const profileQuery = currentUserId
+      ? supabase
+          .from("profiles")
+          .select("id, public_alias")
+          .eq("id", currentUserId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+
+    const participationQuery = currentUserId
+      ? supabase
+          .from("participations")
+          .select("payment_status")
+          .eq("profile_id", currentUserId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+
+    const rankingQuery = supabase
+      .from("rankings_cache")
+      .select("profile_id, ranking_type, scope_id, points, position, updated_at")
+      .is("scope_id", null)
+      .order("ranking_type", { ascending: true })
+      .order("position", { ascending: true, nullsFirst: false })
+      .limit(60);
+
+    const [{ data: profile }, { data: participation }, { data: rawRankings }] =
+      await withSupabaseTimeout(
+        Promise.all([profileQuery, participationQuery, rankingQuery]),
+        "Supabase rankings query timed out",
+      );
+
+    currentAlias = (profile as ProfileRow | null)?.public_alias ?? null;
+    participationStatus = participation?.payment_status ?? "pending";
+
+    const rankings = (rawRankings ?? []) as RankingRow[];
+    const primaryRankingType = pickPrimaryRankingType(rankings);
+
+    if (primaryRankingType) {
+      topRows = rankings
+        .filter((row) => row.ranking_type === primaryRankingType && row.position !== null)
+        .sort((a, b) => (a.position ?? 9999) - (b.position ?? 9999))
+        .slice(0, 10);
+
+      if (currentUserId) {
+        userRanking =
+          rankings.find(
+            (row) => row.profile_id === currentUserId && row.ranking_type === primaryRankingType,
+          ) ?? null;
+      }
+    }
+
+    if (rankings.length === 0) {
+      notice =
+        "Todavía no hay ranking calculado. Cuando se carguen resultados y puntos, la tabla oficial va a aparecer acá.";
+    }
+  } catch {
+    notice =
+      "No pudimos cargar el ranking oficial en este momento. Reintentá en unos minutos.";
+  }
+
+  const participationActive = participationStatus === "paid";
+  const leaderboardUnlocked = participationActive;
+  const podium = topRows.slice(0, 3);
+  const tableRows = topRows.slice(0, 10);
+  const updatedLabel =
+    topRows[0]?.updated_at
+      ? `Actualizado ${new Date(topRows[0].updated_at).toLocaleDateString("es-AR")}`
+      : "Ranking oficial";
+
   return (
     <PageStack>
       <section className="rounded-lg bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white">
@@ -17,63 +156,158 @@ export default function RankingsPage() {
             <h1 className="font-serif text-[2.2rem] font-bold uppercase tracking-[-0.03em]">
               Rankings
             </h1>
-            <p className="mt-1 text-sm leading-6 text-[#dfe6ff]">Tabla general • Semana 12</p>
+            <p className="mt-1 text-sm leading-6 text-[#dfe6ff]">
+              {leaderboardUnlocked
+                ? `${updatedLabel} • Competís por la tabla oficial`
+                : "La tabla oficial se desbloquea cuando activás tu participación"}
+            </p>
           </div>
-          <div className="flex shrink-0 rounded-md border border-white/20 bg-white/10 p-1 text-[12px]">
-            <button className="rounded-sm bg-white px-2.5 py-1 font-semibold text-[var(--color-primary)]">General</button>
-            <button className="px-2.5 py-1 text-[#dfe6ff]">Grupo</button>
+          <div className="rounded-md border border-white/20 bg-white/10 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+            {leaderboardUnlocked ? "Oficial" : "Bloqueado"}
           </div>
         </div>
       </section>
+
+      {notice ? <InfoNotice message={notice} tone="info" /> : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tu puesto" value="#12" detail="Referencia principal de tu avance." />
-        <StatCard label="Tu grupo" value="#3" detail="Posición actual dentro de tu grupo." />
-        <StatCard label="Tu comunidad" value="#5" detail="Comparación dentro de tu oficina o comunidad." />
+        <StatCard
+          label="Tu puesto"
+          value={leaderboardUnlocked && userRanking?.position ? `#${userRanking.position}` : "--"}
+          detail={
+            leaderboardUnlocked
+              ? "Tu referencia principal dentro de la tabla oficial."
+              : "Se habilita cuando tu participación pasa a activa."
+          }
+        />
+        <StatCard
+          label="Tus puntos"
+          value={leaderboardUnlocked && userRanking ? String(userRanking.points) : "--"}
+          detail={
+            leaderboardUnlocked
+              ? "Se actualizan cuando haya resultados y scoring cargado."
+              : "Tus borradores todavía no compiten por puntos."
+          }
+        />
+        <StatCard
+          label="Estado"
+          value={participationActive ? "Activa" : "Pendiente"}
+          detail={
+            participationActive
+              ? "Ya entrás en el ranking oficial."
+              : "Activá tu participación para aparecer en la tabla oficial."
+          }
+        />
       </section>
 
-      <section className="mt-2 flex items-end justify-center gap-3">
-        <div className="w-24">
-          <PodiumCard position="2" name="Sarah" points="4,120 pts" />
-        </div>
-        <div className="w-28 -mt-6">
-          <PodiumCard position="1" name="Alex" points="4,550 pts" emphasis="first" />
-        </div>
-        <div className="w-24">
-          <PodiumCard position="3" name="David" points="3,980 pts" />
-        </div>
-      </section>
+      {!leaderboardUnlocked ? (
+        <SurfaceCard
+          tone="accent"
+          title="Activá tu participación"
+          description="El ranking oficial existe, pero solo cuenta a quienes ya activaron su inscripción."
+        >
+          <div className="grid gap-4">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Podés seguir cargando pronósticos gratis como borrador. Cuando actives tu
+              participación, los picks futuros pasan a competir por posición y premios.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+              >
+                Activar participación
+              </Link>
+              <Link
+                href="/matches"
+                className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+              >
+                Seguir cargando picks
+              </Link>
+            </div>
+          </div>
+        </SurfaceCard>
+      ) : podium.length > 0 ? (
+        <section className="mt-2 flex items-end justify-center gap-3">
+          {podium[1] ? (
+            <div className="w-24">
+              <PodiumCard position="2" name="Jugador 2" points={formatPoints(podium[1].points)} />
+            </div>
+          ) : null}
+          {podium[0] ? (
+            <div className="w-28 -mt-6">
+              <PodiumCard
+                position="1"
+                name={
+                  currentUserId && podium[0].profile_id === currentUserId
+                    ? currentAlias ?? "Vos"
+                    : "Jugador 1"
+                }
+                points={formatPoints(podium[0].points)}
+                emphasis="first"
+              />
+            </div>
+          ) : null}
+          {podium[2] ? (
+            <div className="w-24">
+              <PodiumCard position="3" name="Jugador 3" points={formatPoints(podium[2].points)} />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
-      <SurfaceCard title="Tabla general" description="La lectura principal del torneo vive acá.">
-        <div className="grid gap-3">
-          <RankedRow name="Vos" meta="Tu posición actual" points="2,150 pts" highlight />
-          {["Emma W.", "Carlos T.", "Mike R.", "Jugador 7"].map((row, index) => (
-            <RankedRow
-              key={row}
-              name={row}
-              meta={`Posición ${index + 4}`}
-              points={`${3800 - index * 50} pts`}
-            />
-          ))}
-        </div>
+      <SurfaceCard
+        title="Tabla general"
+        description={
+          leaderboardUnlocked
+            ? "La lectura oficial del torneo vive acá. Los jugadores pendientes quedan afuera hasta activar su inscripción."
+            : "Esta tabla se completa cuando tu participación queda activa."
+        }
+      >
+        {leaderboardUnlocked && tableRows.length > 0 ? (
+          <div className="grid gap-3">
+            {tableRows.map((row) => {
+              const isCurrentUser = currentUserId === row.profile_id;
+
+              return (
+                <RankedRow
+                  key={`${row.ranking_type}-${row.profile_id}-${row.position ?? "na"}`}
+                  name={isCurrentUser ? currentAlias ?? "Vos" : `Jugador ${row.position ?? "-"}`}
+                  meta={`Posición ${row.position ?? "-"}`}
+                  points={formatPoints(row.points)}
+                  highlight={isCurrentUser}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay posiciones oficiales para mostrar. Cuando entren resultados y scoring,
+            esta tabla va a reflejar el torneo real.
+          </p>
+        )}
       </SurfaceCard>
 
-      <section className="grid gap-4">
-        {rankingSections.slice(1).map((section) => (
-          <SurfaceCard key={section.title} title={section.title}>
-            <div className="flex flex-col gap-3">
-              {section.rows.map((row, index) => (
-                <RankedRow
-                  key={row}
-                  name={row}
-                  meta={`Posición ${index + 1}`}
-                  points={`${126 - index * 4} pts`}
-                  highlight={section.title === "Tu grupo" && index === 1}
-                />
-              ))}
-            </div>
-          </SurfaceCard>
-        ))}
+      <section className="grid gap-4 sm:grid-cols-2">
+        <SurfaceCard
+          title="Tu grupo"
+          description="La comparación interna del grupo arranca cuando la capa social y los rankings por scope queden conectados."
+        >
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            En esta etapa, el foco sigue siendo el ranking general y la activación competitiva.
+            El siguiente bloque va a ser crear o unirse a un grupo para comparar rendimiento.
+          </p>
+        </SurfaceCard>
+
+        <SurfaceCard
+          title="Premios y corte"
+          description="Solo participan los usuarios con inscripción activa y pronósticos cargados antes del inicio de cada partido."
+        >
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Si todavía estás en borrador, seguí cargando picks desde Partidos y activá tu
+            participación desde el panel cuando quieras entrar al ranking oficial.
+          </p>
+        </SurfaceCard>
       </section>
     </PageStack>
   );
