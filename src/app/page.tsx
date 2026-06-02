@@ -39,34 +39,36 @@ export default function Home() {
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
-        <div className="relative flex min-h-[640px] flex-col items-center justify-end px-4 pb-10 text-center">
+        {/* Imagen en la mitad superior — altura fija para que Messi sea visible */}
+        <div className="relative h-[300px] w-full sm:h-[340px]">
           <Image
             src="/lio_copa.jpeg"
             alt="Lionel Messi con la Copa del Mundo"
             fill
             priority
-            className="object-cover object-[center_10%]"
+            className="object-cover object-[50%_18%]"
             sizes="100vw"
           />
-          {/* Gradiente: imagen visible arriba, azul sólido abajo */}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,26,92,0.05)_0%,rgba(0,26,92,0.1)_40%,rgba(0,26,92,0.75)_62%,rgba(0,26,92,0.96)_78%,rgba(0,26,92,1)_100%)]" />
-          <div className="relative z-10 grid max-w-[19rem] gap-3">
-            <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
-              Juga el Mundial y llevate todo!
-            </h1>
-            <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff]">
-              Cargá tus pronósticos y participá por el premio que cada vez será más grande.
-            </p>
-            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
-              Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
-            </p>
-            <Link
-              href="/register"
-              className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"
-            >
-              Crear cuenta y jugar
-            </Link>
-          </div>
+          {/* Fade suave solo en el borde inferior de la imagen */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_55%,#001a5c_100%)]" />
+        </div>
+        {/* Texto y CTA sobre fondo azul */}
+        <div className="flex flex-col items-center gap-3 px-4 pb-10 pt-1 text-center">
+          <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white">
+            Juga el Mundial y llevate todo!
+          </h1>
+          <p className="max-w-[19rem] text-[0.95rem] font-medium leading-6 text-[#dfe6ff]">
+            Cargá tus pronósticos y participá por el premio que cada vez será más grande.
+          </p>
+          <p className="max-w-[19rem] text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
+            Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
+          </p>
+          <Link
+            href="/register"
+            className="mt-1 w-full max-w-[19rem] inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"
+          >
+            Crear cuenta y jugar
+          </Link>
         </div>
       </section>
 
