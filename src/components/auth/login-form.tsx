@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LockIcon, MailIcon } from "@/components/app-icons";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -77,40 +78,46 @@ export function LoginForm({ nextPath }: LoginFormProps) {
     >
       <input type="hidden" name="next" value={nextPath} />
 
-      <div className="grid gap-2">
+      <div className="relative">
         <label
           htmlFor="email"
-          className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
         >
-          Email
+          Correo electrónico
         </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-          placeholder="tu@email.com"
-        />
+        <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+          <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+            placeholder="tu@email.com"
+          />
+        </div>
       </div>
 
-      <div className="grid gap-2">
+      <div className="relative">
         <label
           htmlFor="password"
-          className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
         >
           Contraseña
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-          placeholder="Tu contraseña"
-        />
+        <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+          <LockIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            autoComplete="current-password"
+            className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+            placeholder="Tu contraseña"
+          />
+        </div>
       </div>
 
       {error ? (
@@ -128,7 +135,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-14 w-full items-center justify-center border-[1.5px] border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-3 font-serif text-2xl uppercase tracking-[0.06em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 py-3 font-serif text-[1.5rem] uppercase tracking-[0.04em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Ingresando..." : "Ingresar"}
       </button>

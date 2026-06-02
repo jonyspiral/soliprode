@@ -37,6 +37,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-inter), sans-serif;
   text-rendering: optimizeLegibility;
+  min-height: 100dvh;
 }
 
 body::before {
@@ -45,10 +46,10 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(0, 50, 125, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 50, 125, 0.035) 1px, transparent 1px);
-  background-size: 28px 28px;
-  opacity: 0.45;
+    linear-gradient(0deg, transparent 24%, rgba(0, 0, 0, 0.03) 25%, rgba(0, 0, 0, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, 0.03) 75%, rgba(0, 0, 0, 0.03) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, 0.03) 25%, rgba(0, 0, 0, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, 0.03) 75%, rgba(0, 0, 0, 0.03) 76%, transparent 77%, transparent);
+  background-size: 30px 30px;
+  opacity: 1;
   z-index: -1;
 }
 
@@ -62,4 +63,22 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (min-width: 768px) {
+  body {
+    max-width: 448px;
+    margin-inline: auto;
+    border-inline: 1px solid var(--color-line);
+    box-shadow: 0 0 32px rgba(0, 50, 125, 0.08);
+  }
 }

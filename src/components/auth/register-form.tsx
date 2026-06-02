@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckIcon, LockIcon, MailIcon, UserIcon } from "@/components/app-icons";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -98,94 +99,109 @@ export function RegisterForm() {
       className="flex flex-col gap-5"
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2 sm:col-span-2">
+        <div className="relative sm:col-span-2">
           <label
             htmlFor="full_name"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
           >
             Nombre completo
           </label>
-          <input
-            id="full_name"
-            name="full_name"
-            type="text"
-            required
-            autoComplete="name"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-            placeholder="Nombre y apellido"
-          />
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <UserIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="full_name"
+              name="full_name"
+              type="text"
+              required
+              autoComplete="name"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="Nombre y apellido"
+            />
+          </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="relative">
           <label
             htmlFor="public_alias"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
           >
             Alias público
           </label>
-          <input
-            id="public_alias"
-            name="public_alias"
-            type="text"
-            required
-            autoComplete="nickname"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-            placeholder="Cómo querés aparecer"
-          />
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <UserIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="public_alias"
+              name="public_alias"
+              type="text"
+              required
+              autoComplete="nickname"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="Cómo querés aparecer"
+            />
+          </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="relative">
           <label
             htmlFor="whatsapp"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
           >
             WhatsApp
           </label>
-          <input
-            id="whatsapp"
-            name="whatsapp"
-            type="tel"
-            autoComplete="tel"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-            placeholder="+54 9 11..."
-          />
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <UserIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="whatsapp"
+              name="whatsapp"
+              type="tel"
+              autoComplete="tel"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="+54 9 11..."
+            />
+          </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="relative">
           <label
             htmlFor="email"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
           >
-            Email
+            Correo electrónico
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-            placeholder="tu@email.com"
-          />
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="tu@email.com"
+            />
+          </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="relative">
           <label
             htmlFor="password"
-            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
           >
             Contraseña
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-            placeholder="Mínimo 6 caracteres"
-          />
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <LockIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="Mínimo 6 caracteres"
+            />
+          </div>
         </div>
       </div>
 
@@ -232,8 +248,11 @@ export function RegisterForm() {
         </p>
       ) : null}
 
-      <label className="flex items-start gap-3 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-4 text-sm text-[var(--color-muted)]">
-        <input type="checkbox" checked readOnly className="mt-1 h-4 w-4 accent-[var(--color-gold)]" />
+      <label className="flex items-start gap-3 text-sm text-[var(--color-muted)]">
+        <div className="relative mt-0.5 flex h-5 w-5 items-center justify-center">
+          <input type="checkbox" checked readOnly className="peer h-5 w-5 appearance-none rounded border-2 border-[var(--color-primary)] bg-[var(--color-primary)]" />
+          <CheckIcon className="pointer-events-none absolute h-3.5 w-3.5 text-white" />
+        </div>
         <span>
           Al crear tu cuenta aceptás recibir información del torneo y completar tu inscripción
           desde el panel.
@@ -243,7 +262,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-14 w-full items-center justify-center border-[1.5px] border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-3 font-serif text-2xl uppercase tracking-[0.06em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 py-3 font-serif text-[1.5rem] uppercase tracking-[0.04em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Creando cuenta..." : "Crear cuenta"}
       </button>

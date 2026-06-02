@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CountryFlag } from "@/components/country-flag";
 import { TrophyIcon } from "@/components/app-icons";
 
 type StatCardProps = {
@@ -103,18 +104,24 @@ export function MatchPlaceholderCard({
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 p-4">
         <div className="text-center">
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-lg border-2 border-[var(--color-line)] bg-[var(--color-surface-muted)] font-serif text-lg font-bold text-[var(--color-primary)]">
-            {home?.slice(0, 3).toUpperCase()}
-          </div>
+          <CountryFlag
+            country={home ?? ""}
+            label={home}
+            size="md"
+            className="mx-auto mb-2"
+          />
           <p className="font-serif text-[1.8rem] font-bold uppercase leading-none">{home}</p>
         </div>
         <div className="rounded-lg border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 font-serif text-[1.8rem] font-bold text-[var(--color-muted)]">
           VS
         </div>
         <div className="text-center">
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-lg border-2 border-[var(--color-line)] bg-[var(--color-surface-muted)] font-serif text-lg font-bold text-[var(--color-primary)]">
-            {away?.slice(0, 3).toUpperCase()}
-          </div>
+          <CountryFlag
+            country={away ?? ""}
+            label={away}
+            size="md"
+            className="mx-auto mb-2"
+          />
           <p className="font-serif text-[1.8rem] font-bold uppercase leading-none">{away}</p>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { PageHero } from "@/components/page-hero";
 import {
   ActionTile,
   HighlightMetric,
@@ -71,11 +70,6 @@ export default async function DashboardPage() {
   if (!hasAuthenticatedUser) {
     return (
       <PageStack>
-        <PageHero
-          title="Tu panel."
-          description="No pudimos revisar tu acceso en este momento."
-          tone="stadium"
-        />
         <SurfaceCard title="Estado temporal" description="Podés volver a intentar en unos minutos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
@@ -86,11 +80,6 @@ export default async function DashboardPage() {
   if (hasAuthenticatedUser && !profile && !participation) {
     return (
       <PageStack>
-        <PageHero
-          title="Tu panel."
-          description="No pudimos cargar tu cuenta en este momento."
-          tone="stadium"
-        />
         <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
@@ -104,11 +93,26 @@ export default async function DashboardPage() {
 
   return (
     <PageStack>
-      <PageHero
-        title={`Bienvenido${profile?.public_alias ? `, ${profile.public_alias}` : ""}.`}
-        description="Desde acá seguís tu estado actual, tu cuenta y el próximo movimiento dentro del torneo."
-        tone="stadium"
-      />
+      <section className="rounded-xl bg-[var(--color-primary)] p-4 text-white shadow-lg">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[2rem] font-bold uppercase leading-[0.95]">
+              {`Hola${profile?.public_alias ? ` ${profile.public_alias}` : ""}!`}
+              <br />
+              <span className="text-[var(--color-gold-soft)]">Tu cuenta sigue en juego.</span>
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
+              {profile?.email ?? userEmail ?? "Sin email"} · {participation?.payment_status ?? "pending"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-white/20 bg-white/10 p-3">
+            <p className="font-serif text-[1.7rem] font-bold leading-none">1,240</p>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+              Puntos totales
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <HighlightMetric
@@ -133,54 +137,111 @@ export default async function DashboardPage() {
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <SurfaceCard
-          tone="primary"
-          title="Tu inscripción"
-          description="Esta es la referencia principal de tu estado actual dentro de SoliProde."
-        >
-          <div className="grid gap-4 md:grid-cols-2 text-white">
-            <div className="border border-white/20 bg-white/10 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                Estado actual
-              </p>
-              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em]">
-                {participation?.payment_status ?? "pending"}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/84">
-                Tu alta ya existe. Cuando el torneo avance, acá también vas a seguir lo que te falta.
-              </p>
+      <div className="grid gap-4">
+        <SurfaceCard title="Evolución" description="Vista rápida del envión que debería mostrar tu panel durante el torneo.">
+          <div className="grid gap-4">
+            <div className="relative flex h-44 items-end justify-between pt-4">
+              <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+                <div className="w-full border-t border-[var(--color-line)]/50" />
+                <div className="w-full border-t border-[var(--color-line)]/50" />
+                <div className="w-full border-t border-[var(--color-line)]/50" />
+                <div className="w-full border-t border-[var(--color-line)]/50" />
+              </div>
+              {["40%", "55%", "45%", "70%", "85%"].map((height, index) => (
+                <div
+                  key={height}
+                  className={[
+                    "relative z-10 w-[12%] rounded-t-sm",
+                    index === 4
+                      ? "border border-[var(--color-primary)] bg-[var(--color-primary)] shadow-[0_0_8px_rgba(154,225,255,0.4)]"
+                      : index === 2
+                        ? "border border-[var(--color-secondary)]/20 bg-[var(--color-secondary-soft)]"
+                        : "bg-[var(--color-surface-muted)]",
+                  ].join(" ")}
+                  style={{ height }}
+                />
+              ))}
             </div>
-            <div className="border border-white/20 bg-white/10 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                Fecha de alta
-              </p>
-              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em]">
-                {participationDate}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/84">
-                La participación quedó asociada a esta cuenta y lista para seguir avanzando.
-              </p>
+            <div className="flex justify-between px-2 text-[12px] font-medium text-[var(--color-muted)]">
+              <span>F1</span>
+              <span>F2</span>
+              <span>F3</span>
+              <span>F4</span>
+              <span className="font-bold text-[var(--color-primary)]">F5</span>
             </div>
           </div>
         </SurfaceCard>
 
-        <SurfaceCard
-          title="Qué sigue"
-          description="La app te marca la próxima acción importante sin llenarte de módulos vacíos."
-        >
-          <div className="grid gap-4">
-            <ActionTile
-              title="Prepararte para el fixture"
-              description="Cuando los partidos estén publicados, vas a cargar tus resultados desde Partidos y seguir todo desde el teléfono."
-              actionLabel="Ver Partidos"
-            />
-            <ActionTile
-              title="Sumarte a tu espacio"
-              description="Grupo y comunidad quedan para el siguiente paso, una vez que ya tengas la cuenta lista."
-              actionLabel="Explorar"
-              tone="gold"
-            />
+        <section className="grid gap-4 sm:grid-cols-2">
+          <SurfaceCard tone="accent" title="Racha actual">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  Momentum
+                </p>
+                <p className="mt-2 font-serif text-[1.9rem] font-bold uppercase text-[var(--color-ink)]">
+                  3 plenos
+                </p>
+              </div>
+              <span className="text-4xl">🔥</span>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard title="Qué sigue">
+            <div className="grid gap-3">
+              <ActionTile
+                title="Prepararte para el fixture"
+                description="Cuando aparezcan los partidos, tu acción principal va a estar en Partidos."
+                actionLabel="Ver Partidos"
+              />
+            </div>
+          </SurfaceCard>
+        </section>
+
+        <SurfaceCard title="Próximos partidos" description="Vista rápida de lo que vas a seguir desde el panel.">
+          <div className="grid gap-3">
+            <div className="overflow-hidden rounded-xl border-2 border-[var(--color-line)]">
+              <div className="flex items-center justify-between bg-[var(--color-primary)] px-3 py-1 text-white">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Liga profesional</span>
+                <span className="rounded-full bg-[var(--color-gold-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink)]">Hoy 20:30</span>
+              </div>
+              <div className="grid grid-cols-3 items-center bg-white p-4">
+                <div className="text-center">
+                  <p className="font-semibold text-[var(--color-ink)]">Boca</p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-block rounded border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-1 font-serif text-[1.5rem] font-bold text-[var(--color-ink)]">
+                    2 - 1
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-[var(--color-ink)]">River</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </SurfaceCard>
+      </div>
+
+      <section className="grid gap-4">
+        <SurfaceCard title="Tu inscripción" description="Estado real actual de tu cuenta.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                Estado actual
+              </p>
+              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+                {participation?.payment_status ?? "pending"}
+              </p>
+            </div>
+            <div className="border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                Fecha de alta
+              </p>
+              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+                {participationDate}
+              </p>
+            </div>
           </div>
         </SurfaceCard>
       </section>

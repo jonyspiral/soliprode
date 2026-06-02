@@ -96,3 +96,29 @@ export function TrophyIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function MailIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="4" y="6" width="16" height="12" rx="1.5" />
+      <path d="m5.5 7.5 6.5 5 6.5-5" />
+    </BaseIcon>
+  );
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="5" y="11" width="14" height="9" rx="1.5" />
+      <path d="M8 11V8.8A4 4 0 0 1 12 5a4 4 0 0 1 4 3.8V11" />
+    </BaseIcon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m5 12 4.2 4.2L19 7" />
+    </BaseIcon>
+  );
+}
