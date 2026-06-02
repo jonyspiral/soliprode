@@ -39,33 +39,9 @@ export default function Home() {
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] sm:-mx-4">
-        <div className="relative flex min-h-[430px] flex-col items-center justify-center px-4 pb-10 pt-8 text-center">
+        <div className="relative flex min-h-[500px] flex-col items-center justify-start px-4 pb-10 pt-10 text-center">
           <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_40%)]" />
           <div className="absolute inset-0 opacity-18 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent)] [background-size:24px_24px]" />
-          <div className="pointer-events-none absolute bottom-0 right-[-2rem] z-[1] opacity-[0.12]">
-            <div className="relative h-[180px] w-[180px] mix-blend-multiply sm:hidden">
-              <Image
-                src="/home-banner-mobile.png"
-                alt="Banner del Mundial para SoliProde"
-                fill
-                priority
-                className="object-contain object-bottom-right"
-                sizes="100vw"
-              />
-            </div>
-            <div className="relative hidden h-[220px] w-[420px] mix-blend-multiply sm:block">
-              <Image
-                src="/home-banner-desktop.png"
-                alt="Banner del Mundial para SoliProde"
-                fill
-                priority
-                className="object-contain object-bottom-right"
-                sizes="(min-width: 640px) 720px, 100vw"
-              />
-            </div>
-          </div>
-          <div className="absolute inset-0 z-[2] bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.06)_42%,rgba(0,0,0,0.18)_100%)]" />
-
           <div className="relative z-10 grid max-w-[17rem] gap-4">
             <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white">
               Juga el Prode del Mundial
@@ -78,6 +54,30 @@ export default function Home() {
               Crear cuenta y jugar
             </Link>
           </div>
+
+          <div className="pointer-events-none relative z-[1] mt-6 flex w-full justify-center opacity-[0.24]">
+            <div className="relative h-[200px] w-[220px] mix-blend-multiply sm:hidden">
+              <Image
+                src="/home-banner-mobile.png"
+                alt="Banner del Mundial para SoliProde"
+                fill
+                priority
+                className="object-contain object-bottom"
+                sizes="100vw"
+              />
+            </div>
+            <div className="relative hidden h-[220px] w-[320px] mix-blend-multiply sm:block">
+              <Image
+                src="/home-banner-desktop.png"
+                alt="Banner del Mundial para SoliProde"
+                fill
+                priority
+                className="object-contain object-bottom"
+                sizes="(min-width: 640px) 720px, 100vw"
+              />
+            </div>
+          </div>
+          <div className="absolute inset-0 z-[2] bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.06)_42%,rgba(0,0,0,0.18)_100%)]" />
         </div>
       </section>
 
