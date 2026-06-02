@@ -24,12 +24,9 @@ export default async function RegisterPage() {
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-8 text-white shadow-[0_18px_42px_rgba(0,50,125,0.28)]">
-        <div className="mx-auto max-w-[21rem] text-center">
-          <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
-            Alta de jugador
-          </div>
-          <h1 className="mt-5 font-serif text-[2.5rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
+      <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-white">
+        <div className="mx-auto max-w-[18rem] text-center">
+          <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
             Creá tu cuenta y entrá al torneo
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
@@ -38,7 +35,7 @@ export default async function RegisterPage() {
         </div>
       </section>
 
-      <section className="relative mb-2 mt-1 flex items-center justify-between px-4">
+      <section className="relative mb-1 mt-2 flex items-center justify-between px-4">
         <div className="absolute left-8 right-8 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-line)]" />
         <div className="absolute left-8 right-1/2 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-primary)]" />
         {[
@@ -49,10 +46,10 @@ export default async function RegisterPage() {
           <div key={step.label} className="relative z-10 flex flex-col items-center">
             <div
               className={[
-                "mb-1 flex h-8 w-8 items-center justify-center rounded-full border-2 text-[12px] font-semibold",
+                "mb-1 flex h-8 w-8 items-center justify-center rounded-full border text-[12px] font-semibold",
                 step.active
-                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[0_0_8px_rgba(0,50,125,0.4)]"
-                  : "border-[var(--color-line)] bg-[var(--color-surface-container-highest)] text-[var(--color-muted)]",
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                  : "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]",
               ].join(" ")}
             >
               {step.done ? "✓" : index + 1}
@@ -71,8 +68,8 @@ export default async function RegisterPage() {
         <div className="grid gap-4">
           {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
           <RegisterForm />
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[linear-gradient(135deg,#00327d_0%,#0047ab_62%,#0c6780_100%)] p-5 text-white">
-            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.16)_25%,rgba(255,255,255,0.16)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.16)_75%,rgba(255,255,255,0.16)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.16)_25%,rgba(255,255,255,0.16)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.16)_75%,rgba(255,255,255,0.16)_76%,transparent_77%,transparent)] [background-size:22px_22px]" />
+          <div className="relative overflow-hidden rounded-lg border border-[var(--color-line)] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-5 text-white">
+            <div className="absolute inset-0 opacity-14 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent)] [background-size:22px_22px]" />
             <div className="relative z-10 flex items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">

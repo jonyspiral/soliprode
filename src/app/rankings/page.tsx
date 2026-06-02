@@ -11,17 +11,17 @@ const rankingSections = [
 export default function RankingsPage() {
   return (
     <PageStack>
-      <section className="rounded-2xl bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white shadow-[0_18px_42px_rgba(0,50,125,0.22)]">
-        <div className="flex items-end justify-between gap-4">
+      <section className="rounded-lg bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white">
+        <div className="flex items-end justify-between gap-3">
           <div>
             <h1 className="font-serif text-[2.2rem] font-bold uppercase tracking-[-0.03em]">
               Rankings
             </h1>
             <p className="mt-1 text-sm leading-6 text-[#dfe6ff]">Tabla general • Semana 12</p>
           </div>
-          <div className="flex rounded-lg border border-white/20 bg-white/10 p-1 text-[14px]">
-            <button className="rounded bg-white px-3 py-1 font-semibold text-[var(--color-primary)] shadow-sm">General</button>
-            <button className="px-3 py-1 text-[#dfe6ff]">Grupo</button>
+          <div className="flex shrink-0 rounded-md border border-white/20 bg-white/10 p-1 text-[12px]">
+            <button className="rounded-sm bg-white px-2.5 py-1 font-semibold text-[var(--color-primary)]">General</button>
+            <button className="px-2.5 py-1 text-[#dfe6ff]">Grupo</button>
           </div>
         </div>
       </section>

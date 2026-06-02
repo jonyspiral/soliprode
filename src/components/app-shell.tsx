@@ -41,7 +41,7 @@ function NavIcon({ href, className = "h-5 w-5" }: { href: string; className?: st
 
 function AvatarChip() {
   return (
-    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[var(--color-line)] bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)] text-[10px] font-bold text-white shadow-sm">
+    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[var(--color-line)] bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)] text-[10px] font-bold text-white">
       SP
     </div>
   );
@@ -121,8 +121,8 @@ export function AppShell({ children }: AppShellProps) {
   if (isAuthScreen) {
     return (
       <div className="min-h-screen bg-transparent">
-        <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[color:var(--color-bg)]/90 backdrop-blur-md">
-          <div className="mx-auto flex h-16 w-full max-w-md items-center justify-between px-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
+          <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
             <button
               type="button"
               onClick={() => router.push("/")}
@@ -131,14 +131,14 @@ export function AppShell({ children }: AppShellProps) {
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
-            <Link href="/" className="font-serif text-[1.9rem] font-bold leading-none text-[var(--color-primary)]">
+            <Link href="/" className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
               SoliProde
             </Link>
             <div className="w-10" />
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-8 pt-20">
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-8 pt-[4.5rem]">
           {children}
         </main>
       </div>
@@ -147,12 +147,12 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-transparent">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[color:var(--color-bg)]/80 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-md items-center justify-between px-4">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
+        <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
           <Link href="/" className="text-[var(--color-primary)] transition hover:opacity-80">
-            <SoccerBallIcon className="h-6 w-6" />
+            <SoccerBallIcon className="h-5 w-5" />
           </Link>
-          <Link href="/" className="font-serif text-[1.9rem] font-bold leading-none text-[var(--color-primary)]">
+          <Link href="/" className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
             SoliProde
           </Link>
           <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => void handleSignOut()}
-                className="hidden rounded-md border border-[var(--color-line)] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] sm:inline-flex"
+                className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] sm:inline-flex"
               >
                 Salir
               </button>
@@ -170,9 +170,9 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-28 pt-20">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-24 pt-[4.5rem]">
         {isSecondaryScreen ? (
-          <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+          <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
             {secondaryNavItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (
@@ -180,7 +180,7 @@ export function AppShell({ children }: AppShellProps) {
                   key={item.href}
                   href={item.href}
                   className={[
-                    "shrink-0 rounded-lg border px-3 py-2 transition",
+                    "shrink-0 rounded-md border px-3 py-2 transition",
                     active
                       ? "border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]"
                       : "border-[var(--color-line)] bg-[var(--color-surface-muted)] hover:text-[var(--color-primary)]",
@@ -191,27 +191,11 @@ export function AppShell({ children }: AppShellProps) {
               );
             })}
           </div>
-        ) : authReady && isAuthenticated ? (
-          <div className="mb-4 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            <span className="text-[var(--color-primary)]">Más</span>
-            {secondaryNavItems.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={active ? "text-[var(--color-primary)]" : "transition hover:text-[var(--color-primary)]"}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
         ) : null}
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[color:var(--color-bg)]/90 px-2 py-3 shadow-[0_-4px_20px_rgba(57,255,20,0.1)] backdrop-blur-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[color:var(--color-surface)]/96 px-2 py-2 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center justify-around gap-2">
           {mobileNavItems.map((item) => {
             const active = isActive(pathname, item.href);
@@ -221,9 +205,9 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={[
-                  "flex min-w-[72px] flex-col items-center justify-center rounded-xl px-4 py-1 text-center transition active:scale-90",
+                  "flex min-w-[72px] flex-col items-center justify-center rounded-md px-4 py-1 text-center transition active:scale-90",
                   active
-                    ? "bg-[rgba(154,225,255,0.14)] text-[var(--color-secondary)]"
+                    ? "text-[var(--color-primary)]"
                     : "text-[var(--color-muted)]",
                 ].join(" ")}
               >

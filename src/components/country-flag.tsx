@@ -58,7 +58,7 @@ export function CountryFlag({
   return (
     <div
       className={[
-        "flex items-center justify-center rounded-lg border-2 border-[var(--color-line)] bg-[var(--color-surface-muted)] shadow-sm",
+        "flex items-center justify-center rounded-md border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)]",
         sizeClass,
         className,
       ].join(" ")}

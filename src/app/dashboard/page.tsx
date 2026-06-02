@@ -94,7 +94,7 @@ export default async function DashboardPage() {
 
   return (
     <PageStack>
-      <section className="overflow-hidden rounded-2xl bg-[var(--color-primary)] p-4 text-white shadow-[0_18px_42px_rgba(0,50,125,0.24)]">
+      <section className="overflow-hidden rounded-lg bg-[var(--color-primary)] p-4 text-white">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
               {profile?.email ?? userEmail ?? "Sin email"} · {participation?.payment_status ?? "pending"}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/20 bg-white/10 p-3 text-right">
+          <div className="rounded-lg border border-white/20 bg-white/10 p-3 text-right">
             <p className="font-serif text-[1.7rem] font-bold leading-none">1,240</p>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
               Puntos
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
       </section>
 
       <SurfaceCard title="Próximos partidos" description="Vista rápida de lo que vas a seguir desde el panel.">
-        <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-line)]">
+        <div className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)]">
           <div className="flex items-center justify-between bg-[var(--color-primary)] px-3 py-2 text-white">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Fase de grupos</span>
             <span className="rounded-full bg-[var(--color-gold-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink)]">
@@ -253,7 +253,7 @@ export default async function DashboardPage() {
 
       <SurfaceCard title="Tu inscripción" description="Estado real actual de tu cuenta.">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
               Estado actual
             </p>
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
               {participation?.payment_status ?? "pending"}
             </p>
           </div>
-          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
               Fecha de alta
             </p>

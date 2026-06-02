@@ -9,7 +9,7 @@ import { SurfaceCard } from "@/components/surface-card";
 export default function MatchesPage() {
   return (
     <PageStack>
-      <section className="rounded-2xl bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white shadow-[0_18px_42px_rgba(0,50,125,0.22)]">
+      <section className="rounded-lg bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-[2.2rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
@@ -25,7 +25,7 @@ export default function MatchesPage() {
         </div>
       </section>
 
-      <div className="overflow-hidden rounded-2xl border-2 border-[var(--color-primary)] bg-[var(--color-surface)] shadow-[0_6px_0_0_#00327d]">
+      <div className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)]">
         <div className="flex items-center justify-between bg-[var(--color-primary)] px-4 py-2 text-white">
           <span className="text-[12px] font-semibold uppercase tracking-[0.08em]">Copa Global</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-[12px] font-semibold">Hoy 21:00</span>
@@ -53,7 +53,7 @@ export default function MatchesPage() {
               <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-white">+</button>
             </div>
           </div>
-          <button className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-gold-soft)] px-4 py-3 font-serif text-[1.35rem] uppercase text-[var(--color-ink)]">
+          <button className="flex items-center justify-center gap-2 rounded-lg bg-[var(--color-gold-soft)] px-4 py-3 font-serif text-[1.35rem] uppercase text-[var(--color-ink)]">
             Guardar pronóstico
           </button>
         </div>
