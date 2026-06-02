@@ -29,39 +29,26 @@ export default function Home() {
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] sm:-mx-4">
-        <div className="relative flex min-h-[520px] flex-col justify-between overflow-hidden px-4 pb-6 pt-6 text-center">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_42%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-[46%] bg-[linear-gradient(180deg,rgba(0,50,125,0)_0%,rgba(0,50,125,0.28)_36%,rgba(0,50,125,0.8)_78%,#00327d_100%)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 mx-auto flex max-w-md items-end justify-center px-2">
-            <div className="relative h-[210px] w-full max-w-[340px]">
-              <Image
-                src="/home-banner-mobile-clean.png"
-                alt="Jugador levantando la Copa del Mundo"
-                fill
-                priority
-                className="object-contain object-bottom sm:hidden"
-                sizes="340px"
-              />
-              <Image
-                src="/home-banner-desktop-clean.png"
-                alt="Jugador levantando la Copa del Mundo"
-                fill
-                priority
-                className="hidden object-contain object-bottom sm:block"
-                sizes="340px"
-              />
-            </div>
-          </div>
-          <div className="relative z-10 grid justify-items-center gap-3">
+      <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
+        <div className="relative flex min-h-[540px] flex-col items-center justify-end px-4 pb-10 text-center">
+          <Image
+            src="/lio_copa.jpeg"
+            alt="Lionel Messi con la Copa del Mundo"
+            fill
+            priority
+            className="object-cover object-[55%_18%]"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_48%,rgba(0,26,92,0.65)_65%,rgba(0,26,92,0.95)_80%,#001a5c_100%)]" />
+          <div className="relative z-10 grid max-w-[19rem] gap-3">
             <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)]">
-              Jugá el Prode del Mundial
+              Juga el Mundial y llevate todo!
             </h1>
             <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
-              Creás tu cuenta gratis, cargás tus pronósticos y pagás para competir por premios.
+              Cargá tus pronósticos y participá por el premio que cada vez será más grande.
             </p>
-            <p className="max-w-[18rem] text-[0.72rem] font-normal leading-5 text-[#cbd8ff]">
-              Competís por premios, ranking y grupo. La capa solidaria acompaña, pero el juego va primero.
+            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
+              Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
             </p>
             <Link
               href="/register"
