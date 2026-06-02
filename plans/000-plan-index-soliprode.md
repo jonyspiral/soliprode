@@ -27,6 +27,14 @@ Objetivo: centralizar los planes activos y evitar duplicados mientras SoliProde 
 | Correctivo de grants autenticados de runtime | `supabase/migrations/005_fix_authenticated_runtime_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL del rol `authenticated` con las policies RLS ya definidas para bootstrap de perfil, participación y módulos interactivos | P0 | Aplicar la migración en Supabase para estabilizar login, registro y writes del usuario | Agente técnico |
 | MVP recaudable | `plans/soliprode-mvp-recaudable-plan.md` | Producto / operación | PROPUESTO | Define qué falta para poder cobrar inscripciones reales, con Mercado Pago online-first, activación competitiva, competencia por premios y operación de grupos/promotores | P0 | Desglosar este plan en entregables técnicos y confirmar decisiones comerciales pendientes | Producto + agente técnico |
 
+## Regla visual obligatoria
+
+Antes de modificar UI, layout, copy visual o componentes, consultar primero:
+
+`src/content/docs/design-system-athletic-social.md`
+
+La dirección visual activa del producto es `Athletic Social` de Stitch. No se deben resolver pantallas o componentes aislados ignorando ese sistema visual.
+
 ## Backlog sugerido todavía no planificado
 
 - Comunidades y oficinas post-MVP.

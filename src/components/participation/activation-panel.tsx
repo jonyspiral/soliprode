@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { EntryCountdown } from "@/components/payments/entry-countdown";
 import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
@@ -13,25 +14,6 @@ type ActivationPanelProps = {
   initialPaymentReference: string | null;
 };
 
-function formatRemaining(targetIso: string) {
-  const diff = new Date(targetIso).getTime() - Date.now();
-
-  if (diff <= 0) {
-    return "Terminó la ventana inicial";
-  }
-
-  const totalSeconds = Math.floor(diff / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-  if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m`;
-  }
-
-  return `${hours}h ${minutes}m`;
-}
-
 export function ActivationPanel({
   participationId,
   participationStatus,
@@ -41,22 +23,9 @@ export function ActivationPanel({
   const [showFallback, setShowFallback] = useState(false);
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
   const [startingCheckout, setStartingCheckout] = useState(false);
-  const [remaining, setRemaining] = useState(() =>
-    formatRemaining(entryConfig.priceValidUntil),
-  );
   const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
   const [savingReference, setSavingReference] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setRemaining(formatRemaining(entryConfig.priceValidUntil));
-    }, 60000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
 
   const priceLabel = useMemo(() => formatEntryPrice(entryConfig.initialPrice), []);
 
@@ -152,16 +121,11 @@ export function ActivationPanel({
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
           Inscripción inicial
         </p>
-        <div className="mt-2 flex items-end justify-between gap-4">
+        <div className="mt-2 grid gap-3">
           <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
             {priceLabel}
           </p>
-          <div className="text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Cuenta regresiva
-            </p>
-            <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">{remaining}</p>
-          </div>
+          <EntryCountdown className="bg-white/70" />
         </div>
         <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
           Disponible por tiempo limitado. Cuando termine la cuenta regresiva, la inscripción puede aumentar.
@@ -183,7 +147,7 @@ export function ActivationPanel({
         </p>
       </div>
 
-      <MercadoPagoBadge secondaryText="Activás tu participación pagando online" />
+      <MercadoPagoBadge compact secondaryText="Pago online seguro" />
 
       <div className="grid gap-3">
         <button
@@ -205,7 +169,7 @@ export function ActivationPanel({
       </div>
 
       <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
               Fallback operativo
@@ -214,13 +178,15 @@ export function ActivationPanel({
               Si tuviste un problema con Mercado Pago, podés informar un pago manual para que el admin lo revise.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowFallback((current) => !current)}
-            className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-          >
-            {showFallback ? "Ocultar fallback manual" : "Tuve un problema con Mercado Pago"}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setShowFallback((current) => !current)}
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              {showFallback ? "Ocultar fallback manual" : "Tuve un problema con Mercado Pago"}
+            </button>
+          </div>
         </div>
 
         {showFallback ? (

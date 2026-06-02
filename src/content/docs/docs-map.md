@@ -15,6 +15,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Índice de planes: `plans/000-plan-index-soliprode.md`
 - Plan MVP recaudable: `plans/soliprode-mvp-recaudable-plan.md`
 - Runbook de publicación: `src/content/docs/runbooks/deploy-main.md`
+- Sistema visual Athletic Social: `src/content/docs/design-system-athletic-social.md`
 
 ## Áreas actuales
 
@@ -23,9 +24,16 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Gobierno de agentes | `src/content/docs/protocolo-agentes.md` |
 | Deploy | `src/content/docs/runbooks/deploy-main.md` |
 | Guía para nuevos agentes | `src/content/docs/agents/README.md` |
+| Sistema visual Athletic Social | `src/content/docs/design-system-athletic-social.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
+
+## Regla para cambios visuales
+
+Antes de modificar UI, layout, copy visual o componentes de SoliProde, revisar primero:
+
+`src/content/docs/design-system-athletic-social.md`
 
 ## Áreas esperadas a futuro
 

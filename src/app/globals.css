@@ -29,6 +29,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -38,6 +39,12 @@ body {
   font-family: var(--font-inter), sans-serif;
   text-rendering: optimizeLegibility;
   min-height: 100dvh;
+  overflow-x: clip;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 body::before {

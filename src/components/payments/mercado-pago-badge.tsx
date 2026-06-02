@@ -14,22 +14,24 @@ export function MercadoPagoBadge({
   return (
     <div
       className={[
-        "flex items-center gap-3 rounded-lg border border-[var(--color-line)] bg-white px-3 py-3",
-        compact ? "text-sm" : "text-base",
+        "inline-flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-[var(--color-line)] bg-white px-3 py-2 text-left shadow-[0_3px_10px_rgba(0,50,125,0.06)]",
+        compact ? "text-xs" : "text-sm",
         className,
       ].join(" ")}
     >
-      <Image
-        src="/brand/mercado-pago.svg"
-        alt="Mercado Pago"
-        width={compact ? 22 : 28}
-        height={compact ? 22 : 28}
-        className="h-auto w-auto shrink-0"
-      />
+      <div className="flex h-8 max-h-8 w-[88px] max-w-[88px] shrink-0 items-center justify-center overflow-hidden">
+        <Image
+          src="/brand/mercado-pago.svg"
+          alt="Mercado Pago"
+          width={88}
+          height={20}
+          className="h-auto max-h-5 w-auto max-w-[88px] object-contain"
+        />
+      </div>
       <div className="min-w-0">
-        <p className="font-semibold text-[var(--color-ink)]">Pagás con Mercado Pago</p>
+        <p className="truncate font-semibold text-[var(--color-ink)]">Pagás con Mercado Pago</p>
         {secondaryText ? (
-          <p className="text-xs leading-5 text-[var(--color-muted)]">{secondaryText}</p>
+          <p className="truncate text-[11px] leading-4 text-[var(--color-muted)]">{secondaryText}</p>
         ) : null}
       </div>
     </div>

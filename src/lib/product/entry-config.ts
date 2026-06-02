@@ -11,3 +11,32 @@ export function formatEntryPrice(amount: number) {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+export function getEntryCountdownParts(targetIso = entryConfig.priceValidUntil) {
+  const diff = new Date(targetIso).getTime() - Date.now();
+
+  if (diff <= 0) {
+    return null;
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  return {
+    days,
+    hours,
+    minutes,
+  };
+}
+
+export function formatEntryCountdown(targetIso = entryConfig.priceValidUntil) {
+  const parts = getEntryCountdownParts(targetIso);
+
+  if (!parts) {
+    return "Terminó la ventana inicial";
+  }
+
+  return `${parts.days}d ${parts.hours}h ${parts.minutes}m`;
+}
