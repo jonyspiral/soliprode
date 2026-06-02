@@ -38,12 +38,22 @@ const gameFlow = [
 export default function Home() {
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] sm:-mx-4">
-        <div className="relative flex min-h-[560px] flex-col items-center justify-start px-4 pb-0 pt-10 text-center">
-          <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_40%)]" />
-          <div className="absolute inset-0 opacity-18 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent)] [background-size:24px_24px]" />
+      <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
+        <div className="relative flex min-h-[580px] flex-col items-center justify-end px-4 pb-10 text-center">
+          {/* Foto Messi ocupa todo el banner */}
+          <Image
+            src="/lio_copa.jpeg"
+            alt="Lionel Messi con la Copa del Mundo"
+            fill
+            priority
+            className="object-cover object-top"
+            sizes="100vw"
+          />
+          {/* Gradiente: imagen visible arriba, azul sólido abajo para legibilidad del texto */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,26,92,0.15)_0%,rgba(0,26,92,0.55)_52%,rgba(0,26,92,0.92)_72%,rgba(0,26,92,1)_100%)]" />
+          {/* Texto y CTA */}
           <div className="relative z-10 grid max-w-[17rem] gap-4">
-            <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white">
+            <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
               Juga el Prode del Mundial
             </h1>
             <p className="text-[1.05rem] font-semibold leading-7 text-[#dfe6ff]">y competi por premios</p>
@@ -54,30 +64,6 @@ export default function Home() {
               Crear cuenta y jugar
             </Link>
           </div>
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] flex justify-center">
-            <div className="relative h-[280px] w-full max-w-[360px] sm:hidden">
-              <Image
-                src="/home-banner-mobile-clean.png"
-                alt="Banner del Mundial para SoliProde"
-                fill
-                priority
-                className="object-contain object-bottom"
-                sizes="100vw"
-              />
-            </div>
-            <div className="relative hidden h-[320px] w-full max-w-[540px] sm:block">
-              <Image
-                src="/home-banner-desktop-clean.png"
-                alt="Banner del Mundial para SoliProde"
-                fill
-                priority
-                className="object-contain object-bottom"
-                sizes="(min-width: 640px) 720px, 100vw"
-              />
-            </div>
-          </div>
-          <div className="absolute inset-0 z-[2] bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.04)_40%,rgba(0,0,0,0.12)_100%)]" />
         </div>
       </section>
 
