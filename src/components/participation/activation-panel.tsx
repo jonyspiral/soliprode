@@ -1,0 +1,220 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
+
+type ActivationPanelProps = {
+  participationId: string | null;
+  participationStatus: string;
+  draftCount: number;
+  initialPaymentReference: string | null;
+};
+
+function formatRemaining(targetIso: string) {
+  const diff = new Date(targetIso).getTime() - Date.now();
+
+  if (diff <= 0) {
+    return "Terminó la ventana inicial";
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  return `${hours}h ${minutes}m`;
+}
+
+export function ActivationPanel({
+  participationId,
+  participationStatus,
+  draftCount,
+  initialPaymentReference,
+}: ActivationPanelProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [remaining, setRemaining] = useState(() =>
+    formatRemaining(entryConfig.priceValidUntil),
+  );
+  const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
+  const [savingReference, setSavingReference] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setRemaining(formatRemaining(entryConfig.priceValidUntil));
+    }, 60000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const priceLabel = useMemo(
+    () => formatEntryPrice(entryConfig.initialPrice),
+    [],
+  );
+
+  async function saveReference() {
+    if (!participationId) {
+      setFeedback("No encontramos tu participación todavía. Reintentá en unos minutos.");
+      return;
+    }
+
+    setSavingReference(true);
+    setFeedback(null);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from("participations")
+        .update({
+          payment_reference: paymentReference.trim() || null,
+        })
+        .eq("id", participationId);
+
+      if (error) {
+        throw error;
+      }
+
+      setFeedback(
+        paymentReference.trim()
+          ? "Referencia guardada. Tu participación sigue pendiente hasta confirmación admin."
+          : "Referencia borrada. Podés volver a cargarla cuando envíes el comprobante.",
+      );
+    } catch {
+      setFeedback("No pudimos guardar la referencia ahora. Intentá de nuevo.");
+    } finally {
+      setSavingReference(false);
+    }
+  }
+
+  if (participationStatus === "paid") {
+    return (
+      <div className="grid gap-4">
+        <div className="rounded-lg border border-[#8bd3a5] bg-[#eef9f1] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1f6b37]">
+            Participación activa
+          </p>
+          <p className="mt-2 font-serif text-[1.9rem] font-bold uppercase text-[var(--color-primary)]">
+            Ya estás compitiendo por premios
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+            Tus pronósticos futuros ya cuentan para ranking oficial, grupo y premios.
+          </p>
+        </div>
+
+        <Link
+          href="/matches"
+          className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+        >
+          Ir a mis pronósticos
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+          Precio inicial
+        </p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
+            {priceLabel}
+          </p>
+          <div className="text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Cuenta regresiva
+            </p>
+            <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">{remaining}</p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+          Disponible por tiempo limitado. Cuando termine la cuenta regresiva, la inscripción puede aumentar.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+          Estado actual
+        </p>
+        <p className="mt-2 font-serif text-[1.85rem] font-bold uppercase text-[var(--color-primary)]">
+          {draftCount > 0
+            ? `Tenés ${draftCount} pronóstico${draftCount === 1 ? "" : "s"} en borrador`
+            : "Todavía no activaste tu participación"}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+          Podés cargar tus pronósticos gratis. Para que participen por premios, activá tu participación.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((current) => !current)}
+        className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+      >
+        Activar participación
+      </button>
+
+      {expanded ? (
+        <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            Próximo paso
+          </p>
+          <p className="mt-2 font-serif text-[1.65rem] font-bold uppercase text-[var(--color-primary)]">
+            Activación manual en esta primera versión
+          </p>
+          <ol className="mt-3 grid gap-2 text-sm leading-6 text-[var(--color-muted)]">
+            <li>1. Cargás tus pronósticos antes de que empiecen los partidos.</li>
+            <li>2. Iniciás el pago o enviás comprobante.</li>
+            <li>3. El admin confirma y tu participación pasa a activa.</li>
+          </ol>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-ink)]">
+            Tu CTA principal sigue siendo preparar tus picks. La activación competitiva viene después.
+          </p>
+          <div className="mt-4 grid gap-3">
+            <label className="grid gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                Referencia o comprobante
+              </span>
+              <input
+                value={paymentReference}
+                onChange={(event) => setPaymentReference(event.target.value)}
+                placeholder="Alias, transferencia o nota para que el admin te identifique"
+                className="min-h-12 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none"
+              />
+            </label>
+            {feedback ? (
+              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+                {feedback}
+              </p>
+            ) : null}
+          </div>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/matches"
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              Cargar mis pronósticos
+            </Link>
+            <button
+              type="button"
+              onClick={() => void saveReference()}
+              disabled={savingReference}
+              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {savingReference ? "Guardando..." : "Ya envié mi comprobante"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

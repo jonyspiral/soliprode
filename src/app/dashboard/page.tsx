@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CountryFlag } from "@/components/country-flag";
+import { ActivationPanel } from "@/components/participation/activation-panel";
 import {
-  ActionTile,
   HighlightMetric,
   InfoNotice,
   PageStack,
@@ -24,10 +24,13 @@ export default async function DashboardPage() {
     | null = null;
   let participation:
     | {
+        id: string;
         payment_status: string;
         created_at: string;
+        payment_reference: string | null;
       }
     | null = null;
+  let predictionCount = 0;
   let fallbackMessage =
     "No pudimos revisar tu sesión en este momento. Reintentá en unos minutos o volvé a ingresar.";
 
@@ -44,7 +47,11 @@ export default async function DashboardPage() {
     hasAuthenticatedUser = true;
     userEmail = user.email ?? null;
 
-    [{ data: profile }, { data: participation }] = await withSupabaseTimeout(
+    const [
+      { data: profileData },
+      { data: participationData },
+      { count: userPredictionCount },
+    ] = await withSupabaseTimeout(
       Promise.all([
         supabase
           .from("profiles")
@@ -53,14 +60,22 @@ export default async function DashboardPage() {
           .maybeSingle(),
         supabase
           .from("participations")
-          .select("payment_status, created_at")
+          .select("id, payment_status, created_at, payment_reference")
           .eq("profile_id", user.id)
           .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("predictions")
+          .select("id", { count: "exact", head: true })
+          .eq("profile_id", user.id),
       ]),
       "Supabase dashboard query timed out",
     );
+
+    profile = profileData;
+    participation = participationData;
+    predictionCount = userPredictionCount ?? 0;
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =
@@ -91,6 +106,8 @@ export default async function DashboardPage() {
   const participationDate = participation
     ? new Date(participation.created_at).toLocaleDateString("es-AR")
     : "Pendiente";
+  const participationStatus = participation?.payment_status ?? "pending";
+  const participationActive = participationStatus === "paid";
 
   return (
     <PageStack>
@@ -103,16 +120,18 @@ export default async function DashboardPage() {
             <h1 className="mt-3 font-serif text-[2rem] font-bold uppercase leading-[0.95]">
               {`Hola${profile?.public_alias ? ` ${profile.public_alias}` : ""}!`}
               <br />
-              <span className="text-[var(--color-gold-soft)]">Tu cuenta sigue en juego.</span>
+              <span className="text-[var(--color-gold-soft)]">
+                {participationActive ? "Ya estás compitiendo." : "Tus pronósticos te están esperando."}
+              </span>
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
-              {profile?.email ?? userEmail ?? "Sin email"} · {participation?.payment_status ?? "pending"}
+              {profile?.email ?? userEmail ?? "Sin email"} · {participationStatus}
             </p>
           </div>
           <div className="rounded-lg border border-white/20 bg-white/10 p-3 text-right">
-            <p className="font-serif text-[1.7rem] font-bold leading-none">1,240</p>
+            <p className="font-serif text-[1.7rem] font-bold leading-none">{predictionCount}</p>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
-              Puntos
+              Pronósticos
             </p>
           </div>
         </div>
@@ -121,8 +140,12 @@ export default async function DashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2">
         <HighlightMetric
           label="Inscripción"
-          value={participation?.payment_status ?? "pending"}
-          detail="Tu participación ya quedó creada."
+          value={participationStatus}
+          detail={
+            participationActive
+              ? "Tu participación ya está activa para competir por premios."
+              : "Tu participación ya existe. Falta activarla para competir oficialmente."
+          }
         />
         <HighlightMetric
           label="Alias"
@@ -134,12 +157,12 @@ export default async function DashboardPage() {
           value={profile?.email ?? userEmail ?? "Sin email"}
           detail="Email principal de acceso."
         />
-        <SurfaceCard tone="accent" title="Qué sigue">
-          <ActionTile
-            title="Prepararte para el fixture"
-            description="Cuando se carguen los partidos, tu acción principal va a pasar por la pantalla de pronósticos."
-            actionLabel="Ir a Partidos"
-            tone="gold"
+        <SurfaceCard tone="accent" title="Activación competitiva">
+          <ActivationPanel
+            participationId={participation?.id ?? null}
+            participationStatus={participationStatus}
+            draftCount={predictionCount}
+            initialPaymentReference={participation?.payment_reference ?? null}
           />
         </SurfaceCard>
       </section>
@@ -258,7 +281,7 @@ export default async function DashboardPage() {
               Estado actual
             </p>
             <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-              {participation?.payment_status ?? "pending"}
+              {participationStatus}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
