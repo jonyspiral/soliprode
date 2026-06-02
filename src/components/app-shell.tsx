@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, SoccerBallIcon, UserIcon } from "@/components/app-icons";
 import {
   mobileNavItemsAuthenticated,
@@ -140,20 +141,6 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, []);
 
-  async function handleSignOut() {
-    try {
-      const supabase = createBrowserSupabaseClient();
-      await supabase.auth.signOut();
-    } catch {
-      // Keep client navigation resilient even if sign out fails remotely.
-    }
-
-    setIsAuthenticated(false);
-    setParticipationPaid(null);
-    router.push("/login");
-    router.refresh();
-  }
-
   const mobileNavItems =
     authReady && isAuthenticated ? mobileNavItemsAuthenticated : mobileNavItemsLoggedOut;
 
@@ -196,13 +183,10 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <div className="flex items-center gap-2">
             {authReady && isAuthenticated ? (
-              <button
-                type="button"
-                onClick={() => void handleSignOut()}
-                className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] sm:inline-flex"
-              >
-                Salir
-              </button>
+              <SignOutButton
+                label="Cerrar sesión"
+                className="inline-flex rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]"
+              />
             ) : null}
             <AvatarChip />
           </div>

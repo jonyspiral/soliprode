@@ -41,7 +41,7 @@ export function mapAuthError(error: AuthError | Error | null, fallback: string) 
   const message = error.message.toLowerCase();
 
   if (message.includes("invalid login credentials")) {
-    return "El email o la contraseña no coinciden.";
+    return "No pudimos entrar con esos datos. Revisá el email o la contraseña.";
   }
 
   if (message.includes("user already registered")) {
@@ -53,7 +53,7 @@ export function mapAuthError(error: AuthError | Error | null, fallback: string) 
   }
 
   if (message.includes("email not confirmed")) {
-    return "Tu cuenta ya existe. Si el acceso por email todavía no abrió, probá con Google o revisá el mail de confirmación.";
+    return "Tu cuenta todavía no está lista para entrar. Probá con Google o revisemos la configuración de email.";
   }
 
   if (message.includes("signup is disabled")) {

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { CountryFlag } from "@/components/country-flag";
 import { ActivationPanel } from "@/components/participation/activation-panel";
 import {
@@ -97,7 +98,7 @@ export default async function DashboardPage() {
   if (hasAuthenticatedUser && !profile && !participation) {
     return (
       <PageStack>
-      <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
+        <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
       </PageStack>
@@ -246,6 +247,9 @@ export default async function DashboardPage() {
                 {profile?.role ?? "player"}
               </span>
             </div>
+            <SignOutButton
+              className="inline-flex items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            />
           </div>
         </SurfaceCard>
       </section>

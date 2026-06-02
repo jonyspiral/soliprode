@@ -19,6 +19,14 @@ En Supabase Auth hay que dejar configurado:
 - configurar `Site URL`;
 - configurar `Redirect URLs`.
 
+### Ruta en Supabase
+
+Para revisar la confirmación de email del MVP:
+
+`Supabase Auth > Providers > Email`
+
+Ahí conviene validar con negocio si `Confirm email` sigue prendido. Para el MVP recaudable, la recomendación actual es dejarlo desactivado para no mandar al jugador a un callejón sin salida.
+
 ### Site URL recomendada
 
 ```text

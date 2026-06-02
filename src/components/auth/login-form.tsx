@@ -103,7 +103,10 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
 
       if (signInError) {
         setError(
-          mapAuthError(signInError, "No pudimos entrar con esos datos. Revisalos e intentá de nuevo."),
+          mapAuthError(
+            signInError,
+            "No pudimos entrar con esos datos. Revisá el email o la contraseña.",
+          ),
         );
         return;
       }
@@ -111,7 +114,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
       const user = data.user;
 
       if (!user) {
-        setError("Entraste, pero no pudimos recuperar tu cuenta todavía. Intentá de nuevo.");
+        setError("Entraste, pero no pudimos recuperar tu cuenta todavía. Probá de nuevo.");
         return;
       }
 
@@ -127,7 +130,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
       router.replace(nextPath);
       router.refresh();
     } catch {
-      setError("No pudimos ingresar en este momento. Intentá de nuevo.");
+      setError("No pudimos entrar ahora. Probá de nuevo en un rato.");
     } finally {
       setPending(false);
     }
@@ -146,13 +149,13 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
           {googlePending ? "Abriendo Google..." : "Continuar con Google"}
         </button>
         <p className="text-center text-sm text-[var(--color-muted)]">
-          Entrás más rápido y seguís directo con tus pronósticos.
+          Es la jugada más rápida para volver al ranking.
         </p>
       </div>
 
       <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
         <div className="h-px flex-1 bg-[var(--color-line)]" />
-        <span>También podés entrar con email</span>
+        <span>O entrá con email</span>
         <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
@@ -224,7 +227,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
           disabled={pending}
           className="inline-flex min-h-14 w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[#1a1c1c] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {pending ? "Entrando..." : "Entrar con email"}
+          {pending ? "Entrando..." : "Entrá con email"}
         </button>
 
         <p className="text-center text-sm text-[var(--color-muted)]">

@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth/register-form";
 import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
-import { readPromoterCodeFromSearchParams } from "@/lib/auth/promoter-attribution";
+import {
+  readPromoterCodeFromSearchParams,
+} from "@/lib/auth/promoter-attribution";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -15,6 +17,8 @@ type RegisterPageProps = {
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   let authErrorMessage: string | null = null;
+  const params = searchParams ? await searchParams : undefined;
+  const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -30,18 +34,15 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       "No pudimos revisar tu sesión en este momento. Si el alta no responde, reintentá en unos minutos.";
   }
 
-  const params = searchParams ? await searchParams : undefined;
-  const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
-
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-white">
         <div className="mx-auto max-w-[18rem] text-center">
           <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
-            Creá tu cuenta y entrá al torneo
+            Creá tu cuenta y empezá a jugar
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
-            Entrás gratis, cargás tus pronósticos y después activás la competencia con Mercado Pago.
+            Después cargás tus pronósticos y pagás para competir por premios.
           </p>
         </div>
       </section>
@@ -73,8 +74,8 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       </section>
 
       <SurfaceCard
-        title="Creá tu cuenta"
-        description="Google va primero. Email queda como alternativa para entrar al Mundial desde tu celular."
+        title="Entrá al juego"
+        description="Google va primero. Email queda como plan B para no perder el ritmo."
       >
         <div className="grid gap-4">
           {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}

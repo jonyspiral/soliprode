@@ -129,19 +129,22 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
 
       if (signUpError) {
         setError(
-          mapAuthError(signUpError, "No pudimos crear tu cuenta. Revisá tus datos e intentá de nuevo."),
+          mapAuthError(
+            signUpError,
+            "No pudimos crear tu cuenta. Revisá los datos y probá otra vez.",
+          ),
         );
         return;
       }
 
       if (!data.user) {
-        setError("No pudimos completar el alta. Intentá de nuevo.");
+        setError("No pudimos completar esa cuenta. Probá de nuevo.");
         return;
       }
 
       if (!data.session) {
         setSuccess(
-          "Tu cuenta ya quedó creada. Si Supabase te pide confirmar el correo, hacelo desde el mail y después seguí desde acá.",
+          "La cuenta quedó creada. Si el email te frena, probá con Google o revisemos la configuración de Supabase para el MVP.",
         );
         router.replace(loginHref);
         router.refresh();
@@ -156,11 +159,11 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
       }
 
       persistPromoterCode(null);
-      setSuccess("Cuenta lista. Entrás a competir.");
+      setSuccess("Cuenta lista. Ya podés entrar a jugar.");
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setError("No pudimos completar el registro en este momento. Intentá de nuevo.");
+      setError("No pudimos crear tu cuenta ahora. Probá de nuevo en un rato.");
     } finally {
       setPending(false);
     }
@@ -179,13 +182,13 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
           {googlePending ? "Abriendo Google..." : "Crear cuenta con Google"}
         </button>
         <p className="text-center text-sm text-[var(--color-muted)]">
-          Es la forma más rápida de entrar, guardar pronósticos y seguir el ranking.
+          Es la jugada más rápida para entrar, cargar picks y pelear el ranking.
         </p>
       </div>
 
       <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
         <div className="h-px flex-1 bg-[var(--color-line)]" />
-        <span>También podés seguir con email</span>
+        <span>O registrate con email</span>
         <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
@@ -319,7 +322,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
               placeholder="Si venís invitado, dejalo cargado"
             />
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Si llegaste por un promotor o una invitación, ese código queda guardado para tu participación.
+              Si llegaste por un promotor o una invitación, ese código queda guardado para tu cuenta.
             </p>
           </div>
 
@@ -331,7 +334,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
               Grupo y equipo de 11
             </p>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              Primero entrás al torneo. Después elegís tu grupo, armás tu equipo y salís a pelear el ranking.
+              Primero entrás al Prode. Después armás tu grupo, tu equipo de 11 y salís a competir.
             </p>
           </div>
         </div>
@@ -359,7 +362,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
             <CheckIcon className="pointer-events-none absolute h-3.5 w-3.5 text-white" />
           </div>
           <span>
-            Al crear tu cuenta ya podés empezar a cargar pronósticos. El pago entra después, cuando activás tu participación.
+            Creás la cuenta ahora, cargás tus pronósticos y después pagás para competir por premios.
           </span>
         </label>
 
@@ -368,7 +371,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
           disabled={pending}
           className="inline-flex min-h-14 w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[#1a1c1c] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {pending ? "Creando cuenta..." : "Crear cuenta con email"}
+          {pending ? "Creando cuenta..." : "Registrarme con email"}
         </button>
 
         <p className="text-center text-sm text-[var(--color-muted)]">
