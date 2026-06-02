@@ -1,20 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #f4f7fb;
-  --color-surface: #fcfdff;
-  --color-ink: #142236;
-  --color-muted: #5d6b7a;
-  --color-line: #d9e2ec;
-  --color-accent: #0f766e;
-  --color-accent-strong: #115e59;
+  --color-bg: #f9f9f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f3f4;
+  --color-ink: #1a1c1c;
+  --color-muted: #434653;
+  --color-line: #c3c6d5;
+  --color-primary: #00327d;
+  --color-primary-strong: #0047ab;
+  --color-secondary: #0c6780;
+  --color-secondary-soft: #9ae1ff;
+  --color-gold: #e9c400;
+  --color-gold-soft: #ffe16d;
+  --color-error: #ba1a1a;
 }
 
 @theme inline {
   --color-background: var(--color-bg);
   --color-foreground: var(--color-ink);
-  --font-sans: var(--font-manrope);
-  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-archivo-narrow);
 }
 
 * {
@@ -29,8 +35,21 @@ body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-ink);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-inter), sans-serif;
   text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 50, 125, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 50, 125, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.45;
+  z-index: -1;
 }
 
 a {

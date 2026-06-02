@@ -26,16 +26,36 @@ export default async function RegisterPage() {
   return (
     <PageStack>
       <PageHero
-        title="Creá tu cuenta."
-        description="Registrate para entrar al Prode Mundial Solidario 2026 con tu alias, seguir tus posiciones y sumarte al torneo."
+        title="Entrá al torneo."
+        description="Completá tus datos, confirmá tu cuenta y dejá lista tu inscripción para competir en SoliProde."
+        tone="stadium"
       />
-      <SurfaceCard
-        title="Registro"
-        description="Completá tus datos básicos ahora. El grupo y la comunidad los vas a elegir después de entrar."
-      >
-        {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
-        <RegisterForm />
-      </SurfaceCard>
+      <section className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
+        <SurfaceCard
+          title="Registro"
+          description="Primero armamos tu cuenta. Después elegís grupo, comunidad y empezás a seguir tus posiciones."
+        >
+          {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
+          <RegisterForm />
+        </SurfaceCard>
+
+        <div className="grid gap-4">
+          <SurfaceCard tone="primary" title="Paso a paso" description="La entrada al torneo está pensada para hacerse rápido desde el teléfono.">
+            <div className="grid gap-3 text-sm leading-6 text-white/88">
+              <div className="border border-white/20 bg-white/10 px-4 py-3">1. Creás tu cuenta con email y contraseña.</div>
+              <div className="border border-white/20 bg-white/10 px-4 py-3">2. Confirmás tu correo para activar el acceso.</div>
+              <div className="border border-white/20 bg-white/10 px-4 py-3">3. Entrás al panel y seguís tu inscripción.</div>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard tone="accent" title="Lo importante" description="El alta inicial se concentra en lo mínimo para no frenarte.">
+            <p className="text-sm leading-6 text-[var(--color-ink)]">
+              Grupo, comunidad y rankings sociales quedan para el siguiente paso. La prioridad
+              ahora es entrar al torneo con tu alias y tu cuenta activa.
+            </p>
+          </SurfaceCard>
+        </div>
+      </section>
     </PageStack>
   );
 }

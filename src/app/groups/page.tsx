@@ -6,35 +6,44 @@ export default function GroupsPage() {
   return (
     <PageStack>
       <PageHero
-        title="Tus grupos."
-        description="Acá vas a poder crear un grupo, unirte a uno existente y compartir la invitación cuando esa parte del juego ya esté activa."
+        title="Grupos."
+        description="Este espacio concentra la competencia corta: amigos, equipo o mesa de oficina."
+        tone="stadium"
       />
 
       <section className="grid gap-4 md:grid-cols-3">
         <ActionTile
           title="Crear grupo"
-          description="Para jugar con amigos, compañeros o un equipo más chico."
+          description="Armá una liga chica para competir más cerca con amigos o compañeros."
           actionLabel="Crear"
         />
         <ActionTile
           title="Unirte a un grupo"
-          description="Con un código o invitación cuando ese flujo esté habilitado."
+          description="Entrá con un código o invitación sin salir del panel principal."
           actionLabel="Unirme"
         />
         <ActionTile
           title="Invitar"
-          description="Más adelante vas a compartir un link simple desde este mismo espacio."
+          description="Compartí un link corto para sumar jugadores al mismo grupo."
           actionLabel="Compartir"
+          tone="gold"
         />
       </section>
 
       <SurfaceCard
-        title="Qué vas a encontrar acá"
-        description="La idea es que el grupo sea una capa simple para competir de forma más cercana."
+        title="Qué vas a seguir acá"
+        description="El grupo existe para simplificar una competencia chica, no para complicar el torneo principal."
       >
-        <div className="rounded-[1.25rem] border border-[var(--color-line)] bg-slate-50 p-5 text-sm leading-6 text-[var(--color-muted)]">
-          Cuando el flujo esté completo, esta pantalla va a concentrar ranking interno, miembros e
-          invitaciones sin mezclarlo con el resto del torneo.
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
+            Ranking interno del grupo
+          </div>
+          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
+            Miembros e invitaciones
+          </div>
+          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
+            Comparación rápida contra el resto
+          </div>
         </div>
       </SurfaceCard>
     </PageStack>

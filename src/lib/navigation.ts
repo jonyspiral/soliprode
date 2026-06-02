@@ -1,6 +1,7 @@
 export const primaryNavItemsLoggedOut = [{ href: "/", label: "Inicio" }];
 
 export const primaryNavItemsAuthenticated = [
+  { href: "/", label: "Inicio" },
   { href: "/dashboard", label: "Panel" },
   { href: "/matches", label: "Partidos" },
   { href: "/rankings", label: "Rankings" },
@@ -15,7 +16,8 @@ export const secondaryNavItems = [
 export const mobileNavItemsLoggedOut = [{ href: "/", label: "Inicio" }];
 
 export const mobileNavItemsAuthenticated = [
-  { href: "/dashboard", label: "Panel" },
+  { href: "/", label: "Home" },
   { href: "/matches", label: "Partidos" },
-  { href: "/rankings", label: "Ranking" },
+  { href: "/rankings", label: "Rankings" },
+  { href: "/dashboard", label: "Perfil" },
 ];

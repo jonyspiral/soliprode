@@ -25,8 +25,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       redirect("/dashboard");
     }
   } catch {
-    authErrorMessage =
-      "No pudimos revisar tu sesión en este momento. Igual podés intentar ingresar.";
+    authErrorMessage = "No pudimos revisar tu sesión ahora. Igual podés intentar ingresar.";
   }
 
   const params = searchParams ? await searchParams : undefined;
@@ -35,8 +34,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <PageStack>
       <PageHero
-        title="Volvé a tu cuenta."
-        description="Entrá con tu email y contraseña para seguir tu inscripción y tus próximos pasos dentro de SoliProde."
+        title="Volvé a la competencia"
+        description="Ingresá con tu cuenta para seguir tu inscripción, tus partidos y tus posiciones."
       />
       <SurfaceCard title="Ingresar" description="Usá la misma cuenta con la que te registraste.">
         {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}

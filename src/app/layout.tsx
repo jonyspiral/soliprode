@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { Archivo_Narrow, Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const archivoNarrow = Archivo_Narrow({
+  variable: "--font-archivo-narrow",
   subsets: ["latin"],
 });
 
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${archivoNarrow.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-ink)]">
         <AppShell>{children}</AppShell>

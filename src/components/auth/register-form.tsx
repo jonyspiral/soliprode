@@ -95,11 +95,14 @@ export function RegisterForm() {
       action={async (formData) => {
         await handleSubmit(formData);
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2 sm:col-span-2">
-          <label htmlFor="full_name" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="full_name"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             Nombre completo
           </label>
           <input
@@ -108,13 +111,16 @@ export function RegisterForm() {
             type="text"
             required
             autoComplete="name"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="Nombre y apellido"
           />
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="public_alias" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="public_alias"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             Alias público
           </label>
           <input
@@ -123,13 +129,16 @@ export function RegisterForm() {
             type="text"
             required
             autoComplete="nickname"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="Cómo querés aparecer"
           />
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="whatsapp" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="whatsapp"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             WhatsApp
           </label>
           <input
@@ -137,13 +146,16 @@ export function RegisterForm() {
             name="whatsapp"
             type="tel"
             autoComplete="tel"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="+54 9 11..."
           />
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="email" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="email"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             Email
           </label>
           <input
@@ -152,13 +164,16 @@ export function RegisterForm() {
             type="email"
             required
             autoComplete="email"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="tu@email.com"
           />
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="password" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="password"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             Contraseña
           </label>
           <input
@@ -168,54 +183,67 @@ export function RegisterForm() {
             required
             minLength={6}
             autoComplete="new-password"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="Mínimo 6 caracteres"
           />
         </div>
       </div>
 
-      <div className="grid gap-4 rounded-[1.5rem] border border-[var(--color-line)] bg-slate-50 p-4">
+      <div className="grid gap-4 border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
         <div className="grid gap-2">
-          <label htmlFor="promoter_code" className="text-sm font-semibold text-[var(--color-ink)]">
+          <label
+            htmlFor="promoter_code"
+            className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
             Código de promotor
           </label>
           <input
             id="promoter_code"
             name="promoter_code"
             type="text"
-            className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+            className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
             placeholder="Opcional por ahora"
           />
-          <p className="text-xs leading-5 text-[var(--color-muted)]">
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
             Si llegaste por una invitación o promotor, podés dejarlo cargado ahora.
           </p>
         </div>
 
-        <div className="rounded-[1.25rem] border border-dashed border-[var(--color-line)] bg-white p-4">
-          <p className="text-sm font-semibold text-[var(--color-ink)]">Grupo y comunidad</p>
+        <div className="border-[1.5px] border-dashed border-[var(--color-line)] bg-white p-4">
+          <p className="font-serif text-2xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+            Grupo y comunidad
+          </p>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Los vas a elegir después de entrar. Primero necesitamos crear tu cuenta y dejar lista
-            tu inscripción.
+            Primero creás tu cuenta. Después elegís dónde competir, con qué oficina jugar y qué
+            grupo querés seguir más de cerca.
           </p>
         </div>
       </div>
 
       {error ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p className="border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <p className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {success}
         </p>
       ) : null}
 
+      <label className="flex items-start gap-3 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-4 text-sm text-[var(--color-muted)]">
+        <input type="checkbox" checked readOnly className="mt-1 h-4 w-4 accent-[var(--color-gold)]" />
+        <span>
+          Al crear tu cuenta aceptás recibir información del torneo y completar tu inscripción
+          desde el panel.
+        </span>
+      </label>
+
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center border-[1.5px] border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-3 font-serif text-2xl uppercase tracking-[0.06em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Creando cuenta..." : "Crear cuenta"}
       </button>

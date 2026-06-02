@@ -73,12 +73,15 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       action={async (formData) => {
         await handleSubmit(formData);
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
     >
       <input type="hidden" name="next" value={nextPath} />
 
       <div className="grid gap-2">
-        <label htmlFor="email" className="text-sm font-semibold text-[var(--color-ink)]">
+        <label
+          htmlFor="email"
+          className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+        >
           Email
         </label>
         <input
@@ -87,13 +90,16 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           type="email"
           required
           autoComplete="email"
-          className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+          className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
           placeholder="tu@email.com"
         />
       </div>
 
       <div className="grid gap-2">
-        <label htmlFor="password" className="text-sm font-semibold text-[var(--color-ink)]">
+        <label
+          htmlFor="password"
+          className="font-serif text-lg uppercase tracking-[0.08em] text-[var(--color-primary)]"
+        >
           Contraseña
         </label>
         <input
@@ -102,19 +108,19 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           type="password"
           required
           autoComplete="current-password"
-          className="rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm text-[var(--color-ink)] outline-none ring-0 transition focus:border-[var(--color-accent)]"
+          className="min-h-14 border-[1.5px] border-[var(--color-line)] bg-white px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
           placeholder="Tu contraseña"
         />
       </div>
 
       {error ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p className="border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <p className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           {success}
         </p>
       ) : null}
@@ -122,14 +128,14 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex min-h-14 w-full items-center justify-center border-[1.5px] border-[var(--color-primary)] bg-[var(--color-primary)] px-5 py-3 font-serif text-2xl uppercase tracking-[0.06em] text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {pending ? "Ingresando..." : "Ingresar"}
       </button>
 
       <p className="text-sm text-[var(--color-muted)]">
         ¿Todavía no tenés cuenta?{" "}
-        <Link href="/register" className="font-semibold text-[var(--color-accent)]">
+        <Link href="/register" className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline">
           Creala acá
         </Link>
       </p>
