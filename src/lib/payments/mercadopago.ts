@@ -1,4 +1,10 @@
 import {
+  MercadoPagoConfig,
+  Payment,
+  Preference,
+} from "mercadopago";
+
+import {
   getBaseUrl,
   getMercadoPagoAccessToken,
   getMercadoPagoWebhookSecret,
@@ -39,16 +45,58 @@ export type MercadoPagoPaymentInfo = {
   external_reference?: string | null;
 };
 
-type MercadoPagoPaymentsSearchResponse = {
-  results?: MercadoPagoPaymentInfo[];
-};
+let mercadoPagoConfig: MercadoPagoConfig | null = null;
+type SdkPreferenceResponse = Awaited<ReturnType<Preference["create"]>>;
+type SdkPaymentResponse = Awaited<ReturnType<Payment["get"]>>;
+type SdkPaymentSearchResponse = Awaited<ReturnType<Payment["search"]>>;
 
-const MERCADO_PAGO_API_BASE = "https://api.mercadopago.com";
+function getMercadoPagoConfig() {
+  if (!mercadoPagoConfig) {
+    mercadoPagoConfig = new MercadoPagoConfig({
+      accessToken: getMercadoPagoAccessToken(),
+    });
+  }
 
-function buildHeaders() {
+  return mercadoPagoConfig;
+}
+
+function getPreferenceClient() {
+  return new Preference(getMercadoPagoConfig());
+}
+
+function getPaymentClient() {
+  return new Payment(getMercadoPagoConfig());
+}
+
+function normalizePreferenceResponse(preference: SdkPreferenceResponse): MercadoPagoPreferenceResponse {
   return {
-    Authorization: `Bearer ${getMercadoPagoAccessToken()}`,
-    "Content-Type": "application/json",
+    id: preference.id ?? "",
+    init_point: preference.init_point ?? null,
+    sandbox_init_point: preference.sandbox_init_point ?? null,
+  };
+}
+
+function normalizePaymentResponse(payment: SdkPaymentResponse): MercadoPagoPaymentInfo {
+  return {
+    id: payment.id ?? "",
+    status: payment.status ?? "unknown",
+    status_detail: payment.status_detail ?? null,
+    transaction_amount: Number(payment.transaction_amount ?? 0),
+    currency_id: payment.currency_id ?? null,
+    external_reference: payment.external_reference ?? null,
+  };
+}
+
+function normalizePaymentSearchResult(
+  payment: NonNullable<SdkPaymentSearchResponse["results"]>[number],
+): MercadoPagoPaymentInfo {
+  return {
+    id: payment.id ?? "",
+    status: payment.status ?? "unknown",
+    status_detail: payment.status_detail ?? null,
+    transaction_amount: Number(payment.transaction_amount ?? 0),
+    currency_id: payment.currency_id ?? null,
+    external_reference: payment.external_reference ?? null,
   };
 }
 
@@ -68,56 +116,46 @@ export function getMercadoPagoNotificationUrl() {
 export async function createMercadoPagoPreference(
   request: MercadoPagoPreferenceRequest,
 ): Promise<MercadoPagoPreferenceResponse> {
-  const response = await fetch(`${MERCADO_PAGO_API_BASE}/checkout/preferences`, {
-    method: "POST",
-    headers: buildHeaders(),
-    body: JSON.stringify(request),
-    cache: "no-store",
+  const preference = await getPreferenceClient().create({
+    body: {
+      items: request.items.map((item, index) => ({
+        id: `soliprode-entry-${index + 1}`,
+        title: item.title,
+        quantity: item.quantity,
+        currency_id: item.currency_id,
+        unit_price: item.unit_price,
+      })),
+      payer: request.payer?.email ? { email: request.payer.email } : undefined,
+      external_reference: request.external_reference,
+      back_urls: request.back_urls,
+      notification_url: request.notification_url,
+      auto_return: request.auto_return,
+    },
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Mercado Pago preference error: ${response.status} ${errorText}`);
-  }
-
-  return (await response.json()) as MercadoPagoPreferenceResponse;
+  return normalizePreferenceResponse(preference);
 }
 
 export async function getMercadoPagoPayment(paymentId: string | number) {
-  const response = await fetch(`${MERCADO_PAGO_API_BASE}/v1/payments/${paymentId}`, {
-    method: "GET",
-    headers: buildHeaders(),
-    cache: "no-store",
+  const payment = await getPaymentClient().get({
+    id: paymentId,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Mercado Pago payment error: ${response.status} ${errorText}`);
-  }
-
-  return (await response.json()) as MercadoPagoPaymentInfo;
+  return normalizePaymentResponse(payment);
 }
 
 export async function searchMercadoPagoPaymentByExternalReference(externalReference: string) {
-  const url = new URL(`${MERCADO_PAGO_API_BASE}/v1/payments/search`);
-  url.searchParams.set("external_reference", externalReference);
-  url.searchParams.set("sort", "date_created");
-  url.searchParams.set("criteria", "desc");
-  url.searchParams.set("limit", "1");
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: buildHeaders(),
-    cache: "no-store",
+  const searchResult = await getPaymentClient().search({
+    options: {
+      external_reference: externalReference,
+      sort: "date_created",
+      criteria: "desc",
+      limit: 1,
+    },
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Mercado Pago search error: ${response.status} ${errorText}`);
-  }
-
-  const data = (await response.json()) as MercadoPagoPaymentsSearchResponse;
-  return data.results?.[0] ?? null;
+  const payment = searchResult.results?.[0];
+  return payment ? normalizePaymentSearchResult(payment) : null;
 }
 
 export function resolveMercadoPagoCheckoutUrl(preference: MercadoPagoPreferenceResponse) {
