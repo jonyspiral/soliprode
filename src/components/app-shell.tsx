@@ -9,6 +9,7 @@ import {
   mobileNavItemsLoggedOut,
   secondaryNavItems,
 } from "@/lib/navigation";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = {
@@ -72,17 +73,20 @@ export function AppShell({ children }: AppShellProps) {
       try {
         const { data } = await supabase
           .from("participations")
-          .select("payment_status")
+          .select("payment_status, created_at")
           .eq("profile_id", userId)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false })
+          .limit(2);
 
         if (!active) {
           return;
         }
 
-        setParticipationPaid(data?.payment_status === "paid");
+        setParticipationPaid(
+          pickPrimaryParticipation(
+            (data ?? []) as Array<{ created_at: string; payment_status: string }>,
+          ).participation?.payment_status === "paid",
+        );
       } catch {
         if (active) {
           setParticipationPaid(null);
@@ -207,13 +211,13 @@ export function AppShell({ children }: AppShellProps) {
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
             <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-                Pendiente de pago
+                Tus picks todavía no compiten
               </p>
               <Link
                 href="/dashboard"
                 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
               >
-                Pagar participación
+                Pagá con Mercado Pago
               </Link>
             </div>
           </div>

@@ -37,6 +37,7 @@ export type MercadoPagoPreferenceResponse = {
 };
 
 export type MercadoPagoPaymentInfo = {
+  approved_at?: string | null;
   id: number | string;
   status: string;
   status_detail?: string | null;
@@ -78,6 +79,7 @@ function normalizePreferenceResponse(preference: SdkPreferenceResponse): Mercado
 
 function normalizePaymentResponse(payment: SdkPaymentResponse): MercadoPagoPaymentInfo {
   return {
+    approved_at: payment.date_approved ?? null,
     id: payment.id ?? "",
     status: payment.status ?? "unknown",
     status_detail: payment.status_detail ?? null,
@@ -91,6 +93,7 @@ function normalizePaymentSearchResult(
   payment: NonNullable<SdkPaymentSearchResponse["results"]>[number],
 ): MercadoPagoPaymentInfo {
   return {
+    approved_at: payment.date_approved ?? null,
     id: payment.id ?? "",
     status: payment.status ?? "unknown",
     status_detail: payment.status_detail ?? null,

@@ -122,3 +122,33 @@ export function CheckIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function GoogleIcon({ title = "Google", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden={title ? undefined : true}
+      role={title ? "img" : "presentation"}
+      {...props}
+    >
+      {title ? <title>{title}</title> : null}
+      <path
+        d="M21.76 12.26c0-.82-.07-1.43-.22-2.07H12.2v3.81h5.48c-.11.95-.7 2.38-2.01 3.34l-.02.13 3.05 2.31.21.02c1.95-1.77 3.08-4.37 3.08-7.54Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12.2 22c2.69 0 4.95-.86 6.6-2.34l-3.24-2.46c-.87.6-2.03 1.03-3.36 1.03-2.64 0-4.88-1.72-5.68-4.11l-.12.01-3.17 2.4-.04.11A9.98 9.98 0 0 0 12.2 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.52 14.12A5.92 5.92 0 0 1 6.2 12c0-.74.13-1.46.31-2.12l-.01-.14-3.21-2.44-.1.05A9.72 9.72 0 0 0 2.1 12c0 1.75.42 3.4 1.09 4.65l3.33-2.53Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12.2 5.77c1.67 0 2.8.71 3.44 1.3l2.52-2.4C17.14 3.75 14.89 2 12.2 2A9.98 9.98 0 0 0 3.2 7.35l3.32 2.53c.8-2.39 3.04-4.11 5.68-4.11Z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}

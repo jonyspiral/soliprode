@@ -53,7 +53,7 @@ export function mapAuthError(error: AuthError | Error | null, fallback: string) 
   }
 
   if (message.includes("email not confirmed")) {
-    return "Necesitás confirmar tu email antes de ingresar.";
+    return "Tu cuenta ya existe. Si el acceso por email todavía no abrió, probá con Google o revisá el mail de confirmación.";
   }
 
   if (message.includes("signup is disabled")) {

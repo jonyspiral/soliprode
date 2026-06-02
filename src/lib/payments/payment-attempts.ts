@@ -1,4 +1,7 @@
 import { entryConfig } from "@/lib/product/entry-config";
+import { resolveOnlineEligibleFrom } from "@/lib/participations/eligibility";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { rebuildGeneralRankings } from "@/lib/scoring/official-rankings";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import {
   createMercadoPagoPreference,
@@ -11,14 +14,19 @@ import {
 import { getBaseUrl } from "@/lib/payments/config";
 
 type ParticipationRow = {
+  activated_at: string | null;
   id: string;
   profile_id: string;
   payment_status: string;
   entry_price: number | null;
   entry_baseline_points: number | null;
+  payment_started_at: string | null;
+  payment_submitted_at: string | null;
+  created_at: string;
 };
 
 type PaymentAttemptRow = {
+  approved_at: string | null;
   id: string;
   participation_id: string;
   profile_id: string;
@@ -38,6 +46,16 @@ type PaymentAttemptRow = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function normalizeProviderApprovedAt(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 function mapMercadoPagoStatus(status: string | null | undefined) {
@@ -66,17 +84,18 @@ export async function getParticipationForProfile(profileId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
     .from("participations")
-    .select("id, profile_id, payment_status, entry_price, entry_baseline_points")
+    .select(
+      "id, profile_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
+    )
     .eq("profile_id", profileId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false })
+    .limit(2);
 
   if (error) {
     throw error;
   }
 
-  return data as ParticipationRow | null;
+  return pickPrimaryParticipation((data ?? []) as ParticipationRow[]).participation;
 }
 
 export async function createMercadoPagoCheckoutForParticipation(input: {
@@ -98,6 +117,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
   const currency = entryConfig.currency;
   const externalReference = `soliprode:${participation.id}:${crypto.randomUUID()}`;
   const expiresAt = entryConfig.priceValidUntil;
+  const paymentStartedAt = participation.payment_started_at ?? nowIso();
 
   const { data: insertedAttempt, error: insertError } = await service
     .from("payment_attempts")
@@ -112,7 +132,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       expires_at: expiresAt,
     })
     .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, raw_provider_response",
+      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
     )
     .single();
 
@@ -156,7 +176,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
     })
     .eq("id", insertedAttempt.id)
     .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, raw_provider_response",
+      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
     )
     .single();
 
@@ -169,6 +189,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
     .update({
       payment_status: "payment_started",
       payment_provider: "mercadopago",
+      payment_started_at: paymentStartedAt,
     })
     .eq("id", participation.id);
 
@@ -196,13 +217,30 @@ async function applyAttemptAndParticipationState(
   const nextAttemptStatus = mapMercadoPagoStatus(paymentInfo.status);
   const amountMatches = Number(paymentInfo.transaction_amount) === Number(attempt.amount);
   const externalReferenceMatches = paymentInfo.external_reference === attempt.external_reference;
+  const approvedAt = normalizeProviderApprovedAt(paymentInfo.approved_at);
 
   const safeAttemptStatus =
     amountMatches && externalReferenceMatches ? nextAttemptStatus : "manual_review";
 
+  const { data: participationRows, error: participationError } = await service
+    .from("participations")
+    .select("id, payment_started_at, payment_submitted_at, activated_at, created_at")
+    .eq("id", attempt.participation_id)
+    .limit(1);
+
+  if (participationError) {
+    throw participationError;
+  }
+
+  const participation = ((participationRows ?? [])[0] as Pick<
+    ParticipationRow,
+    "id" | "payment_started_at" | "payment_submitted_at" | "activated_at" | "created_at"
+  > | undefined) ?? null;
+
   await service
     .from("payment_attempts")
     .update({
+      approved_at: approvedAt,
       provider_payment_id: String(paymentInfo.id),
       status: safeAttemptStatus,
       raw_provider_response: paymentInfo,
@@ -210,20 +248,34 @@ async function applyAttemptAndParticipationState(
     .eq("id", attempt.id);
 
   if (safeAttemptStatus === "paid") {
+    const paidAt = nowIso();
+    const activatedAt = nowIso();
+    const eligibleFrom = resolveOnlineEligibleFrom(
+      {
+        approved_at: approvedAt,
+        payment_started_at: participation?.payment_started_at ?? null,
+        activated_at: activatedAt,
+        paid_at: paidAt,
+      },
+      paidAt,
+    );
+
     await service
       .from("participations")
       .update({
         payment_status: "paid",
         payment_provider: "mercadopago",
-        paid_at: nowIso(),
-        activated_at: nowIso(),
+        paid_at: paidAt,
+        activated_at: activatedAt,
         entry_price: attempt.amount,
-        price_snapshot_at: nowIso(),
+        price_snapshot_at: paidAt,
         price_valid_until: attempt.expires_at,
-        eligible_from: nowIso(),
+        eligible_from: eligibleFrom,
         entry_baseline_points: 0,
       })
       .eq("id", attempt.participation_id);
+
+    await rebuildGeneralRankings();
 
     return {
       attemptStatus: safeAttemptStatus,
@@ -301,7 +353,7 @@ export async function getPaymentAttemptByExternalReference(externalReference: st
   const { data, error } = await service
     .from("payment_attempts")
     .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, raw_provider_response",
+      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
     )
     .eq("external_reference", externalReference)
     .maybeSingle();

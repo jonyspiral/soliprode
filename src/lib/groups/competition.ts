@@ -1,0 +1,262 @@
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
+
+type ParticipationRow = {
+  created_at: string;
+  profile_id: string;
+  group_id: string | null;
+  payment_status: string;
+};
+
+type GroupRow = {
+  id: string;
+  name: string;
+  slug: string;
+  invite_code: string | null;
+  owner_profile_id: string | null;
+};
+
+type ProfileRow = {
+  id: string;
+  public_alias: string;
+};
+
+type RankingRow = {
+  profile_id: string;
+  points: number;
+  position: number | null;
+};
+
+export type GroupMemberSnapshot = {
+  profileId: string;
+  alias: string;
+  paymentStatus: string;
+  points: number;
+  generalPosition: number | null;
+  groupPosition: number | null;
+  isActive: boolean;
+  isCurrentUser: boolean;
+};
+
+export type GroupLeaderboardEntry = {
+  groupId: string;
+  name: string;
+  slug: string;
+  inviteCode: string | null;
+  ownerProfileId: string | null;
+  activeCount: number;
+  totalCount: number;
+  averagePoints: number;
+  isEligible: boolean;
+  status: "preview" | "enabled";
+  position: number;
+  dtProfileId: string | null;
+  dtAlias: string | null;
+};
+
+export type CurrentGroupSnapshot = GroupLeaderboardEntry & {
+  members: GroupMemberSnapshot[];
+};
+
+export type GroupCompetitionSnapshot = {
+  currentGroup: CurrentGroupSnapshot | null;
+  currentParticipationStatus: string | null;
+  currentUserAlias: string | null;
+  leaderboard: GroupLeaderboardEntry[];
+};
+
+function normalizeAlias(alias: string | null | undefined, fallback: string) {
+  return typeof alias === "string" && alias.trim() ? alias.trim() : fallback;
+}
+
+function isParticipationActive(paymentStatus: string) {
+  return paymentStatus === "paid";
+}
+
+function compareMembers(a: GroupMemberSnapshot, b: GroupMemberSnapshot) {
+  if (b.points !== a.points) {
+    return b.points - a.points;
+  }
+
+  return a.alias.localeCompare(b.alias, "es");
+}
+
+export function normalizeInviteCode(rawValue: string) {
+  return rawValue.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export async function getGroupCompetitionSnapshot(
+  currentUserId: string | null,
+): Promise<GroupCompetitionSnapshot> {
+  const service = createServiceRoleSupabaseClient();
+
+  const currentParticipationQuery = currentUserId
+    ? service
+        .from("participations")
+        .select("profile_id, group_id, payment_status, created_at")
+        .eq("profile_id", currentUserId)
+        .order("created_at", { ascending: false })
+        .limit(2)
+    : Promise.resolve({ data: null, error: null });
+
+  const currentProfileQuery = currentUserId
+    ? service.from("profiles").select("id, public_alias").eq("id", currentUserId).maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+
+  const groupedParticipationsQuery = service
+    .from("participations")
+    .select("profile_id, group_id, payment_status")
+    .not("group_id", "is", null);
+
+  const [
+    { data: currentParticipationData },
+    { data: currentProfileData },
+    { data: groupedParticipationsData },
+  ] = await Promise.all([
+    currentParticipationQuery,
+    currentProfileQuery,
+    groupedParticipationsQuery,
+  ]);
+
+  const currentParticipation =
+    pickPrimaryParticipation((currentParticipationData ?? []) as ParticipationRow[]).participation;
+  const groupedParticipations = (groupedParticipationsData ?? []) as ParticipationRow[];
+
+  if (groupedParticipations.length === 0) {
+    return {
+      currentGroup: null,
+      currentParticipationStatus: currentParticipation?.payment_status ?? null,
+      currentUserAlias: (currentProfileData as ProfileRow | null)?.public_alias ?? null,
+      leaderboard: [],
+    };
+  }
+
+  const groupIds = [...new Set(groupedParticipations.map((row) => row.group_id).filter(Boolean))] as string[];
+  const profileIds = [...new Set(groupedParticipations.map((row) => row.profile_id))];
+
+  const [groupsResult, profilesResult, rankingsResult] = await Promise.all([
+    service.from("groups").select("id, name, slug, invite_code, owner_profile_id").in("id", groupIds),
+    service.from("profiles").select("id, public_alias").in("id", profileIds),
+    service
+      .from("rankings_cache")
+      .select("profile_id, points, position")
+      .eq("ranking_type", "general")
+      .is("scope_id", null)
+      .in("profile_id", profileIds),
+  ]);
+
+  const groups = (groupsResult.data ?? []) as GroupRow[];
+  const profiles = (profilesResult.data ?? []) as ProfileRow[];
+  const rankings = (rankingsResult.data ?? []) as RankingRow[];
+
+  const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
+  const rankingMap = new Map(rankings.map((ranking) => [ranking.profile_id, ranking]));
+  const membersByGroup = new Map<string, GroupMemberSnapshot[]>();
+
+  for (const participation of groupedParticipations) {
+    if (!participation.group_id) {
+      continue;
+    }
+
+    const profile = profileMap.get(participation.profile_id);
+    const ranking = rankingMap.get(participation.profile_id);
+    const member: GroupMemberSnapshot = {
+      profileId: participation.profile_id,
+      alias: normalizeAlias(profile?.public_alias, `Jugador ${participation.profile_id.slice(0, 4)}`),
+      paymentStatus: participation.payment_status,
+      points: ranking?.points ?? 0,
+      generalPosition: ranking?.position ?? null,
+      groupPosition: null,
+      isActive: isParticipationActive(participation.payment_status),
+      isCurrentUser: currentUserId === participation.profile_id,
+    };
+
+    const existingMembers = membersByGroup.get(participation.group_id) ?? [];
+    existingMembers.push(member);
+    membersByGroup.set(participation.group_id, existingMembers);
+  }
+
+  const leaderboard: CurrentGroupSnapshot[] = groups
+    .map((group) => {
+      const members = [...(membersByGroup.get(group.id) ?? [])];
+      const activeMembers = members.filter((member) => member.isActive).sort(compareMembers);
+
+      activeMembers.forEach((member, index) => {
+        member.groupPosition = index + 1;
+      });
+
+      members.sort((a, b) => {
+        if (a.isActive !== b.isActive) {
+          return a.isActive ? -1 : 1;
+        }
+
+        return compareMembers(a, b);
+      });
+
+      const totalActivePoints = activeMembers.reduce((sum, member) => sum + member.points, 0);
+      const averagePoints = activeMembers.length > 0 ? totalActivePoints / activeMembers.length : 0;
+      const isEligible = activeMembers.length >= 11;
+
+      return {
+        groupId: group.id,
+        name: group.name,
+        slug: group.slug,
+        inviteCode: group.invite_code,
+        ownerProfileId: group.owner_profile_id,
+        activeCount: activeMembers.length,
+        totalCount: members.length,
+        averagePoints,
+        isEligible,
+        status: (isEligible ? "enabled" : "preview") as "enabled" | "preview",
+        position: 0,
+        dtProfileId: activeMembers[0]?.profileId ?? null,
+        dtAlias: activeMembers[0]?.alias ?? null,
+        members,
+      };
+    })
+    .sort((a, b) => {
+      if (b.averagePoints !== a.averagePoints) {
+        return b.averagePoints - a.averagePoints;
+      }
+
+      if (b.activeCount !== a.activeCount) {
+        return b.activeCount - a.activeCount;
+      }
+
+      if (b.totalCount !== a.totalCount) {
+        return b.totalCount - a.totalCount;
+      }
+
+      return a.name.localeCompare(b.name, "es");
+    })
+    .map((entry, index) => ({
+      ...entry,
+      position: index + 1,
+    }));
+
+  const currentGroupId = currentParticipation?.group_id ?? null;
+  const currentGroupEntry = currentGroupId
+    ? leaderboard.find((entry) => entry.groupId === currentGroupId) ?? null
+    : null;
+
+  return {
+    currentGroup: currentGroupEntry,
+    currentParticipationStatus: currentParticipation?.payment_status ?? null,
+    currentUserAlias: (currentProfileData as ProfileRow | null)?.public_alias ?? null,
+    leaderboard: leaderboard.map((entry) => ({
+      groupId: entry.groupId,
+      name: entry.name,
+      slug: entry.slug,
+      inviteCode: entry.inviteCode,
+      ownerProfileId: entry.ownerProfileId,
+      activeCount: entry.activeCount,
+      totalCount: entry.totalCount,
+      averagePoints: entry.averagePoints,
+      isEligible: entry.isEligible,
+      status: entry.status,
+      position: entry.position,
+      dtProfileId: entry.dtProfileId,
+      dtAlias: entry.dtAlias,
+    })),
+  };
+}

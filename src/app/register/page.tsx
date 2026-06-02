@@ -2,10 +2,18 @@ import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth/register-form";
 import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { readPromoterCodeFromSearchParams } from "@/lib/auth/promoter-attribution";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
-export default async function RegisterPage() {
+type RegisterPageProps = {
+  searchParams?: Promise<{
+    p?: string;
+    promoter?: string;
+  }>;
+};
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   let authErrorMessage: string | null = null;
 
   try {
@@ -22,6 +30,9 @@ export default async function RegisterPage() {
       "No pudimos revisar tu sesión en este momento. Si el alta no responde, reintentá en unos minutos.";
   }
 
+  const params = searchParams ? await searchParams : undefined;
+  const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
+
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-white">
@@ -30,7 +41,7 @@ export default async function RegisterPage() {
             Creá tu cuenta y entrá al torneo
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
-            Empezás con tus datos, confirmás tu correo y después elegís dónde competir.
+            Entrás gratis, cargás tus pronósticos y después activás la competencia con Mercado Pago.
           </p>
         </div>
       </section>
@@ -62,12 +73,12 @@ export default async function RegisterPage() {
       </section>
 
       <SurfaceCard
-        title="Registro"
-        description="Primero creás tu cuenta. Grupo y comunidad se definen después, ya dentro del torneo."
+        title="Creá tu cuenta"
+        description="Google va primero. Email queda como alternativa para entrar al Mundial desde tu celular."
       >
         <div className="grid gap-4">
           {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
-          <RegisterForm />
+          <RegisterForm promoterCode={promoterCode} />
           <div className="relative overflow-hidden rounded-lg border border-[var(--color-line)] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-5 text-white">
             <div className="absolute inset-0 opacity-14 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent)] [background-size:22px_22px]" />
             <div className="relative z-10 flex items-center justify-between gap-4">
@@ -76,9 +87,9 @@ export default async function RegisterPage() {
                   Próximo paso
                 </p>
                 <p className="mt-2 font-serif text-[1.7rem] font-bold uppercase leading-none">
-                  Elegís grupo
+                  Armás tu grupo
                   <br />
-                  y comunidad
+                  y salís a competir
                 </p>
               </div>
               <span className="text-5xl">⚽</span>

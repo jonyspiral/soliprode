@@ -33,6 +33,14 @@ Antes de modificar UI, layout, copy visual o componentes, consultar primero:
 
 `src/content/docs/design-system-athletic-social.md`
 
+## Regla de copy obligatoria
+
+Antes de modificar headlines, CTA, mensajes de auth, pago, dashboard o onboarding, consultar primero:
+
+`src/content/docs/voice-and-copy-soliprode.md`
+
+La voz activa del producto es competitiva, directa, futbolera y orientada a premio. No se debe volver a tono institucional o administrativo.
+
 La dirección visual activa del producto es `Athletic Social` de Stitch. No se deben resolver pantallas o componentes aislados ignorando ese sistema visual.
 
 ## Backlog sugerido todavía no planificado

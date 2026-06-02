@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { confirmParticipationAction } from "@/app/admin/actions";
+import { confirmParticipationAction, publishMatchResultAction } from "@/app/admin/actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
@@ -21,6 +21,24 @@ type PendingParticipationRow = {
     public_alias: string;
     email: string | null;
     whatsapp: string | null;
+  }[] | null;
+};
+
+type MatchAdminRow = {
+  id: string;
+  phase: string;
+  group_name: string | null;
+  starts_at: string;
+  status: string;
+  score_home: number | null;
+  score_away: number | null;
+  home_team: {
+    code: string;
+    name: string;
+  }[] | null;
+  away_team: {
+    code: string;
+    name: string;
   }[] | null;
 };
 
@@ -67,6 +85,7 @@ export default async function AdminPage() {
   let paidCount = 0;
   let pendingCount = 0;
   let predictionCount = 0;
+  let matchRows: MatchAdminRow[] = [];
   let adminNotice: string | null = null;
 
   try {
@@ -97,10 +116,27 @@ export default async function AdminPage() {
           .select("id", { count: "exact", head: true })
           .eq("payment_status", "pending"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
+        adminSupabase
+          .from("matches")
+          .select(
+            `
+              id,
+              phase,
+              group_name,
+              starts_at,
+              status,
+              score_home,
+              score_away,
+              home_team:teams!matches_home_team_id_fkey(code, name),
+              away_team:teams!matches_away_team_id_fkey(code, name)
+            `,
+          )
+          .order("starts_at", { ascending: true })
+          .limit(12),
       ]),
       "Supabase admin query timed out",
     );
-    const [pendingResult, paidResult, pendingCountResult, predictionCountResult] = adminResults;
+    const [pendingResult, paidResult, pendingCountResult, predictionCountResult, matchesResult] = adminResults;
 
     pendingRows = (((pendingResult.data ?? []) as PendingParticipationRow[])).map((row) => ({
       ...row,
@@ -109,6 +145,7 @@ export default async function AdminPage() {
     paidCount = paidResult.count ?? 0;
     pendingCount = pendingCountResult.count ?? 0;
     predictionCount = predictionCountResult.count ?? 0;
+    matchRows = (matchesResult.data ?? []) as MatchAdminRow[];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -174,6 +211,89 @@ export default async function AdminPage() {
                         className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
                       >
                         Confirmar pago
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Resultados y scoring"
+        description="Publicá resultados finales, recalculá puntos y reconstruí el ranking oficial desde la misma jugada."
+      >
+        {matchRows.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay partidos cargados para operar.
+          </p>
+        ) : (
+          <div className="grid gap-4">
+            {matchRows.map((match) => {
+              const homeTeam = match.home_team?.[0];
+              const awayTeam = match.away_team?.[0];
+
+              return (
+                <div
+                  key={match.id}
+                  className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="grid gap-1">
+                      <p className="font-serif text-[1.35rem] font-bold uppercase text-[var(--color-primary)]">
+                        {homeTeam?.code ?? "LOC"} vs {awayTeam?.code ?? "VIS"}
+                      </p>
+                      <p className="text-sm text-[var(--color-ink)]">
+                        {homeTeam?.name ?? "Local"} vs {awayTeam?.name ?? "Visitante"}
+                      </p>
+                      <p className="text-sm text-[var(--color-muted)]">
+                        {match.phase}
+                        {match.group_name ? ` • Grupo ${match.group_name}` : ""} ·{" "}
+                        {new Date(match.starts_at).toLocaleString("es-AR")}
+                      </p>
+                      <p className="text-sm text-[var(--color-muted)]">
+                        Estado actual: {match.status}
+                        {match.score_home !== null && match.score_away !== null
+                          ? ` • ${match.score_home} - ${match.score_away}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <form action={publishMatchResultAction} className="grid gap-3 sm:min-w-[260px]">
+                      <input type="hidden" name="match_id" value={match.id} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                            {homeTeam?.code ?? "LOC"}
+                          </span>
+                          <input
+                            name="score_home"
+                            type="number"
+                            min="0"
+                            defaultValue={match.score_home ?? 0}
+                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                            {awayTeam?.code ?? "VIS"}
+                          </span>
+                          <input
+                            name="score_away"
+                            type="number"
+                            min="0"
+                            defaultValue={match.score_away ?? 0}
+                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                          />
+                        </label>
+                      </div>
+                      <button
+                        type="submit"
+                        className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+                      >
+                        Publicar resultado y recalcular
                       </button>
                     </form>
                   </div>

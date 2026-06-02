@@ -35,6 +35,21 @@ La solidaridad existe, pero no domina la propuesta:
 - 90% premio / juego / competencia / ranking / grupos
 - 10% solidaridad
 
+## Regla de voz del MVP
+
+La voz pública del producto tiene que respetar `SoliProde Voice & Copy System`:
+
+- competitiva;
+- directa;
+- futbolera;
+- mobile-first;
+- enfocada en premio, grupo y ranking;
+- con solidaridad como respaldo, no como protagonista.
+
+Documento de referencia:
+
+`src/content/docs/voice-and-copy-soliprode.md`
+
 ## 1. Modelo comercial de inscripción
 
 ### Regla base
@@ -691,6 +706,7 @@ Resultado esperado:
 
 - el usuario puede crear cuenta, cargar picks y activar su participación de forma operable;
 - el admin puede procesar pagos manuales sin salir del sistema.
+- el tono visible del producto ya habla de competir, pagar y jugar, no de procesos administrativos.
 
 ### Épica B — Fixture + pronósticos válidos
 
@@ -920,6 +936,7 @@ Objetivo:
 Entregable esperado:
 
 - atribución consistente desde el primer contacto del jugador.
+- esa atribución no se pierde si el usuario entra con Google OAuth.
 
 #### Ticket E2 — Vista admin de promotores
 

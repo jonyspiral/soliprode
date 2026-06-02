@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
+import {
+  PROMOTER_COOKIE_NAME,
+  normalizePromoterCode,
+  readPromoterCodeFromSearchParams,
+} from "@/lib/auth/promoter-attribution";
+import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/config";
 
 export async function GET(request: NextRequest) {
@@ -10,6 +15,11 @@ export async function GET(request: NextRequest) {
   const safeNextPath = nextPath?.startsWith("/") ? nextPath : "/dashboard";
   const redirectUrl = new URL(safeNextPath, requestUrl.origin);
   let response = NextResponse.redirect(redirectUrl);
+  const promoterCodeFromQuery = readPromoterCodeFromSearchParams(requestUrl.searchParams);
+  const promoterCodeFromCookie = normalizePromoterCode(
+    request.cookies.get(PROMOTER_COOKIE_NAME)?.value ?? null,
+  );
+  const promoterCode = promoterCodeFromQuery ?? promoterCodeFromCookie;
 
   const supabase = createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {
@@ -44,10 +54,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=missing_user", requestUrl.origin));
   }
 
-  const bootstrapResult = await ensureBrowserUserRecords(supabase, user);
+  const bootstrapResult = await ensureRegisteredUserRecords(user, {
+    promoterCode,
+  });
 
   if (!bootstrapResult.ok) {
     return NextResponse.redirect(new URL("/login?error=bootstrap_failed", requestUrl.origin));
+  }
+
+  if (request.cookies.get(PROMOTER_COOKIE_NAME)) {
+    response.cookies.set(PROMOTER_COOKIE_NAME, "", {
+      path: "/",
+      maxAge: 0,
+    });
   }
 
   return response;

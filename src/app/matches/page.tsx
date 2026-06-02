@@ -3,6 +3,7 @@ import { CountryFlag } from "@/components/country-flag";
 import { PredictionBoard, type MatchBoardItem } from "@/components/matches/prediction-board";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -106,11 +107,10 @@ export default async function MatchesPage() {
     const participationQuery = currentUserId
       ? supabase
           .from("participations")
-          .select("payment_status")
+          .select("payment_status, created_at")
           .eq("profile_id", currentUserId)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle()
+          .order("created_at", { ascending: false })
+          .limit(2)
       : Promise.resolve({ data: null, error: null });
 
     const predictionQuery = currentUserId
@@ -120,7 +120,7 @@ export default async function MatchesPage() {
           .eq("profile_id", currentUserId)
       : Promise.resolve({ data: [], error: null });
 
-    const [{ data: matchRows }, { data: participation }, { data: predictionRows }] =
+    const [{ data: matchRows }, { data: participationRows }, { data: predictionRows }] =
       await withSupabaseTimeout(
         Promise.all([matchQuery, participationQuery, predictionQuery]),
         "Supabase matches query timed out",
@@ -162,7 +162,10 @@ export default async function MatchesPage() {
       .slice(0, 3);
 
     predictions = (predictionRows ?? []) as PredictionRow[];
-    participationActive = participation?.payment_status === "paid";
+    participationActive =
+      pickPrimaryParticipation(
+        (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
+      ).participation?.payment_status === "paid";
 
     if (normalizedMatches.length === 0) {
       dataNotice = "Todavía no hay fixture cargado. Cuando esté listo, vas a poder empezar a pronosticar desde acá.";
@@ -347,7 +350,7 @@ export default async function MatchesPage() {
       {recentMatches.length > 0 ? (
         <SurfaceCard
           title="Resultados cargados"
-          description="Sirven para empezar a probar el circuito de scoring cuando esa capa quede conectada."
+          description="Cuando el admin publica un resultado final, esta capa ya puede mover scoring y ranking oficial."
         >
           <div className="grid gap-4">
             {recentMatches.map((match) => (

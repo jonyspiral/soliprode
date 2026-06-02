@@ -218,7 +218,7 @@ export function PredictionBoard({
             Estado
           </p>
           <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
-            {participationActive ? "Activos para competir" : "Borrador hasta activar"}
+            {participationActive ? "Listos para competir" : "Borrador hasta pagar"}
           </p>
         </div>
       </div>
@@ -228,7 +228,7 @@ export function PredictionBoard({
           <MercadoPagoBadge compact secondaryText="Para que tus pronósticos compitan por premios" />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Pronóstico guardado como borrador. Para que participe por premios, pagá tu participación.
+              Tus picks ya están guardados. Para que entren al ranking y peleen premios, pagá tu participación.
             </p>
             <Link
               href="/dashboard"
@@ -351,7 +351,7 @@ export function PredictionBoard({
                   ? "Guardando..."
                   : participationActive
                     ? "Guardar pronóstico"
-                    : "Guardar borrador"}
+                    : "Guardar pick"}
               </button>
             </div>
           </article>

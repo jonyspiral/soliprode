@@ -7,7 +7,11 @@ import {
   StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createServerSupabaseClient,
+  createServiceRoleSupabaseClient,
+} from "@/lib/supabase/server";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 type RankingRow = {
@@ -23,6 +27,8 @@ type ProfileRow = {
   id: string;
   public_alias: string;
 };
+
+type RankingProfileMap = Record<string, string>;
 
 function formatPoints(points: number) {
   return `${points.toLocaleString("es-AR")} pts`;
@@ -69,6 +75,7 @@ export default async function RankingsPage() {
   let participationStatus = "pending";
   let userRanking: RankingRow | null = null;
   let topRows: RankingRow[] = [];
+  let rankingAliases: RankingProfileMap = {};
   let notice: string | null = null;
 
   try {
@@ -89,11 +96,10 @@ export default async function RankingsPage() {
     const participationQuery = currentUserId
       ? supabase
           .from("participations")
-          .select("payment_status")
+          .select("payment_status, created_at")
           .eq("profile_id", currentUserId)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle()
+          .order("created_at", { ascending: false })
+          .limit(2)
       : Promise.resolve({ data: null, error: null });
 
     const rankingQuery = supabase
@@ -104,14 +110,17 @@ export default async function RankingsPage() {
       .order("position", { ascending: true, nullsFirst: false })
       .limit(60);
 
-    const [{ data: profile }, { data: participation }, { data: rawRankings }] =
+    const [{ data: profile }, { data: participationRows }, { data: rawRankings }] =
       await withSupabaseTimeout(
         Promise.all([profileQuery, participationQuery, rankingQuery]),
         "Supabase rankings query timed out",
       );
 
     currentAlias = (profile as ProfileRow | null)?.public_alias ?? null;
-    participationStatus = participation?.payment_status ?? "pending";
+    participationStatus =
+      pickPrimaryParticipation(
+        (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
+      ).participation?.payment_status ?? "pending";
 
     const rankings = (rawRankings ?? []) as RankingRow[];
     const primaryRankingType = pickPrimaryRankingType(rankings);
@@ -133,6 +142,20 @@ export default async function RankingsPage() {
     if (rankings.length === 0) {
       notice =
         "Todavía no hay ranking calculado. Cuando se carguen resultados y puntos, la tabla oficial va a aparecer acá.";
+    }
+
+    const aliasIds = [...new Set(topRows.map((row) => row.profile_id))];
+
+    if (aliasIds.length > 0) {
+      const service = createServiceRoleSupabaseClient();
+      const { data: aliasRows } = await service
+        .from("profiles")
+        .select("id, public_alias")
+        .in("id", aliasIds);
+
+      rankingAliases = Object.fromEntries(
+        ((aliasRows ?? []) as ProfileRow[]).map((row) => [row.id, row.public_alias]),
+      );
     }
   } catch {
     notice =
@@ -241,7 +264,7 @@ export default async function RankingsPage() {
                 name={
                   currentUserId && podium[0].profile_id === currentUserId
                     ? currentAlias ?? "Vos"
-                    : "Jugador 1"
+                    : rankingAliases[podium[0].profile_id] ?? "Jugador 1"
                 }
                 points={formatPoints(podium[0].points)}
                 emphasis="first"
@@ -272,7 +295,11 @@ export default async function RankingsPage() {
               return (
                 <RankedRow
                   key={`${row.ranking_type}-${row.profile_id}-${row.position ?? "na"}`}
-                  name={isCurrentUser ? currentAlias ?? "Vos" : `Jugador ${row.position ?? "-"}`}
+                  name={
+                    isCurrentUser
+                      ? currentAlias ?? "Vos"
+                      : rankingAliases[row.profile_id] ?? `Jugador ${row.position ?? "-"}`
+                  }
                   meta={`Posición ${row.position ?? "-"}`}
                   points={formatPoints(row.points)}
                   highlight={isCurrentUser}
@@ -291,21 +318,25 @@ export default async function RankingsPage() {
       <section className="grid gap-4 sm:grid-cols-2">
         <SurfaceCard
           title="Tu grupo"
-          description="La comparación interna del grupo arranca cuando la capa social y los rankings por scope queden conectados."
+          description="La competencia corta ya vive en Grupos: ahí se define tu grupo principal, el DT y la tabla interna."
         >
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            En esta etapa, el foco sigue siendo el ranking general y la activación competitiva.
-            El siguiente bloque va a ser crear o unirse a un grupo para comparar rendimiento.
+            Si ya activaste tu participación, podés entrar con código, armar tu equipo y seguir el promedio oficial del grupo.
           </p>
+          <Link
+            href="/groups"
+            className="mt-4 inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
+            Ir a grupos
+          </Link>
         </SurfaceCard>
 
         <SurfaceCard
           title="Premios y corte"
-          description="Solo participan los usuarios con inscripción activa y pronósticos cargados antes del inicio de cada partido."
+          description="La tabla general y la tabla de grupos usan la misma base: solo cuentan jugadores activos/pagos."
         >
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Si todavía estás en borrador, seguí cargando picks desde Partidos y activá tu
-            participación desde el panel cuando quieras entrar al ranking oficial.
+            Los grupos con menos de 11 activos siguen visibles como preview. Recién con 11 o más quedan habilitados para competir oficialmente.
           </p>
         </SurfaceCard>
       </section>

@@ -1,22 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LockIcon, MailIcon } from "@/components/app-icons";
+import {
+  GoogleIcon,
+  LockIcon,
+  MailIcon,
+} from "@/components/app-icons";
+import {
+  PROMOTER_COOKIE_NAME,
+  appendPromoterQuery,
+  normalizePromoterCode,
+} from "@/lib/auth/promoter-attribution";
+import { buildAuthCallbackUrl } from "@/lib/auth/oauth";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
   nextPath: string;
+  promoterCode?: string | null;
 };
 
-export function LoginForm({ nextPath }: LoginFormProps) {
+function persistPromoterCode(promoterCode: string | null) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  if (!promoterCode) {
+    document.cookie = `${PROMOTER_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+    return;
+  }
+
+  document.cookie = `${PROMOTER_COOKIE_NAME}=${encodeURIComponent(promoterCode)}; Path=/; Max-Age=2592000; SameSite=Lax`;
+}
+
+export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
+  const normalizedPromoterCode = normalizePromoterCode(promoterCode);
+  const registerHref = appendPromoterQuery("/register", normalizedPromoterCode);
+
+  useEffect(() => {
+    persistPromoterCode(normalizedPromoterCode);
+  }, [normalizedPromoterCode]);
+
+  async function handleGoogleLogin() {
+    setError(null);
+    setSuccess(null);
+    setGooglePending(true);
+
+    try {
+      persistPromoterCode(normalizedPromoterCode);
+      const supabase = createBrowserSupabaseClient();
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: buildAuthCallbackUrl(nextPath),
+        },
+      });
+
+      if (oauthError) {
+        setError("No pudimos abrir Google ahora. Intentá de nuevo.");
+        return;
+      }
+
+      if (data.url) {
+        window.location.assign(data.url);
+      }
+    } catch {
+      setError("No pudimos abrir Google ahora. Intentá de nuevo.");
+    } finally {
+      setGooglePending(false);
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -28,9 +89,11 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       const password = String(formData.get("password") ?? "").trim();
 
       if (!email || !password) {
-        setError("Completá email y contraseña para continuar.");
+        setError("Completá email y contraseña para seguir jugando.");
         return;
       }
+
+      persistPromoterCode(normalizedPromoterCode);
 
       const supabase = createBrowserSupabaseClient();
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -40,7 +103,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
       if (signInError) {
         setError(
-          mapAuthError(signInError, "No pudimos ingresar con esos datos. Revisalos e intentá de nuevo."),
+          mapAuthError(signInError, "No pudimos entrar con esos datos. Revisalos e intentá de nuevo."),
         );
         return;
       }
@@ -52,14 +115,15 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         return;
       }
 
-      const bootstrapResult = await ensureBrowserUserRecords(supabase, user);
+      const bootstrapResult = await ensureBrowserUserRecords();
 
       if (!bootstrapResult.ok) {
         setError(bootstrapResult.error);
         return;
       }
 
-      setSuccess("Sesión iniciada correctamente. Redirigiendo.");
+      persistPromoterCode(null);
+      setSuccess("Listo. Volvés a tu panel.");
       router.replace(nextPath);
       router.refresh();
     } catch {
@@ -70,82 +134,106 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   }
 
   return (
-    <form
-      action={async (formData) => {
-        await handleSubmit(formData);
-      }}
-      className="flex flex-col gap-5"
-    >
-      <input type="hidden" name="next" value={nextPath} />
-
-      <div className="relative">
-        <label
-          htmlFor="email"
-          className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+    <div className="grid gap-5">
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => void handleGoogleLogin()}
+          disabled={googlePending}
+          className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-white/40 bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Correo electrónico
-        </label>
-        <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-          <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
-            placeholder="tu@email.com"
-          />
-        </div>
+          <GoogleIcon className="h-5 w-5" />
+          {googlePending ? "Abriendo Google..." : "Continuar con Google"}
+        </button>
+        <p className="text-center text-sm text-[var(--color-muted)]">
+          Entrás más rápido y seguís directo con tus pronósticos.
+        </p>
       </div>
 
-      <div className="relative">
-        <label
-          htmlFor="password"
-          className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
-        >
-          Contraseña
-        </label>
-        <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-          <LockIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
-            placeholder="Tu contraseña"
-          />
-        </div>
+      <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+        <div className="h-px flex-1 bg-[var(--color-line)]" />
+        <span>También podés entrar con email</span>
+        <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
-      {error ? (
-        <p className="border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-          {error}
-        </p>
-      ) : null}
-
-      {success ? (
-        <p className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          {success}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex min-h-14 w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[#1a1c1c] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      <form
+        action={async (formData) => {
+          await handleSubmit(formData);
+        }}
+        className="flex flex-col gap-5"
       >
-        {pending ? "Ingresando..." : "Ingresar"}
-      </button>
+        <input type="hidden" name="next" value={nextPath} />
+        <input type="hidden" name="promoter_code" value={normalizedPromoterCode ?? ""} />
 
-      <p className="text-center text-sm text-[var(--color-muted)]">
-        ¿Todavía no tenés cuenta?{" "}
-        <Link href="/register" className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline">
-          Creala acá
-        </Link>
-      </p>
-    </form>
+        <div className="relative">
+          <label
+            htmlFor="email"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+          >
+            Email
+          </label>
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="tu@email.com"
+            />
+          </div>
+        </div>
+
+        <div className="relative">
+          <label
+            htmlFor="password"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+          >
+            Contraseña
+          </label>
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <LockIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="Tu contraseña"
+            />
+          </div>
+        </div>
+
+        {error ? (
+          <p className="border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {error}
+          </p>
+        ) : null}
+
+        {success ? (
+          <p className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            {success}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex min-h-14 w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[#1a1c1c] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {pending ? "Entrando..." : "Entrar con email"}
+        </button>
+
+        <p className="text-center text-sm text-[var(--color-muted)]">
+          ¿Todavía no tenés cuenta?{" "}
+          <Link href={registerHref} className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline">
+            Creala acá
+          </Link>
+        </p>
+      </form>
+    </div>
   );
 }

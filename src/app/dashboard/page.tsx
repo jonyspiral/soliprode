@@ -7,6 +7,7 @@ import {
   PageStack,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -28,11 +29,12 @@ export default async function DashboardPage() {
         payment_status: string;
         created_at: string;
         payment_reference: string | null;
+        payment_submitted_at: string | null;
       }
     | null = null;
   let predictionCount = 0;
   let fallbackMessage =
-    "No pudimos revisar tu sesión en este momento. Reintentá en unos minutos o volvé a ingresar.";
+    "No pudimos revisar tu sesión ahora. Reintentá en unos minutos o volvé a entrar.";
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
 
     const [
       { data: profileData },
-      { data: participationData },
+      { data: participationRows },
       { count: userPredictionCount },
     ] = await withSupabaseTimeout(
       Promise.all([
@@ -60,11 +62,10 @@ export default async function DashboardPage() {
           .maybeSingle(),
         supabase
           .from("participations")
-          .select("id, payment_status, created_at, payment_reference")
+          .select("id, payment_status, created_at, payment_reference, payment_submitted_at")
           .eq("profile_id", user.id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle(),
+          .order("created_at", { ascending: false })
+          .limit(2),
         supabase
           .from("predictions")
           .select("id", { count: "exact", head: true })
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
     );
 
     profile = profileData;
-    participation = participationData;
+    participation = pickPrimaryParticipation(participationRows ?? []).participation;
     predictionCount = userPredictionCount ?? 0;
   } catch {
     if (hasAuthenticatedUser) {
@@ -96,7 +97,7 @@ export default async function DashboardPage() {
   if (hasAuthenticatedUser && !profile && !participation) {
     return (
       <PageStack>
-        <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
+      <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta recuperar tus datos.">
           <InfoNotice tone="error" message={fallbackMessage} />
         </SurfaceCard>
       </PageStack>
@@ -121,11 +122,11 @@ export default async function DashboardPage() {
               {`Hola${profile?.public_alias ? ` ${profile.public_alias}` : ""}!`}
               <br />
               <span className="text-[var(--color-gold-soft)]">
-                {participationActive ? "Ya estás compitiendo." : "Te falta pagar para competir."}
+                {participationActive ? "Ya estás peleando el ranking." : "Tus picks todavía no compiten por premios."}
               </span>
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
-              {profile?.email ?? userEmail ?? "Sin email"} · {participationActive ? "participación activa" : "pendiente de pago"}
+              {profile?.email ?? userEmail ?? "Sin email"} · {participationActive ? "participación activa" : "falta activar tu participación"}
             </p>
           </div>
           <div className="rounded-lg border border-white/20 bg-white/10 p-3 text-right">
@@ -143,8 +144,8 @@ export default async function DashboardPage() {
           value={participationActive ? "paid" : "pendiente"}
           detail={
             participationActive
-              ? "Tu participación ya está activa para competir por premios."
-              : "Tu participación ya existe. Falta pagar con Mercado Pago para competir oficialmente."
+              ? "Ya entrás en ranking, premios y competencia oficial."
+              : "Tu cuenta ya existe. Falta pagar con Mercado Pago para que tus picks compitan de verdad."
           }
         />
         <HighlightMetric
@@ -163,11 +164,12 @@ export default async function DashboardPage() {
             participationStatus={participationStatus}
             draftCount={predictionCount}
             initialPaymentReference={participation?.payment_reference ?? null}
+            initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
           />
         </SurfaceCard>
       </section>
 
-      <SurfaceCard title="Tu evolución" description="Lectura rápida del envión que va a tomar tu panel durante el torneo.">
+      <SurfaceCard title="Cómo viene tu torneo" description="Lectura rápida del envión que puede tomar tu panel cuando empiecen a sumar los puntos.">
         <div className="grid gap-4">
           <div className="relative flex h-44 items-end justify-between pt-4">
             <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
@@ -248,7 +250,7 @@ export default async function DashboardPage() {
         </SurfaceCard>
       </section>
 
-      <SurfaceCard title="Próximos partidos" description="Vista rápida de lo que vas a seguir desde el panel.">
+      <SurfaceCard title="Próximos partidos" description="Lo próximo que vas a mirar para mover tus picks y subir en la tabla.">
         <div className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)]">
           <div className="flex items-center justify-between bg-[var(--color-primary)] px-3 py-2 text-white">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Fase de grupos</span>
@@ -274,14 +276,14 @@ export default async function DashboardPage() {
         </div>
       </SurfaceCard>
 
-      <SurfaceCard title="Tu inscripción" description="Estado real actual de tu cuenta.">
+      <SurfaceCard title="Tu participación" description="Estado real de tu cuenta dentro del torneo.">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
               Estado actual
             </p>
             <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-              {participationActive ? "paid" : "pendiente"}
+              {participationActive ? "activa" : "pendiente"}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">

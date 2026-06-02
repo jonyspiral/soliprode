@@ -4,6 +4,10 @@ import { EntryCountdown } from "@/components/payments/entry-countdown";
 import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { FlowStep, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import {
+  appendPromoterQuery,
+  readPromoterCodeFromSearchParams,
+} from "@/lib/auth/promoter-attribution";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
 
 const gameFlow = [
@@ -24,8 +28,18 @@ const gameFlow = [
   },
 ];
 
-export default function Home() {
+type HomeProps = {
+  searchParams?: Promise<{
+    p?: string;
+    promoter?: string;
+  }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
   const entryPrice = formatEntryPrice(entryConfig.initialPrice);
+  const params = searchParams ? await searchParams : undefined;
+  const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
+  const registerHref = appendPromoterQuery("/register", promoterCode);
 
   return (
     <PageStack>
@@ -45,13 +59,13 @@ export default function Home() {
               Juga el Mundial y llevate todo!
             </h1>
             <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
-              Cargá tus pronósticos y participá por el premio que cada vez será más grande.
+              Jugá el Prode del Mundial, sumá puntos y ganale a tu grupo.
             </p>
             <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
-              Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
+              Jugás por premios. También ayudás a financiar una tesis universitaria.
             </p>
             <Link
-              href="/register"
+              href={registerHref}
               className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"
             >
               Crear cuenta y jugar
@@ -60,7 +74,7 @@ export default function Home() {
         </div>
       </section>
 
-      <SurfaceCard title="Inscripción inicial" description="El pago principal del torneo es online y se comunica desde el primer contacto.">
+      <SurfaceCard title="Inscripción inicial" description="Entrás gratis, cargás picks y después pagás para competir por premios.">
         <div className="grid gap-4">
           <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
@@ -77,7 +91,7 @@ export default function Home() {
           <MercadoPagoBadge compact secondaryText="Pago online seguro" />
 
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Para competir por premios, rankings individuales y la tabla de grupos, pagás online con Mercado Pago.
+            Tus pronósticos se pueden cargar gratis. Para que entren al ranking general y peleen premios, pagás con Mercado Pago.
           </p>
         </div>
       </SurfaceCard>
@@ -93,12 +107,12 @@ export default function Home() {
         ))}
       </section>
 
-      <SurfaceCard title="Cómo entra el pago" description="El registro sigue siendo gratis. El pago aparece cuando el jugador ya entendió el juego.">
+      <SurfaceCard title="Cómo entrás a competir" description="El registro es gratis. El pago aparece cuando ya tenés claro qué estás activando.">
         <div className="grid gap-3 text-sm leading-6 text-[var(--color-muted)]">
           <p>1. Creás tu cuenta gratis.</p>
           <p>2. Guardás pronósticos como borrador.</p>
           <p>3. Pagás con Mercado Pago.</p>
-          <p>4. Tus pronósticos pasan a competir por premios y rankings oficiales.</p>
+          <p>4. Tus pronósticos entran a competir por premios y ranking oficial.</p>
         </div>
       </SurfaceCard>
     </PageStack>

@@ -12,6 +12,7 @@ type ActivationPanelProps = {
   participationStatus: string;
   draftCount: number;
   initialPaymentReference: string | null;
+  initialPaymentSubmittedAt: string | null;
 };
 
 export function ActivationPanel({
@@ -19,11 +20,13 @@ export function ActivationPanel({
   participationStatus,
   draftCount,
   initialPaymentReference,
+  initialPaymentSubmittedAt,
 }: ActivationPanelProps) {
   const [showFallback, setShowFallback] = useState(false);
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
+  const [paymentSubmittedAt, setPaymentSubmittedAt] = useState(initialPaymentSubmittedAt);
   const [savingReference, setSavingReference] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -40,16 +43,23 @@ export function ActivationPanel({
 
     try {
       const supabase = createBrowserSupabaseClient();
+      const nextPaymentSubmittedAt =
+        paymentReference.trim() && !paymentSubmittedAt
+          ? new Date().toISOString()
+          : paymentSubmittedAt;
       const { error } = await supabase
         .from("participations")
         .update({
           payment_reference: paymentReference.trim() || null,
+          payment_submitted_at: nextPaymentSubmittedAt,
         })
         .eq("id", participationId);
 
       if (error) {
         throw error;
       }
+
+      setPaymentSubmittedAt(nextPaymentSubmittedAt);
 
       setFeedback(
         paymentReference.trim()
@@ -93,7 +103,7 @@ export function ActivationPanel({
   if (participationStatus === "paid") {
     return (
       <div className="grid gap-4">
-        <div className="rounded-lg border border-[#8bd3a5] bg-[#eef9f1] p-4">
+      <div className="rounded-lg border border-[#8bd3a5] bg-[#eef9f1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1f6b37]">
             Participación activa
           </p>
@@ -101,7 +111,7 @@ export function ActivationPanel({
             Ya estás compitiendo por premios
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Tus pronósticos futuros ya cuentan para ranking oficial, grupo y premios.
+            Tus próximos pronósticos ya juegan por ranking oficial, grupo y premio.
           </p>
         </div>
 
@@ -128,7 +138,7 @@ export function ActivationPanel({
           <EntryCountdown className="bg-white/70" />
         </div>
         <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-          Disponible por tiempo limitado. Cuando termine la cuenta regresiva, la inscripción puede aumentar.
+          Precio inicial por tiempo limitado. Cuando termine la cuenta regresiva, la entrada puede subir.
         </p>
       </div>
 
@@ -142,8 +152,8 @@ export function ActivationPanel({
         <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
           {draftCount > 0
             ? `Ya tenés ${draftCount} pronóstico${draftCount === 1 ? "" : "s"} guardado${draftCount === 1 ? "" : "s"}.`
-            : "Todavía no pagaste tu participación."}{" "}
-          Para competir por premios y aparecer en rankings, pagá tu participación.
+            : "Todavía no activaste tu participación."}{" "}
+          Pagá con Mercado Pago y hacé que esos picks entren al ranking y peleen premios.
         </p>
       </div>
 
@@ -159,7 +169,7 @@ export function ActivationPanel({
           {startingCheckout ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
         </button>
         <p className="text-sm leading-6 text-[var(--color-muted)]">
-          Activás tu participación y tus pronósticos empiezan a competir por premios.
+          Activás tu participación y tus pronósticos pasan a competir por premios, ranking general y grupo.
         </p>
         {paymentNotice ? (
           <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
@@ -175,7 +185,7 @@ export function ActivationPanel({
               Fallback operativo
             </p>
             <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
-              Si tuviste un problema con Mercado Pago, podés informar un pago manual para que el admin lo revise.
+              Si Mercado Pago falla, dejá una referencia para que el admin pueda ubicar tu pago y activarte a mano.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
