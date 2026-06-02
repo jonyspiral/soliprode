@@ -104,10 +104,19 @@ El precio vigente debe vivir en una fuente administrable de configuración opera
 
 ## 3. Pago online / pago manual MVP
 
-### Etapa 1 MVP
+### Flujo principal del producto
 
-- Pago manual o link de pago.
-- Usuario inicia pago o informa comprobante.
+- Pago online con Mercado Pago como camino principal.
+- El usuario debe ver desde Home, Dashboard y Matches:
+  - cuánto cuesta;
+  - que la cuenta es gratis;
+  - que el pago destraba la competencia oficial;
+  - que Mercado Pago es el medio principal.
+
+### Fallback operativo MVP
+
+- Activación manual solo si el pago online falla o no puede completarse.
+- Usuario informa referencia o comprobante.
 - Admin confirma el pago.
 - `participation` pasa a `active`.
 
@@ -138,7 +147,7 @@ Sí conviene cobrar:
 
 ### Decisión
 
-El cobro debe ser una activación competitiva, no el primer contacto del usuario con el producto.
+El cobro debe seguir siendo una activación competitiva, pero el producto no debe esconder que el flujo principal es pagar online con Mercado Pago.
 
 ## 4. Entrada tardía
 
@@ -528,7 +537,8 @@ No conviene abrir cobro real si primero no existe un panel operativo simple para
 - [ ] Precio inicial visible.
 - [ ] Countdown.
 - [ ] Activar participación.
-- [ ] Pago manual / link.
+- [ ] Pago online visible con Mercado Pago.
+- [ ] Fallback manual operativo.
 - [ ] Admin confirma pago.
 - [ ] Fixture visible.
 - [ ] Pronósticos draft.
@@ -570,7 +580,7 @@ No conviene abrir cobro real si primero no existe un panel operativo simple para
 4. Pronósticos draft.
 5. Activar participación.
 6. Precio inicial + countdown.
-7. Pago manual MVP.
+7. Pago online visible con Mercado Pago.
 8. Admin confirmar pagos.
 9. Reglas de puntuación.
 10. Carga de resultados.
@@ -592,7 +602,8 @@ Para empezar a cobrar de forma controlada, SoliProde necesita:
 - pronósticos en draft;
 - activación de participación;
 - precio vigente + countdown;
-- pago manual o link de pago;
+- pago online visible con Mercado Pago;
+- fallback manual utilizable;
 - confirmación admin;
 - bloqueo por inicio de partido;
 - reglas de puntuación publicadas.
@@ -611,7 +622,7 @@ Para que el producto ya no solo cobre sino compita de verdad, necesita además:
 
 ## 19. Post-MVP
 
-- Mercado Pago con activación automática.
+- Checkout real de Mercado Pago con activación automática.
 - Webhook y reconciliación de pagos.
 - Vista avanzada de promotores.
 - Bonus predictions.
@@ -632,11 +643,13 @@ Para que el producto ya no solo cobre sino compita de verdad, necesita además:
 - Cuenta gratis, activación paga.
 - Pronósticos previos al pago permitidos como draft.
 - Cobro después del registro y preferentemente después de cargar pronósticos.
+- Mercado Pago / pago online como flujo principal.
+- Activación manual solo como fallback operativo.
 - MVP sin comunidades.
 - Grupos como capa social principal.
 - Premio grupal oficial recién desde 11 jugadores activos.
 - Regla de puntuación simple recomendada para MVP.
-- Pago manual / link como primera etapa.
+- Mercado Pago online-first con fallback manual operativo.
 - Competencia de promotores separada del juego principal.
 - Ranking principal de promotores ordenado por jugadores activos/pagos.
 - Recaudación atribuida como métrica secundaria de promotores.
@@ -668,7 +681,9 @@ Incluye:
 - estado visible de participación;
 - precio vigente;
 - countdown;
-- carga de comprobante o referencia;
+- CTA principal de pago online;
+- presencia visible de Mercado Pago en Home, Dashboard y Matches;
+- carga de comprobante o referencia como fallback;
 - confirmación admin;
 - cambio de `pending` a `paid`.
 

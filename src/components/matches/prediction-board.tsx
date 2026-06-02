@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { CountryFlag } from "@/components/country-flag";
+import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type MatchTeam = {
@@ -185,7 +186,7 @@ export function PredictionBoard({
           tone: "success",
           message: participationActive
             ? "Pronóstico guardado. Va a competir si el partido no empezó."
-            : "Pronóstico guardado como borrador. Activá tu participación para competir por premios.",
+            : "Pronóstico guardado como borrador. Para que participe por premios, pagá tu participación.",
         },
       }));
     } catch {
@@ -221,6 +222,23 @@ export function PredictionBoard({
           </p>
         </div>
       </div>
+
+      {isAuthenticated && !participationActive ? (
+        <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+          <MercadoPagoBadge compact secondaryText="Para que tus pronósticos compitan por premios" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Pronóstico guardado como borrador. Para que participe por premios, pagá tu participación.
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Pagar con Mercado Pago
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {!isAuthenticated ? (
         <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4 text-sm leading-6 text-[var(--color-muted)]">

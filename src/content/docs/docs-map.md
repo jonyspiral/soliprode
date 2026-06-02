@@ -31,6 +31,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 
 - Auth y sesiones.
 - Partidos y predicciones.
+- Pagos y activación.
 - Rankings.
 - Grupos y comunidades.
 - Administración.

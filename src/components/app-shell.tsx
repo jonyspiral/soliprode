@@ -54,10 +54,41 @@ export function AppShell({ children }: AppShellProps) {
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [participationPaid, setParticipationPaid] = useState<boolean | null>(null);
+  const showPendingPaymentBanner = authReady && isAuthenticated && participationPaid === false;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
     let active = true;
+
+    async function syncParticipation(userId: string | null) {
+      if (!userId) {
+        if (active) {
+          setParticipationPaid(null);
+        }
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("participations")
+          .select("payment_status")
+          .eq("profile_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (!active) {
+          return;
+        }
+
+        setParticipationPaid(data?.payment_status === "paid");
+      } catch {
+        if (active) {
+          setParticipationPaid(null);
+        }
+      }
+    }
 
     async function syncUser() {
       try {
@@ -70,12 +101,14 @@ export function AppShell({ children }: AppShellProps) {
         }
 
         setIsAuthenticated(Boolean(user));
+        void syncParticipation(user?.id ?? null);
       } catch {
         if (!active) {
           return;
         }
 
         setIsAuthenticated(false);
+        setParticipationPaid(null);
       } finally {
         if (active) {
           setAuthReady(true);
@@ -93,6 +126,7 @@ export function AppShell({ children }: AppShellProps) {
       }
 
       setIsAuthenticated(Boolean(session?.user));
+      void syncParticipation(session?.user?.id ?? null);
       setAuthReady(true);
     });
 
@@ -111,6 +145,7 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     setIsAuthenticated(false);
+    setParticipationPaid(null);
     router.push("/login");
     router.refresh();
   }
@@ -168,9 +203,29 @@ export function AppShell({ children }: AppShellProps) {
             <AvatarChip />
           </div>
         </div>
+        {showPendingPaymentBanner ? (
+          <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
+            <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
+                Pendiente de pago
+              </p>
+              <Link
+                href="/dashboard"
+                className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+              >
+                Pagar participación
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-24 pt-[4.5rem]">
+      <main
+        className={[
+          "mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-24",
+          showPendingPaymentBanner ? "pt-[6.75rem]" : "pt-[4.5rem]",
+        ].join(" ")}
+      >
         {isSecondaryScreen ? (
           <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
             {secondaryNavItems.map((item) => {

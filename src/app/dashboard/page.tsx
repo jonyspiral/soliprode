@@ -121,11 +121,11 @@ export default async function DashboardPage() {
               {`Hola${profile?.public_alias ? ` ${profile.public_alias}` : ""}!`}
               <br />
               <span className="text-[var(--color-gold-soft)]">
-                {participationActive ? "Ya estás compitiendo." : "Tus pronósticos te están esperando."}
+                {participationActive ? "Ya estás compitiendo." : "Te falta pagar para competir."}
               </span>
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
-              {profile?.email ?? userEmail ?? "Sin email"} · {participationStatus}
+              {profile?.email ?? userEmail ?? "Sin email"} · {participationActive ? "participación activa" : "pendiente de pago"}
             </p>
           </div>
           <div className="rounded-lg border border-white/20 bg-white/10 p-3 text-right">
@@ -140,11 +140,11 @@ export default async function DashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2">
         <HighlightMetric
           label="Inscripción"
-          value={participationStatus}
+          value={participationActive ? "paid" : "pendiente"}
           detail={
             participationActive
               ? "Tu participación ya está activa para competir por premios."
-              : "Tu participación ya existe. Falta activarla para competir oficialmente."
+              : "Tu participación ya existe. Falta pagar con Mercado Pago para competir oficialmente."
           }
         />
         <HighlightMetric
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
           value={profile?.email ?? userEmail ?? "Sin email"}
           detail="Email principal de acceso."
         />
-        <SurfaceCard tone="accent" title="Activación competitiva">
+        <SurfaceCard tone="accent" title="Pago y activación">
           <ActivationPanel
             participationId={participation?.id ?? null}
             participationStatus={participationStatus}
@@ -281,7 +281,7 @@ export default async function DashboardPage() {
               Estado actual
             </p>
             <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-              {participationStatus}
+              {participationActive ? "paid" : "pendiente"}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">

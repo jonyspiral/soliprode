@@ -1,45 +1,35 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CountryFlag } from "@/components/country-flag";
+import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { FlowStep, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
-
-const impactMetrics = [
-  {
-    value: "$1.5M",
-    label: "pozo proyectado",
-    detail: "El juego combina competencia, premios y una causa solidaria real.",
-  },
-  {
-    value: "12.4K",
-    label: "jugadores esperados",
-    detail: "La experiencia está pensada para moverse rápido desde el celular.",
-  },
-];
+import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
 
 const gameFlow = [
   {
     step: "Paso 1",
     title: "Creás tu cuenta",
-    description: "Elegís tu alias, confirmás tu email y ya podés entrar al torneo.",
+    description: "Entrás gratis, elegís tu alias y empezás a jugar sin pagar al registrarte.",
   },
   {
     step: "Paso 2",
     title: "Cargás tus pronósticos",
-    description: "Vas a encontrar tus partidos abiertos en una pantalla simple y rápida.",
+    description: "Guardás picks como borrador y preparás tu torneo desde el celular.",
   },
   {
     step: "Paso 3",
-    title: "Seguís tu posición",
-    description: "Comparás tu rendimiento en la tabla general, tu grupo y tu comunidad.",
+    title: "Pagás y competís",
+    description: "Pagás con Mercado Pago y tus pronósticos pasan a competir por premios y rankings.",
   },
 ];
 
 export default function Home() {
+  const entryPrice = formatEntryPrice(entryConfig.initialPrice);
+
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
-        <div className="relative flex min-h-[540px] flex-col items-center justify-end px-4 pb-10 text-center">
+        <div className="relative flex min-h-[560px] flex-col items-center justify-end px-4 pb-10 text-center">
           <Image
             src="/lio_copa.jpeg"
             alt="Lionel Messi con la Copa del Mundo"
@@ -48,17 +38,16 @@ export default function Home() {
             className="object-cover object-[55%_18%]"
             sizes="100vw"
           />
-          {/* Gradiente: imagen limpia arriba, fade solo en el tercio inferior */}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_48%,rgba(0,26,92,0.65)_65%,rgba(0,26,92,0.95)_80%,#001a5c_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_42%,rgba(0,26,92,0.58)_62%,rgba(0,26,92,0.94)_82%,#001a5c_100%)]" />
           <div className="relative z-10 grid max-w-[19rem] gap-3">
             <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)]">
-              Juga el Mundial y llevate todo!
+              Jugá el Prode del Mundial
             </h1>
             <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
-              Cargá tus pronósticos y participá por el premio que cada vez será más grande.
+              Creás tu cuenta gratis, cargás tus pronósticos y pagás para competir por premios.
             </p>
-            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
-              Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
+            <p className="text-[0.72rem] font-normal leading-5 text-[#cbd8ff]">
+              Jugás por premios. También ayudás a financiar una tesis universitaria.
             </p>
             <Link
               href="/register"
@@ -70,48 +59,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="-mt-3 grid grid-cols-2 gap-3">
-        {impactMetrics.map((metric) => (
-          <SurfaceCard key={metric.label}>
-            <div className="text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                {metric.label}
-              </p>
-              <p className="mt-2 font-serif text-[2.2rem] font-bold leading-none text-[var(--color-primary)]">
-                {metric.value}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{metric.detail}</p>
-            </div>
-          </SurfaceCard>
-        ))}
-      </section>
+      <SurfaceCard title="Inscripción inicial" description="El pago principal del torneo es online y se comunica desde el primer contacto.">
+        <div className="grid gap-4">
+          <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Inscripción inicial
+            </p>
+            <p className="mt-2 font-serif text-[2.4rem] font-bold leading-none text-[var(--color-primary)]">
+              {entryPrice}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              Disponible por tiempo limitado.
+            </p>
+          </div>
 
-      <section className="grid gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-[2rem] font-bold text-[var(--color-ink)]">Proximo Partido</h2>
-          <Link href="/matches" className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--color-secondary)]">
-            Ver todos
-          </Link>
+          <MercadoPagoBadge secondaryText="Pago online principal del torneo" />
+
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Para competir por premios, rankings individuales y la tabla de grupos, pagás online con Mercado Pago.
+          </p>
         </div>
-        <div className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)]">
-          <div className="bg-[var(--color-primary)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
-            Fase de grupos • Hoy 16:00
-          </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 p-4">
-            <div className="text-center">
-              <CountryFlag country="ARG" label="Argentina" size="sm" className="mx-auto mb-2" />
-              <p className="font-serif text-[1.9rem] font-bold uppercase leading-none">ARG</p>
-            </div>
-            <div className="rounded-md border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 font-serif text-[1.6rem] font-bold text-[var(--color-muted)]">
-              VS
-            </div>
-            <div className="text-center">
-              <CountryFlag country="BRA" label="Brasil" size="sm" className="mx-auto mb-2" />
-              <p className="font-serif text-[1.9rem] font-bold uppercase leading-none">BRA</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      </SurfaceCard>
 
       <section className="grid gap-4 md:grid-cols-3">
         {gameFlow.map((item) => (
@@ -124,11 +92,14 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="px-4 py-2 text-center">
-        <p className="mx-auto max-w-[18rem] text-sm leading-6 text-[var(--color-muted)]">
-          El 20% del pozo recaudado se destina a una causa solidaria real.
-        </p>
-      </section>
+      <SurfaceCard title="Cómo entra el pago" description="El registro sigue siendo gratis. El pago aparece cuando el jugador ya entendió el juego.">
+        <div className="grid gap-3 text-sm leading-6 text-[var(--color-muted)]">
+          <p>1. Creás tu cuenta gratis.</p>
+          <p>2. Guardás pronósticos como borrador.</p>
+          <p>3. Pagás con Mercado Pago.</p>
+          <p>4. Tus pronósticos pasan a competir por premios y rankings oficiales.</p>
+        </div>
+      </SurfaceCard>
     </PageStack>
   );
 }

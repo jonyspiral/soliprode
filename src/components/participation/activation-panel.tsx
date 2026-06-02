@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
 
@@ -37,7 +38,9 @@ export function ActivationPanel({
   draftCount,
   initialPaymentReference,
 }: ActivationPanelProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const [startingCheckout, setStartingCheckout] = useState(false);
   const [remaining, setRemaining] = useState(() =>
     formatRemaining(entryConfig.priceValidUntil),
   );
@@ -55,10 +58,7 @@ export function ActivationPanel({
     };
   }, []);
 
-  const priceLabel = useMemo(
-    () => formatEntryPrice(entryConfig.initialPrice),
-    [],
-  );
+  const priceLabel = useMemo(() => formatEntryPrice(entryConfig.initialPrice), []);
 
   async function saveReference() {
     if (!participationId) {
@@ -84,13 +84,40 @@ export function ActivationPanel({
 
       setFeedback(
         paymentReference.trim()
-          ? "Referencia guardada. Tu participación sigue pendiente hasta confirmación admin."
-          : "Referencia borrada. Podés volver a cargarla cuando envíes el comprobante.",
+          ? "Referencia guardada. Tu pago manual queda pendiente hasta confirmación admin."
+          : "Referencia borrada. Podés volver a cargarla si necesitás informar un pago manual.",
       );
     } catch {
       setFeedback("No pudimos guardar la referencia ahora. Intentá de nuevo.");
     } finally {
       setSavingReference(false);
+    }
+  }
+
+  async function startMercadoPagoCheckout() {
+    setStartingCheckout(true);
+    setPaymentNotice(null);
+
+    try {
+      const response = await fetch("/api/payments/mercadopago/create-preference", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        error?: string;
+        checkoutUrl?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.checkoutUrl) {
+        setPaymentNotice(payload.error ?? "No pudimos iniciar el pago online en este momento.");
+        return;
+      }
+
+      window.location.assign(payload.checkoutUrl);
+    } catch {
+      setPaymentNotice("No pudimos iniciar el pago online en este momento.");
+    } finally {
+      setStartingCheckout(false);
     }
   }
 
@@ -123,7 +150,7 @@ export function ActivationPanel({
     <div className="grid gap-4">
       <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-          Precio inicial
+          Inscripción inicial
         </p>
         <div className="mt-2 flex items-end justify-between gap-4">
           <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
@@ -146,43 +173,61 @@ export function ActivationPanel({
           Estado actual
         </p>
         <p className="mt-2 font-serif text-[1.85rem] font-bold uppercase text-[var(--color-primary)]">
-          {draftCount > 0
-            ? `Tenés ${draftCount} pronóstico${draftCount === 1 ? "" : "s"} en borrador`
-            : "Todavía no activaste tu participación"}
+          Tus pronósticos están en borrador
         </p>
         <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          Podés cargar tus pronósticos gratis. Para que participen por premios, activá tu participación.
+          {draftCount > 0
+            ? `Ya tenés ${draftCount} pronóstico${draftCount === 1 ? "" : "s"} guardado${draftCount === 1 ? "" : "s"}.`
+            : "Todavía no pagaste tu participación."}{" "}
+          Para competir por premios y aparecer en rankings, pagá tu participación.
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setExpanded((current) => !current)}
-        className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-      >
-        Activar participación
-      </button>
+      <MercadoPagoBadge secondaryText="Activás tu participación pagando online" />
 
-      {expanded ? (
-        <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Próximo paso
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => void startMercadoPagoCheckout()}
+          disabled={startingCheckout}
+          className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+        >
+          {startingCheckout ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
+        </button>
+        <p className="text-sm leading-6 text-[var(--color-muted)]">
+          Activás tu participación y tus pronósticos empiezan a competir por premios.
+        </p>
+        {paymentNotice ? (
+          <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+            {paymentNotice}
           </p>
-          <p className="mt-2 font-serif text-[1.65rem] font-bold uppercase text-[var(--color-primary)]">
-            Activación manual en esta primera versión
-          </p>
-          <ol className="mt-3 grid gap-2 text-sm leading-6 text-[var(--color-muted)]">
-            <li>1. Cargás tus pronósticos antes de que empiecen los partidos.</li>
-            <li>2. Iniciás el pago o enviás comprobante.</li>
-            <li>3. El admin confirma y tu participación pasa a activa.</li>
-          </ol>
-          <p className="mt-3 text-sm leading-6 text-[var(--color-ink)]">
-            Tu CTA principal sigue siendo preparar tus picks. La activación competitiva viene después.
-          </p>
+        ) : null}
+      </div>
+
+      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Fallback operativo
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
+              Si tuviste un problema con Mercado Pago, podés informar un pago manual para que el admin lo revise.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFallback((current) => !current)}
+            className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+          >
+            {showFallback ? "Ocultar fallback manual" : "Tuve un problema con Mercado Pago"}
+          </button>
+        </div>
+
+        {showFallback ? (
           <div className="mt-4 grid gap-3">
             <label className="grid gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Referencia o comprobante
+                Informar pago manual
               </span>
               <input
                 value={paymentReference}
@@ -196,25 +241,25 @@ export function ActivationPanel({
                 {feedback}
               </p>
             ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/matches"
+                className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+              >
+                Seguir cargando pronósticos
+              </Link>
+              <button
+                type="button"
+                onClick={() => void saveReference()}
+                disabled={savingReference}
+                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {savingReference ? "Guardando..." : "Informar pago manual"}
+              </button>
+            </div>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/matches"
-              className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-            >
-              Cargar mis pronósticos
-            </Link>
-            <button
-              type="button"
-              onClick={() => void saveReference()}
-              disabled={savingReference}
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {savingReference ? "Guardando..." : "Ya envié mi comprobante"}
-            </button>
-          </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

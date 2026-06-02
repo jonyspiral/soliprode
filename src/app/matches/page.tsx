@@ -216,7 +216,7 @@ export default async function MatchesPage() {
           />
         ) : (
           <InfoNotice
-            message="Podés cargar tus pronósticos gratis. Para que participen por premios, activá tu participación."
+            message="Podés cargar tus pronósticos gratis. Quedan guardados como borrador. Para que participen por premios, pagá tu participación."
             tone="info"
           />
         )
@@ -398,9 +398,9 @@ export default async function MatchesPage() {
             <>
               Tus picks quedan guardados como borrador.{" "}
               <Link href="/dashboard" className="font-semibold text-[var(--color-primary)]">
-                Activá tu participación
+                Pagá con Mercado Pago
               </Link>
-              {" "}cuando quieras que empiecen a contar.
+              {" "}cuando quieras que empiecen a competir por premios.
             </>
           )
         ) : (
