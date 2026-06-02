@@ -39,27 +39,30 @@ export default function Home() {
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
-        <div className="relative flex min-h-[580px] flex-col items-center justify-end px-4 pb-10 text-center">
-          {/* Foto Messi ocupa todo el banner */}
+        <div className="relative flex min-h-[640px] flex-col items-center justify-end px-4 pb-10 text-center">
           <Image
             src="/lio_copa.jpeg"
             alt="Lionel Messi con la Copa del Mundo"
             fill
             priority
-            className="object-cover object-top"
+            className="object-cover object-[center_10%]"
             sizes="100vw"
           />
-          {/* Gradiente: imagen visible arriba, azul sólido abajo para legibilidad del texto */}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,26,92,0.15)_0%,rgba(0,26,92,0.55)_52%,rgba(0,26,92,0.92)_72%,rgba(0,26,92,1)_100%)]" />
-          {/* Texto y CTA */}
-          <div className="relative z-10 grid max-w-[17rem] gap-4">
-            <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-              Juga el Prode del Mundial
+          {/* Gradiente: imagen visible arriba, azul sólido abajo */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,26,92,0.05)_0%,rgba(0,26,92,0.1)_40%,rgba(0,26,92,0.75)_62%,rgba(0,26,92,0.96)_78%,rgba(0,26,92,1)_100%)]" />
+          <div className="relative z-10 grid max-w-[19rem] gap-3">
+            <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+              Juga el Mundial y llevate todo!
             </h1>
-            <p className="text-[1.05rem] font-semibold leading-7 text-[#dfe6ff]">y competi por premios</p>
+            <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff]">
+              Cargá tus pronósticos y participá por el premio que cada vez será más grande.
+            </p>
+            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
+              Lo recaudado será destinado a financiar la tesis de estudiantes universitarios.
+            </p>
             <Link
               href="/register"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"
+              className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"
             >
               Crear cuenta y jugar
             </Link>

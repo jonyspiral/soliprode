@@ -13,6 +13,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Protocolo de agentes: `src/content/docs/protocolo-agentes.md`
 - Gatillo de sesión: `.antigravity-context.md`
 - Índice de planes: `plans/000-plan-index-soliprode.md`
+- Plan MVP recaudable: `plans/soliprode-mvp-recaudable-plan.md`
 - Runbook de publicación: `src/content/docs/runbooks/deploy-main.md`
 
 ## Áreas actuales

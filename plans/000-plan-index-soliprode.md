@@ -25,12 +25,11 @@ Objetivo: centralizar los planes activos y evitar duplicados mientras SoliProde 
 | Correctivo de vista promoters y bonus policies | `plans/2026-06-01-corrective-promoter-view-and-bonus-policies.md` | Datos / seguridad | IMPLEMENTADO | Alinea grants de la vista pública y policies propias de bonus_predictions | P1 | Construir el flujo de bonus predictions sobre esta base | Agente técnico |
 | Correctivo de grants públicos de lectura | `supabase/migrations/004_fix_public_read_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL de `teams`, `matches` y `rankings_cache` con sus policies públicas RLS | P1 | Aplicar la migración en Supabase para habilitar lectura pública efectiva | Agente técnico |
 | Correctivo de grants autenticados de runtime | `supabase/migrations/005_fix_authenticated_runtime_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL del rol `authenticated` con las policies RLS ya definidas para bootstrap de perfil, participación y módulos interactivos | P0 | Aplicar la migración en Supabase para estabilizar login, registro y writes del usuario | Agente técnico |
+| MVP recaudable | `plans/soliprode-mvp-recaudable-plan.md` | Producto / operación | PROPUESTO | Define qué falta para poder cobrar inscripciones reales, activar participación, competir por premios y operar grupos/rankings | P0 | Desglosar este plan en entregables técnicos y confirmar decisiones comerciales pendientes | Producto + agente técnico |
 
 ## Backlog sugerido todavía no planificado
 
-- Autenticación y modelo de sesión.
-- Catálogo de partidos y predicciones.
-- Rankings globales y por grupo.
-- Comunidades y oficinas.
-- Admin operacional.
-- Integración con Supabase.
+- Comunidades y oficinas post-MVP.
+- Automatización de cobro con Mercado Pago.
+- Bonus predictions.
+- Reportería operativa y comercial.
