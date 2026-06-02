@@ -34,4 +34,5 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Rankings.
 - Grupos y comunidades.
 - Administración.
+- Promotores y operación comercial.
 - Integración con Supabase.

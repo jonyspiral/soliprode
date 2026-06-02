@@ -45,7 +45,7 @@ export default function Home() {
             alt="Lionel Messi con la Copa del Mundo"
             fill
             priority
-            className="object-cover object-[55%_28%]"
+            className="object-cover object-[55%_18%]"
             sizes="100vw"
           />
           {/* Gradiente: imagen limpia arriba, fade solo en el tercio inferior */}
