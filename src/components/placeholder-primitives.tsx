@@ -10,7 +10,7 @@ type StatCardProps = {
 
 export function StatCard({ label, value, detail }: StatCardProps) {
   return (
-    <article className="rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_8px_18px_rgba(0,50,125,0.06)]">
+    <article className="rounded-2xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_6px_14px_rgba(0,50,125,0.05)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
         {label}
       </p>
@@ -41,7 +41,7 @@ export function ActionTile({
       : "bg-[var(--color-primary)] text-white";
 
   return (
-    <article className="rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_8px_18px_rgba(0,50,125,0.06)]">
+    <article className="rounded-2xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_6px_14px_rgba(0,50,125,0.05)]">
       <h3 className="font-serif text-[1.5rem] font-bold uppercase leading-none text-[var(--color-ink)]">
         {title}
       </h3>
@@ -95,7 +95,7 @@ export function MatchPlaceholderCard({
   const [home, away] = teams.split(" vs ");
 
   return (
-    <article className="overflow-hidden rounded-xl border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)] shadow-[0_10px_22px_rgba(0,50,125,0.08)]">
+    <article className="overflow-hidden rounded-2xl border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)] shadow-[0_10px_22px_rgba(0,50,125,0.08)]">
       <div className="flex items-center justify-between bg-[var(--color-primary)] px-4 py-2 text-white">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">{stage}</p>
         <p className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em]">
@@ -162,7 +162,7 @@ type HighlightMetricProps = {
 
 export function HighlightMetric({ value, label, detail }: HighlightMetricProps) {
   return (
-    <article className="rounded-xl border-[1.5px] border-white/15 bg-white/10 p-4 text-white backdrop-blur">
+    <article className="rounded-2xl border-[1.5px] border-white/15 bg-white/10 p-4 text-white backdrop-blur">
       <p className="font-serif text-[2rem] font-bold leading-none sm:text-[2.4rem]">{value}</p>
       <p className="mt-2 text-sm font-semibold uppercase tracking-[0.08em]">{label}</p>
       {detail ? <p className="mt-1 text-xs leading-5 text-[#dfe6ff]">{detail}</p> : null}
@@ -178,7 +178,7 @@ type FlowStepProps = {
 
 export function FlowStep({ step, title, description }: FlowStepProps) {
   return (
-    <article className="rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_8px_18px_rgba(0,50,125,0.06)]">
+    <article className="rounded-2xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_6px_14px_rgba(0,50,125,0.05)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
         {step}
       </p>
@@ -199,7 +199,7 @@ type ScopeCardProps = {
 
 export function ScopeCard({ title, summary, status, detail }: ScopeCardProps) {
   return (
-    <article className="rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_8px_18px_rgba(0,50,125,0.06)]">
+    <article className="rounded-2xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[0_6px_14px_rgba(0,50,125,0.05)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-serif text-[1.55rem] font-bold uppercase leading-none text-[var(--color-ink)]">

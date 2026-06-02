@@ -13,14 +13,14 @@ export default function RankingsPage() {
     <PageStack>
       <section className="flex items-end justify-between">
         <div>
-          <h1 className="font-serif text-[2.2rem] font-bold tracking-[-0.03em] text-[var(--color-primary)]">
-            Global Rankings
+          <h1 className="font-serif text-[2.2rem] font-bold uppercase tracking-[-0.03em] text-[var(--color-primary)]">
+            Rankings
           </h1>
-          <p className="mt-1 text-base text-[var(--color-muted)]">Season 2024 • Week 12</p>
+          <p className="mt-1 text-base text-[var(--color-muted)]">Tabla general • Semana 12</p>
         </div>
         <div className="flex rounded-lg border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-1 text-[14px]">
-          <button className="rounded bg-white px-3 py-1 font-semibold text-[var(--color-primary)] shadow-sm">Global</button>
-          <button className="px-3 py-1 text-[var(--color-muted)]">Friends</button>
+          <button className="rounded bg-white px-3 py-1 font-semibold text-[var(--color-primary)] shadow-sm">General</button>
+          <button className="px-3 py-1 text-[var(--color-muted)]">Grupo</button>
         </div>
       </section>
 
@@ -42,7 +42,7 @@ export default function RankingsPage() {
         </div>
       </section>
 
-      <SurfaceCard title="Tabla general" description="Tu lectura principal del torneo.">
+      <SurfaceCard title="Tabla general" description="La lectura principal del torneo vive acá.">
         <div className="grid gap-3">
           <RankedRow name="Vos" meta="Tu posición actual" points="2,150 pts" highlight />
           {["Emma W.", "Carlos T.", "Mike R.", "Jugador 7"].map((row, index) => (
@@ -56,7 +56,7 @@ export default function RankingsPage() {
         </div>
       </SurfaceCard>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-4">
         {rankingSections.slice(1).map((section) => (
           <SurfaceCard key={section.title} title={section.title}>
             <div className="flex flex-col gap-3">

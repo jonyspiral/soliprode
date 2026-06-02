@@ -38,76 +38,91 @@ const gameFlow = [
 export default function Home() {
   return (
     <PageStack>
-      <section className="-mx-4 -mt-4 flex min-h-[560px] flex-col overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] sm:-mx-4">
-        <div className="relative flex flex-1 flex-col justify-end p-4 pb-8 text-center">
-          <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_top,rgba(255,255,255,0.22),transparent_42%)]" />
-          <div className="absolute inset-x-0 top-0 z-[1] flex justify-center">
-            <div className="relative h-[320px] w-full max-w-[430px] sm:hidden">
+      <section className="-mx-4 -mt-4 overflow-hidden rounded-b-[2rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] shadow-[0_18px_42px_rgba(0,50,125,0.28)] sm:-mx-4">
+        <div className="relative flex min-h-[620px] flex-col justify-between px-4 pb-8 pt-4">
+          <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_top,rgba(255,255,255,0.22),transparent_44%)]" />
+          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.08)_25%,rgba(255,255,255,0.08)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.08)_75%,rgba(255,255,255,0.08)_76%,transparent_77%,transparent)] [background-size:26px_26px]" />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+              Prode Mundial Solidario 2026
+            </div>
+            <div className="rounded-full bg-[var(--color-gold-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]">
+              Athletic pool
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 top-14 z-[1] flex justify-center">
+            <div className="relative h-[360px] w-full max-w-[430px] sm:hidden">
               <Image
                 src="/home-banner-mobile.png"
                 alt="Banner del Mundial para SoliProde"
                 fill
                 priority
-                className="object-contain object-top"
+                className="object-contain object-top mix-blend-screen"
                 sizes="100vw"
               />
             </div>
-            <div className="relative hidden h-[360px] w-full max-w-[880px] sm:block">
+            <div className="relative hidden h-[430px] w-full max-w-[980px] sm:block">
               <Image
                 src="/home-banner-desktop.png"
                 alt="Banner del Mundial para SoliProde"
                 fill
                 priority
-                className="object-contain object-top"
-                sizes="(min-width: 640px) 880px, 100vw"
+                className="object-contain object-top mix-blend-screen"
+                sizes="(min-width: 640px) 980px, 100vw"
               />
             </div>
           </div>
-          <div className="absolute inset-0 z-[2] bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.32)_68%,rgba(0,0,0,0.52)_100%)]" />
-          <div className="relative z-10 mt-auto">
-            <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.95] tracking-[-0.03em] text-white">
-              Jugá el Prode del Mundial
-            </h1>
-            <p className="mt-2 text-lg leading-7 text-[#dfe6ff]">y competí por premios</p>
-            <div className="mt-6 flex flex-col gap-3">
+          <div className="absolute inset-0 z-[2] bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_10%,rgba(0,0,0,0.16)_52%,rgba(0,0,0,0.54)_100%)]" />
+
+          <div className="relative z-10 mt-auto grid gap-6">
+            <div className="max-w-[20rem]">
+              <h1 className="font-serif text-[2.7rem] font-bold uppercase leading-[0.92] tracking-[-0.04em] text-white">
+                Jugá el Mundial y subí en la tabla.
+              </h1>
+              <p className="mt-3 text-base leading-7 text-[#dfe6ff]">
+                Cargá tus pronósticos, compará tu posición y ayudá a financiar una tesis con cada participación.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--color-gold-soft)] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] shadow-[0_0_20px_rgba(255,225,109,0.4)] transition hover:brightness-105"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-gold-soft)] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] shadow-[0_0_20px_rgba(255,225,109,0.4)] transition hover:brightness-105"
               >
                 Crear cuenta y jugar
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/8 px-5 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/8 px-5 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white"
               >
                 Ya tengo cuenta
               </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {impactMetrics.map((metric) => (
+                <div
+                  key={metric.label}
+                  className="rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
+                    {metric.label}
+                  </p>
+                  <p className="mt-2 font-serif text-[2rem] font-bold leading-none text-[var(--color-gold-soft)]">
+                    {metric.value}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-[#dfe6ff]">{metric.detail}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="-mt-8 grid grid-cols-2 gap-3">
-        {impactMetrics.map((metric) => (
-          <SurfaceCard key={metric.label}>
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(154,225,255,0.2)] text-[var(--color-primary)]">
-                <span className="font-serif text-2xl font-bold">{metric.value === "$1.5M" ? "$" : "#"}</span>
-              </div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                {metric.label}
-              </p>
-              <p className="mt-1 font-serif text-[2rem] font-bold leading-none text-[var(--color-primary)]">
-                {metric.value}
-              </p>
-            </div>
-          </SurfaceCard>
-        ))}
-      </section>
-
       <SurfaceCard
         title="Próximo partido"
-        description="Cuando el fixture esté cargado, el acceso principal del jugador va a aparecer acá."
+        description="El fixture va a quedar al frente de la experiencia. Esta tarjeta marca el ritmo del home."
       >
         <div className="overflow-hidden rounded-xl border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)]">
           <div className="bg-[var(--color-primary)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
@@ -142,8 +157,8 @@ export default function Home() {
 
       <SurfaceCard tone="accent">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="font-serif text-[2.3rem] font-bold uppercase leading-[0.95] text-[var(--color-ink)]">
-            El 20% del pozo acompaña una causa concreta.
+          <h2 className="font-serif text-[2.1rem] font-bold uppercase leading-[0.95] text-[var(--color-ink)]">
+            Competís por tu lugar y también por una causa concreta.
           </h2>
           <p className="mt-3 text-sm leading-7 text-[var(--color-muted)] sm:text-base">
             SoliProde junta la energía del Mundial con una meta solidaria real. Jugás por tu

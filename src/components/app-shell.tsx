@@ -7,8 +7,6 @@ import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, SoccerBallIcon, UserIc
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
-  primaryNavItemsAuthenticated,
-  primaryNavItemsLoggedOut,
   secondaryNavItems,
 } from "@/lib/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -53,6 +51,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthScreen = pathname === "/login" || pathname === "/register";
+  const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
@@ -116,8 +115,6 @@ export function AppShell({ children }: AppShellProps) {
     router.refresh();
   }
 
-  const primaryNavItems =
-    authReady && isAuthenticated ? primaryNavItemsAuthenticated : primaryNavItemsLoggedOut;
   const mobileNavItems =
     authReady && isAuthenticated ? mobileNavItemsAuthenticated : mobileNavItemsLoggedOut;
 
@@ -174,42 +171,43 @@ export function AppShell({ children }: AppShellProps) {
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-28 pt-20">
-        <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-          {primaryNavItems.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  "shrink-0 rounded-lg border px-3 py-2 transition",
-                  active
-                    ? "border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]"
-                    : "border-[var(--color-line)] bg-[var(--color-surface-muted)] hover:text-[var(--color-primary)]",
-                ].join(" ")}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-          {secondaryNavItems.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={[
-                  "shrink-0 rounded-lg border px-3 py-2 transition",
-                  active
-                    ? "border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]"
-                    : "border-[var(--color-line)] bg-[var(--color-surface-muted)] hover:text-[var(--color-primary)]",
-                ].join(" ")}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        {isSecondaryScreen ? (
+          <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            {secondaryNavItems.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={[
+                    "shrink-0 rounded-lg border px-3 py-2 transition",
+                    active
+                      ? "border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]"
+                      : "border-[var(--color-line)] bg-[var(--color-surface-muted)] hover:text-[var(--color-primary)]",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : authReady && isAuthenticated ? (
+          <div className="mb-4 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            <span className="text-[var(--color-primary)]">Más</span>
+            {secondaryNavItems.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "text-[var(--color-primary)]" : "transition hover:text-[var(--color-primary)]"}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
         {children}
       </main>
 

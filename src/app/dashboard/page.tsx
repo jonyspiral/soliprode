@@ -114,7 +114,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2">
         <HighlightMetric
           label="Inscripción"
           value={participation?.payment_status ?? "pending"}
@@ -130,15 +130,18 @@ export default async function DashboardPage() {
           value={profile?.email ?? userEmail ?? "Sin email"}
           detail="Email principal de acceso."
         />
-        <HighlightMetric
-          label="WhatsApp"
-          value={profile?.whatsapp ?? "Opcional"}
-          detail="Dato de contacto adicional."
-        />
+        <SurfaceCard tone="accent" title="Qué sigue">
+          <ActionTile
+            title="Prepararte para el fixture"
+            description="Cuando se carguen los partidos, tu acción principal va a pasar por la pantalla de pronósticos."
+            actionLabel="Ir a Partidos"
+            tone="gold"
+          />
+        </SurfaceCard>
       </section>
 
       <div className="grid gap-4">
-        <SurfaceCard title="Evolución" description="Vista rápida del envión que debería mostrar tu panel durante el torneo.">
+        <SurfaceCard title="Tu evolución" description="Lectura rápida del envión que va a tomar tu panel durante el torneo.">
           <div className="grid gap-4">
             <div className="relative flex h-44 items-end justify-between pt-4">
               <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
@@ -187,13 +190,32 @@ export default async function DashboardPage() {
             </div>
           </SurfaceCard>
 
-          <SurfaceCard title="Qué sigue">
+          <SurfaceCard title="Tu cuenta">
             <div className="grid gap-3">
-              <ActionTile
-                title="Prepararte para el fixture"
-                description="Cuando aparezcan los partidos, tu acción principal va a estar en Partidos."
-                actionLabel="Ver Partidos"
-              />
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  Nombre
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)]">
+                  {profile?.full_name ?? "Pendiente"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  WhatsApp
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)]">
+                  {profile?.whatsapp ?? "Opcional"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  Rol
+                </span>
+                <span className="text-sm font-semibold capitalize text-[var(--color-ink)]">
+                  {profile?.role ?? "player"}
+                </span>
+              </div>
             </div>
           </SurfaceCard>
         </section>
@@ -223,53 +245,22 @@ export default async function DashboardPage() {
         </SurfaceCard>
       </div>
 
-      <section className="grid gap-4">
-        <SurfaceCard title="Tu inscripción" description="Estado real actual de tu cuenta.">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-                Estado actual
-              </p>
-              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-                {participation?.payment_status ?? "pending"}
-              </p>
-            </div>
-            <div className="border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-                Fecha de alta
-              </p>
-              <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-                {participationDate}
-              </p>
-            </div>
-          </div>
-        </SurfaceCard>
-      </section>
-
-      <SurfaceCard title="Tu cuenta" description="Información básica ya guardada para volver a entrar sin fricción.">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+      <SurfaceCard title="Tu inscripción" description="Estado real actual de tu cuenta.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Nombre
+              Estado actual
             </p>
-            <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
-              {profile?.full_name ?? "Pendiente"}
+            <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+              {participation?.payment_status ?? "pending"}
             </p>
           </div>
-          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Rol
+              Fecha de alta
             </p>
-            <p className="mt-2 text-sm font-semibold capitalize text-[var(--color-ink)]">
-              {profile?.role ?? "player"}
-            </p>
-          </div>
-          <div className="border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Cuenta
-            </p>
-            <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
-              {profile?.email ?? userEmail ?? "Sin email"}
+            <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
+              {participationDate}
             </p>
           </div>
         </div>
