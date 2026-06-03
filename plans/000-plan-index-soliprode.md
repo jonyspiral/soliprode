@@ -26,18 +26,22 @@ Objetivo: centralizar los planes activos y evitar duplicados mientras SoliProde 
 | Correctivo de grants públicos de lectura | `supabase/migrations/004_fix_public_read_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL de `teams`, `matches` y `rankings_cache` con sus policies públicas RLS | P1 | Aplicar la migración en Supabase para habilitar lectura pública efectiva | Agente técnico |
 | Correctivo de grants autenticados de runtime | `supabase/migrations/005_fix_authenticated_runtime_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL del rol `authenticated` con las policies RLS ya definidas para bootstrap de perfil, participación y módulos interactivos | P0 | Aplicar la migración en Supabase para estabilizar login, registro y writes del usuario | Agente técnico |
 | MVP recaudable | `plans/soliprode-mvp-recaudable-plan.md` | Producto / operación | PROPUESTO | Define qué falta para poder cobrar inscripciones reales, con Mercado Pago online-first, activación competitiva, competencia por premios y operación de grupos/promotores | P0 | Desglosar este plan en entregables técnicos y confirmar decisiones comerciales pendientes | Producto + agente técnico |
+| Contratos UI de SoliProde | `plans/soliprode-ui-contracts-implementation-plan.md` | Producto / diseño / gobierno | ACTIVO | Formaliza contratos obligatorios de voz, diseño Athletic Social y UI/UX para frenar drift visual y de copy | P1 | Ejecutar auditoría de UI actual página por página contra estos contratos | Producto + agente técnico |
 
 ## Regla visual obligatoria
 
 Antes de modificar UI, layout, copy visual o componentes, consultar primero:
 
-`src/content/docs/design-system-athletic-social.md`
+- `src/content/docs/design-system-athletic-social.md`
+- `src/content/docs/contracts/athletic-social-design-contract.md`
 
 ## Regla de copy obligatoria
 
 Antes de modificar headlines, CTA, mensajes de auth, pago, dashboard o onboarding, consultar primero:
 
-`src/content/docs/voice-and-copy-soliprode.md`
+- `src/content/docs/voice-and-copy-soliprode.md`
+- `src/content/docs/contracts/voice-contract.md`
+- `src/content/docs/contracts/ui-ux-implementation-contract.md`
 
 La voz activa del producto es competitiva, directa, futbolera y orientada a premio. No se debe volver a tono institucional o administrativo.
 

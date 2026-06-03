@@ -1,7 +1,7 @@
 ---
 title: "Documentación de SoliProde"
 description: "Mapa principal de la documentación técnica y operativa del proyecto."
-lastUpdated: "2026-06-01"
+lastUpdated: "2026-06-02"
 ---
 
 # Documentación de SoliProde
@@ -19,6 +19,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Sistema de voz y copy: `src/content/docs/voice-and-copy-soliprode.md`
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
+- Contratos de tono y UI: `src/content/docs/contracts/`
 
 ## Áreas actuales
 
@@ -29,21 +30,36 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Guía para nuevos agentes | `src/content/docs/agents/README.md` |
 | Sistema visual Athletic Social | `src/content/docs/design-system-athletic-social.md` |
 | Voice & copy de producto | `src/content/docs/voice-and-copy-soliprode.md` |
+| Contrato de voz | `src/content/docs/contracts/voice-contract.md` |
+| Contrato visual Athletic Social | `src/content/docs/contracts/athletic-social-design-contract.md` |
+| Contrato de implementación UI/UX | `src/content/docs/contracts/ui-ux-implementation-contract.md` |
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
 | Grupos competitivos MVP | `src/content/docs/groups-competitive-mvp.md` |
 
+## Contratos de producto, tono y UI
+
+- Voice Contract: `src/content/docs/contracts/voice-contract.md`
+- Athletic Social Design Contract: `src/content/docs/contracts/athletic-social-design-contract.md`
+- UI/UX Implementation Contract: `src/content/docs/contracts/ui-ux-implementation-contract.md`
+
 ## Regla para cambios visuales
 
 Antes de modificar UI, layout, copy visual o componentes de SoliProde, revisar primero:
 
-`src/content/docs/design-system-athletic-social.md`
+- `src/content/docs/design-system-athletic-social.md`
+- `src/content/docs/contracts/athletic-social-design-contract.md`
 
 Y antes de tocar copy, CTA o tono de producto, revisar también:
 
-`src/content/docs/voice-and-copy-soliprode.md`
+- `src/content/docs/voice-and-copy-soliprode.md`
+- `src/content/docs/contracts/voice-contract.md`
+
+Y antes de agregar una nueva pantalla, card, banner o patrón visual:
+
+- `src/content/docs/contracts/ui-ux-implementation-contract.md`
 
 ## Áreas esperadas a futuro
 
