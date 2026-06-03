@@ -1,7 +1,7 @@
 ---
 title: "Database Schema"
 description: "Esquema inicial de base de datos para SoliProde en Supabase."
-lastUpdated: "2026-06-01"
+lastUpdated: "2026-06-03"
 ---
 
 # Database Schema
@@ -31,6 +31,12 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 
 - Archivo: `supabase/migrations/005_fix_authenticated_runtime_grants.sql`
 - Objetivo: alinear los `grant` SQL del rol `authenticated` con las policies RLS ya definidas para `profiles`, `participations`, `communities`, `groups`, `predictions` y `bonus_predictions`.
+
+## Migración de fixture real
+
+- Archivo: `supabase/migrations/009_fixture_schema_hardening.sql`
+- Objetivo: extender `teams`, `matches` y `predictions` para soportar fixture real, grupos A-L, cierre server-side de pronósticos y administración segura sin cargar datos falsos.
+- Documento específico: `src/content/docs/database/fixture-schema.md`.
 
 ## Tablas
 
@@ -78,9 +84,35 @@ Relación de inscripción de un perfil dentro del juego y sus ámbitos de compet
 
 Catálogo de selecciones o equipos del Mundial.
 
+Campos nuevos de fixture real:
+
+- `short_name`
+- `fifa_code`
+- `country_code`
+- `flag_emoji`
+- `group_code`
+- `group_position`
+
 ### `matches`
 
 Fixture del torneo con estado y score final cuando exista.
+
+Campos nuevos de fixture real:
+
+- `match_number`
+- `round_name`
+- `stage`
+- `group_code`
+- `prediction_closes_at`
+- `venue`
+- `city`
+- `home_score`
+- `away_score`
+- `result_locked`
+
+Nota de compatibilidad:
+- `score_home` y `score_away` siguen siendo los campos que usa el scoring actual.
+- `home_score` y `away_score` quedan sincronizados como aliases.
 
 ### `predictions`
 
@@ -88,6 +120,8 @@ Pronósticos partido a partido por usuario.
 
 Restricción importante:
 - `unique(profile_id, match_id)` para impedir duplicados.
+- `user_id`, `predicted_home_score` y `predicted_away_score` quedan como aliases sincronizados del contrato actual.
+- No se agrega `is_official`: la oficialidad sigue derivada de `participations.payment_status` y `eligible_from`.
 
 ### `bonus_predictions`
 
@@ -163,6 +197,11 @@ Se permite que usuarios autenticados lean solo sus propios registros en:
 Se permite que usuarios autenticados inserten y actualicen solo sus propias filas en:
 
 - `predictions`
+
+Regla adicional desde `009_fixture_schema_hardening.sql`:
+
+- el usuario solo puede crear, editar o borrar su propio pronóstico si el partido está `scheduled` y `now() < matches.prediction_closes_at`;
+- esta regla vive en RLS y no depende de la UI.
 
 Importante:
 - además de la policy RLS, el rol `authenticated` necesita privilegios SQL explícitos para ejercer esas lecturas y escrituras;

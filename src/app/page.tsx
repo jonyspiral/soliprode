@@ -20,7 +20,7 @@ const gameFlow = [
   {
     step: "Paso 2",
     title: "Cargás tus pronósticos",
-    description: "Guardás picks como borrador y preparás tu torneo desde el celular.",
+    description: "Guardás pronósticos como borrador y preparás tu torneo desde el celular.",
   },
   {
     step: "Paso 3",
@@ -86,9 +86,9 @@ export default async function Home({ searchParams }: HomeProps) {
         }
       : {
           eyebrow: "Volvé al juego",
-          title: "Tus picks ya te están esperando",
+          title: "Tus pronósticos ya te están esperando",
           description: "Tus pronósticos pueden quedar guardados. Pagá para que compitan por premios.",
-          detail: "Volvé al panel, cargá tus picks y activalos con Mercado Pago.",
+          detail: "Volvé al panel, cargá tus pronósticos y activalos con Mercado Pago.",
           primaryHref: "/dashboard",
           primaryLabel: "Ir al panel",
           secondaryHref: "/matches",
@@ -140,7 +140,7 @@ export default async function Home({ searchParams }: HomeProps) {
       </section>
 
       {!sessionState.isAuthenticated ? (
-        <SurfaceCard title="Inscripción inicial" description="Entrás gratis, cargás picks y después pagás para competir por premios.">
+        <SurfaceCard title="Inscripción inicial" description="Entrás gratis, cargás pronósticos y después pagás para competir por premios.">
           <div className="grid gap-4">
             <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
@@ -178,11 +178,11 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </SurfaceCard>
       ) : (
-        <SurfaceCard title="Tus picks ya pueden jugar" description="Volvé al panel, cargá pronósticos y activalos cuando quieras pelear premios.">
+        <SurfaceCard title="Tus pronósticos ya pueden jugar" description="Volvé al panel, cargá pronósticos y activalos cuando quieras pelear premios.">
           <div className="grid gap-4">
             <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Activá tus picks
+                Activá tus pronósticos
               </p>
               <p className="mt-2 font-serif text-[2.4rem] font-bold leading-none text-[var(--color-primary)]">
                 {entryPrice}

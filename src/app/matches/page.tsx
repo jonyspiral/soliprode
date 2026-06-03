@@ -399,7 +399,7 @@ export default async function MatchesPage() {
             "Tus pronósticos ya están listos para competir por premios."
           ) : (
             <>
-              Tus picks quedan guardados como borrador.{" "}
+              Tus pronósticos quedan guardados como borrador.{" "}
               <Link href="/dashboard" className="font-semibold text-[var(--color-primary)]">
                 Pagá con Mercado Pago
               </Link>

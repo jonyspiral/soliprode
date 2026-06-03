@@ -232,7 +232,7 @@ export default async function RankingsPage() {
           <div className="grid gap-4">
             <p className="text-sm leading-6 text-[var(--color-muted)]">
               Podés seguir cargando pronósticos gratis como borrador. Cuando actives tu
-              participación, los picks futuros pasan a competir por posición y premios.
+              participación, los pronósticos futuros pasan a competir por posición y premios.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
@@ -245,7 +245,7 @@ export default async function RankingsPage() {
                 href="/matches"
                 className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
               >
-                Seguir cargando picks
+                Seguir cargando pronósticos
               </Link>
             </div>
           </div>

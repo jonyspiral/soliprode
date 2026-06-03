@@ -208,7 +208,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 md:px-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-                Tus picks todavía no compiten
+                Tus pronósticos todavía no compiten
               </p>
               <Link
                 href="/dashboard"

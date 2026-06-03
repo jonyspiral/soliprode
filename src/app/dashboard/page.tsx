@@ -154,7 +154,7 @@ export default async function DashboardPage() {
   const aliasLabel = profile?.public_alias?.trim() || "jugador";
   const mainMessage = participationActive
     ? "Ya estás compitiendo."
-    : "Tus picks quedan guardados. Falta pagar para competir por premios.";
+    : "Tus pronósticos quedan guardados. Falta pagar para competir por premios.";
   const stateLabel = participationActive ? "Compitiendo" : "Falta pagar";
   const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
@@ -211,7 +211,7 @@ export default async function DashboardPage() {
           </div>
         </SurfaceCard>
       ) : (
-        <SurfaceCard tone="accent" title="Pagá con Mercado Pago" description="Tus picks quedan guardados. Pagá para que compitan por premios.">
+        <SurfaceCard tone="accent" title="Pagá con Mercado Pago" description="Tus pronósticos quedan guardados. Pagá para que compitan por premios.">
           <div className="grid gap-4">
             <ActivationPanel
               participationId={participation?.id ?? null}
@@ -231,7 +231,7 @@ export default async function DashboardPage() {
       )}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tus picks" value={String(predictionCount)} detail={picksLabel} />
+        <StatCard label="Tus pronósticos" value={String(predictionCount)} detail={picksLabel} />
         <StatCard label="Estado" value={stateLabel} detail={participationActive ? "Ya entrás a competir por premios." : "Pagá con Mercado Pago para entrar en juego."} />
         <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
       </section>
@@ -243,11 +243,11 @@ export default async function DashboardPage() {
               {stateLabel}
             </p>
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus picks quedan guardados.
+              Tus pronósticos quedan guardados.
             </p>
             <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Tus picks
+                Tus pronósticos
               </p>
               <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">
                 {picksLabel}

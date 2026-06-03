@@ -19,6 +19,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Sistema de voz y copy: `src/content/docs/voice-and-copy-soliprode.md`
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
+- Fixture real y pronósticos: `src/content/docs/database/fixture-schema.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
 - Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
 - Referencia visual Stitch: `src/content/docs/visual-reference/stitch-reference.md`
@@ -40,6 +41,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
+| Fixture real y pronósticos | `src/content/docs/database/fixture-schema.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
 | Grupos competitivos MVP | `src/content/docs/groups-competitive-mvp.md` |
 

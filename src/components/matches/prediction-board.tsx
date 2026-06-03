@@ -228,7 +228,7 @@ export function PredictionBoard({
           <MercadoPagoBadge compact secondaryText="Para que tus pronósticos compitan por premios" />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus picks ya están guardados. Para que entren al ranking y peleen premios, pagá tu participación.
+              Tus pronósticos ya están guardados. Para que entren al ranking y peleen premios, pagá tu participación.
             </p>
             <Link
               href="/dashboard"
@@ -275,7 +275,7 @@ export function PredictionBoard({
                 <p className="mt-1 text-xs text-[#dfe6ff]">{kickoff}</p>
               </div>
               <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em]">
-                {participationActive ? "Compite" : "Draft"}
+                {participationActive ? "Compite" : "Borrador"}
               </span>
             </div>
 
@@ -351,7 +351,7 @@ export function PredictionBoard({
                   ? "Guardando..."
                   : participationActive
                     ? "Guardar pronóstico"
-                    : "Guardar pick"}
+                    : "Guardar pronóstico"}
               </button>
             </div>
           </article>

@@ -144,7 +144,7 @@ export function ActivationPanel({
             <MercadoPagoBadge compact secondaryText="" className="min-w-0 px-2 py-1.5 text-[11px]" />
           </div>
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Tus picks ya quedan guardados.
+            Tus pronósticos ya quedan guardados.
           </p>
           <EntryCountdown className="bg-white/70" />
           <div className="grid gap-3">
@@ -177,7 +177,7 @@ export function ActivationPanel({
               </p>
             </div>
             <span className="rounded-full bg-[var(--color-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              {draftCount} pick{draftCount === 1 ? "" : "s"}
+              {draftCount} pronóstico{draftCount === 1 ? "" : "s"}
             </span>
           </div>
           <button

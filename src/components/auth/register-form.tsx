@@ -200,7 +200,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
           {googlePending ? "Abriendo Google..." : "Crear cuenta con Google"}
         </button>
         <p className="text-center text-sm text-[var(--color-muted)]">
-          Es la jugada más rápida para entrar, cargar picks y pelear el ranking.
+          Es la jugada más rápida para entrar, cargar pronósticos y pelear el ranking.
         </p>
       </div>
 
