@@ -9,7 +9,7 @@ type EntryCountdownProps = {
 };
 
 export function EntryCountdown({
-  label = "Precio inicial disponible por",
+  label = "Precio inicial termina en",
   className = "",
 }: EntryCountdownProps) {
   const [remaining, setRemaining] = useState(() => formatEntryCountdown(entryConfig.priceValidUntil));
@@ -17,7 +17,7 @@ export function EntryCountdown({
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setRemaining(formatEntryCountdown(entryConfig.priceValidUntil));
-    }, 30000);
+    }, 1000);
 
     return () => {
       window.clearInterval(intervalId);
@@ -31,10 +31,9 @@ export function EntryCountdown({
         className,
       ].join(" ")}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-        {label}
+      <p className="text-sm font-semibold text-[var(--color-ink)]">
+        {label} {remaining}
       </p>
-      <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">{remaining}</p>
     </div>
   );
 }

@@ -127,88 +127,78 @@ export function ActivationPanel({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-          Inscripción inicial
-        </p>
-        <div className="mt-2 grid gap-3">
-          <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
-            {priceLabel}
+      <div className="rounded-[1.25rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
+        <div className="grid gap-4">
+          <div className="grid gap-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Inscripción inicial
+            </p>
+            <h3 className="font-serif text-[1.9rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+              Falta pagar para competir
+            </h3>
+          </div>
+          <div className="flex items-end justify-between gap-3">
+            <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
+              {priceLabel}
+            </p>
+            <MercadoPagoBadge compact secondaryText="" className="min-w-0 px-2 py-1.5 text-[11px]" />
+          </div>
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Tus picks ya quedan guardados.
           </p>
           <EntryCountdown className="bg-white/70" />
-        </div>
-        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-          Precio inicial por tiempo limitado. Cuando termine la cuenta regresiva, la entrada puede subir.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-          Estado actual
-        </p>
-        <p className="mt-2 font-serif text-[1.85rem] font-bold uppercase text-[var(--color-primary)]">
-          Tus pronósticos están en borrador
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          {draftCount > 0
-            ? `Ya tenés ${draftCount} pronóstico${draftCount === 1 ? "" : "s"} guardado${draftCount === 1 ? "" : "s"}.`
-            : "Todavía no activaste tu participación."}{" "}
-          Pagá con Mercado Pago y hacé que esos picks entren al ranking y peleen premios.
-        </p>
-      </div>
-
-      <MercadoPagoBadge compact secondaryText="Pago online seguro" />
-
-      <div className="grid gap-3">
-        <button
-          type="button"
-          onClick={() => void startMercadoPagoCheckout()}
-          disabled={startingCheckout}
-          className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-        >
-          {startingCheckout ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
-        </button>
-        <p className="text-sm leading-6 text-[var(--color-muted)]">
-          Activás tu participación y tus pronósticos pasan a competir por premios, ranking general y grupo.
-        </p>
-        {paymentNotice ? (
-          <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
-            {paymentNotice}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Fallback operativo
-            </p>
-            <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
-              Si Mercado Pago falla, dejá una referencia para que el admin pueda ubicar tu pago y activarte a mano.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid gap-3">
             <button
               type="button"
-              onClick={() => setShowFallback((current) => !current)}
-              className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+              onClick={() => void startMercadoPagoCheckout()}
+              disabled={startingCheckout}
+              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
             >
-              {showFallback ? "Ocultar fallback manual" : "Tuve un problema con Mercado Pago"}
+              {startingCheckout ? "Abriendo Mercado Pago..." : "Pagá con Mercado Pago"}
             </button>
+            {paymentNotice ? (
+              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+                {paymentNotice}
+              </p>
+            ) : null}
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                Pago manual
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
+                Si Mercado Pago falla, podés dejar una referencia.
+              </p>
+            </div>
+            <span className="rounded-full bg-[var(--color-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              {draftCount} pick{draftCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFallback((current) => !current)}
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+          >
+            {showFallback ? "Ocultar opción manual" : "Tuve un problema con Mercado Pago"}
+          </button>
         </div>
 
         {showFallback ? (
           <div className="mt-4 grid gap-3">
             <label className="grid gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Informar pago manual
+                Referencia
               </span>
               <input
                 value={paymentReference}
                 onChange={(event) => setPaymentReference(event.target.value)}
-                placeholder="Alias, transferencia o nota para que el admin te identifique"
+                placeholder="Alias, transferencia o nota para identificar el pago"
                 className="min-h-12 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none"
               />
             </label>
@@ -217,22 +207,14 @@ export function ActivationPanel({
                 {feedback}
               </p>
             ) : null}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/matches"
-                className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-              >
-                Seguir cargando pronósticos
-              </Link>
-              <button
-                type="button"
-                onClick={() => void saveReference()}
-                disabled={savingReference}
-                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {savingReference ? "Guardando..." : "Informar pago manual"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => void saveReference()}
+              disabled={savingReference}
+              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {savingReference ? "Guardando..." : "Guardar referencia"}
+            </button>
           </div>
         ) : null}
       </div>

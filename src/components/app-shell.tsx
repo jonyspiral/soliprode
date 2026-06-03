@@ -26,7 +26,7 @@ function isActive(pathname: string, href: string) {
 }
 
 function NavIcon({ href, className = "h-5 w-5" }: { href: string; className?: string }) {
-  if (href === "/") {
+  if (href === "/" || href === "/dashboard") {
     return <HomeIcon className={className} />;
   }
 
@@ -34,7 +34,7 @@ function NavIcon({ href, className = "h-5 w-5" }: { href: string; className?: st
     return <MatchIcon className={className} />;
   }
 
-  if (href === "/rankings") {
+  if (href === "/rankings" || href === "/groups") {
     return <RankingIcon className={className} />;
   }
 
@@ -53,6 +53,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthScreen = pathname === "/login" || pathname === "/register";
+  const isPublicHome = pathname === "/";
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -142,7 +143,11 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   const mobileNavItems =
-    authReady && isAuthenticated ? mobileNavItemsAuthenticated : mobileNavItemsLoggedOut;
+    authReady && isAuthenticated
+      ? mobileNavItemsAuthenticated
+      : isPublicHome || isAuthScreen
+        ? mobileNavItemsLoggedOut
+        : mobileNavItemsAuthenticated;
 
   if (isAuthScreen) {
     return (
@@ -175,20 +180,28 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="text-[var(--color-primary)] transition hover:opacity-80">
+          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="text-[var(--color-primary)] transition hover:opacity-80">
             <SoccerBallIcon className="h-5 w-5" />
           </Link>
-          <Link href="/" className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
+          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
             SoliProde
           </Link>
           <div className="flex items-center gap-2">
             {authReady && isAuthenticated ? (
-              <SignOutButton
-                label="Cerrar sesión"
-                className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:inline-flex"
-              />
+              <>
+                <SignOutButton
+                  label="Salir"
+                  className="inline-flex rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:hidden"
+                />
+                <SignOutButton
+                  label="Cerrar sesión"
+                  className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:inline-flex"
+                />
+              </>
             ) : null}
-            <AvatarChip />
+            <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil">
+              <AvatarChip />
+            </Link>
           </div>
         </div>
         {showPendingPaymentBanner ? (
@@ -239,7 +252,7 @@ export function AppShell({ children }: AppShellProps) {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[color:var(--color-surface)]/96 px-2 py-2 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-xl items-center justify-around gap-2">
+        <div className="mx-auto flex max-w-xl items-center justify-around gap-1">
           {mobileNavItems.map((item) => {
             const active = isActive(pathname, item.href);
 
@@ -248,7 +261,7 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={[
-                  "flex min-w-[72px] flex-col items-center justify-center rounded-md px-4 py-1 text-center transition active:scale-90",
+                  "flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-2 py-1 text-center transition active:scale-90",
                   active
                     ? "text-[var(--color-primary)]"
                     : "text-[var(--color-muted)]",

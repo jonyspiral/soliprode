@@ -23,11 +23,13 @@ export function getEntryCountdownParts(targetIso = entryConfig.priceValidUntil) 
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
   return {
     days,
     hours,
     minutes,
+    seconds,
   };
 }
 
@@ -38,5 +40,5 @@ export function formatEntryCountdown(targetIso = entryConfig.priceValidUntil) {
     return "Terminó la ventana inicial";
   }
 
-  return `${parts.days}d ${parts.hours}h ${parts.minutes}m`;
+  return `${parts.days}d ${parts.hours}h ${parts.minutes}m ${parts.seconds}s`;
 }
