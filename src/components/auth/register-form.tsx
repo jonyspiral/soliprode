@@ -15,7 +15,10 @@ import {
   appendPromoterQuery,
   normalizePromoterCode,
 } from "@/lib/auth/promoter-attribution";
-import { buildAuthCallbackUrl } from "@/lib/auth/oauth";
+import {
+  buildAuthCallbackUrl,
+  hasConfiguredAuthBaseUrl,
+} from "@/lib/auth/oauth";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -60,24 +63,39 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
 
     try {
       persistPromoterCode(normalizedPromoterCode);
+      const redirectTo = buildAuthCallbackUrl("/dashboard");
+      const hasConfiguredBaseUrl = hasConfiguredAuthBaseUrl();
       const supabase = createBrowserSupabaseClient();
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: buildAuthCallbackUrl("/dashboard"),
+          redirectTo,
         },
       });
 
       if (oauthError) {
-        setError("No pudimos abrir Google ahora. Intentá de nuevo.");
+        console.error("Google OAuth signup start failed", {
+          errorMessage: oauthError.message,
+          hasConfiguredBaseUrl,
+          redirectTo,
+        });
+        setError("Google no está configurado todavía. Revisá Supabase Provider y URL base.");
         return;
       }
 
       if (data.url) {
         window.location.assign(data.url);
       }
-    } catch {
-      setError("No pudimos abrir Google ahora. Intentá de nuevo.");
+    } catch (error) {
+      console.error("Google OAuth signup threw before redirect", {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        hasConfiguredBaseUrl: hasConfiguredAuthBaseUrl(),
+        redirectTo:
+          typeof window !== "undefined" && window.location.origin
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`
+            : null,
+      });
+      setError("Google no está configurado todavía. Revisá Supabase Provider y URL base.");
     } finally {
       setGooglePending(false);
     }
