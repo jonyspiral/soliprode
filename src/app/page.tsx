@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { EntryCountdown } from "@/components/payments/entry-countdown";
+import { PromoCountdown } from "@/components/home/promo-countdown";
 import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { FlowStep, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/promoter-attribution";
 import { getServerSessionState } from "@/lib/auth/session-state";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
+import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 
 const gameFlow = [
   {
@@ -41,6 +42,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const params = searchParams ? await searchParams : undefined;
   const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
   const sessionState = await getServerSessionState();
+  const homeDisplayMetrics = await getHomeDisplayMetrics();
   const loginHref = appendPromoterQuery("/login", promoterCode);
   const registerHref = appendPromoterQuery("/register", promoterCode);
   const flowItems = sessionState.isPaid
@@ -69,7 +71,7 @@ export default async function Home({ searchParams }: HomeProps) {
         description: "Jugá el Prode del Mundial, sumá puntos y ganale a tu grupo.",
         detail: "Jugás por premios. También ayudás a financiar una tesis universitaria.",
         primaryHref: registerHref,
-        primaryLabel: "Crear cuenta y jugar",
+        primaryLabel: "Entrá al Prode",
         secondaryHref: loginHref,
         secondaryLabel: "Ya tengo cuenta",
       }
@@ -80,7 +82,7 @@ export default async function Home({ searchParams }: HomeProps) {
           description: "Cargá tus pronósticos, peleá el ranking y ganale a tu grupo.",
           detail: "Tu lugar ahora está en Partidos y Ranking.",
           primaryHref: "/matches",
-          primaryLabel: "Ver partidos",
+          primaryLabel: "Cargá tus pronósticos",
           secondaryHref: "/rankings",
           secondaryLabel: "Ver ranking",
         }
@@ -135,23 +137,42 @@ export default async function Home({ searchParams }: HomeProps) {
                 {heroState.secondaryLabel}
               </Link>
             </div>
+            <div className="mt-3 grid gap-3 text-left md:mx-auto md:w-full md:max-w-[46rem] md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+              <PromoCountdown />
+              <div className="rounded-[1rem] border border-white/14 bg-white/10 px-4 py-4 shadow-[0_12px_24px_rgba(0,0,0,0.14)] backdrop-blur-[2px]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#dfe6ff]">
+                  Pozo inicial
+                </p>
+                <p className="mt-2 font-serif text-[1.9rem] font-bold leading-none text-white sm:text-[2.25rem]">
+                  {homeDisplayMetrics.prizePoolLabel}
+                </p>
+              </div>
+              <div className="rounded-[1rem] border border-white/14 bg-white/10 px-4 py-4 shadow-[0_12px_24px_rgba(0,0,0,0.14)] backdrop-blur-[2px]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#dfe6ff]">
+                  Jugadores
+                </p>
+                <p className="mt-2 font-serif text-[1.9rem] font-bold leading-none text-white sm:text-[2.25rem]">
+                  {homeDisplayMetrics.playersLabel}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {!sessionState.isAuthenticated ? (
-        <SurfaceCard title="Inscripción inicial" description="Entrás gratis, cargás pronósticos y después pagás para competir por premios.">
+        <SurfaceCard title="Completá tu inscripción para jugar" description="Entrás gratis, cargás pronósticos y después activás tu lugar para competir por premios.">
           <div className="grid gap-4">
             <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Inscripción inicial
+                Precio promocional
               </p>
               <p className="mt-2 font-serif text-[2.4rem] font-bold leading-none text-[var(--color-primary)]">
                 {entryPrice}
               </p>
-              <div className="mt-3">
-                <EntryCountdown />
-              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                Entrás al Prode, cargás tus pronósticos y activás tu inscripción cuando quieras competir.
+              </p>
             </div>
 
             <MercadoPagoBadge compact secondaryText="Pago online seguro" />
@@ -178,18 +199,18 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </SurfaceCard>
       ) : (
-        <SurfaceCard title="Tus pronósticos ya pueden jugar" description="Volvé al panel, cargá pronósticos y activalos cuando quieras pelear premios.">
+        <SurfaceCard title="Completá tu inscripción para jugar" description="Volvé al panel, cargá pronósticos y activalos cuando quieras pelear premios.">
           <div className="grid gap-4">
             <div className="rounded-lg border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Activá tus pronósticos
+                Precio promocional
               </p>
               <p className="mt-2 font-serif text-[2.4rem] font-bold leading-none text-[var(--color-primary)]">
                 {entryPrice}
               </p>
-              <div className="mt-3">
-                <EntryCountdown />
-              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                Tus pronósticos pueden quedar guardados. Activá tu inscripción para que compitan por premios y ranking.
+              </p>
             </div>
 
             <MercadoPagoBadge compact secondaryText="Pagá online y entrá a competir" />

@@ -18,6 +18,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Sistema visual Athletic Social: `src/content/docs/design-system-athletic-social.md`
 - Sistema de voz y copy: `src/content/docs/voice-and-copy-soliprode.md`
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
+- Home promo floor and countdown: `src/content/docs/product/home-promo-floor-and-countdown.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Fixture real y pronósticos: `src/content/docs/database/fixture-schema.md`
 - Importación controlada del fixture: `src/content/docs/database/fixture-import.md`
@@ -41,6 +42,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Auditoría UI 2026-06-02 | `src/content/docs/ui-audit-2026-06-02.md` |
 | Referencia visual Stitch | `src/content/docs/visual-reference/stitch-reference.md` |
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
+| Home promo floor and countdown | `src/content/docs/product/home-promo-floor-and-countdown.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
 | Fixture real y pronósticos | `src/content/docs/database/fixture-schema.md` |
