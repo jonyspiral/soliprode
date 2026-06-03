@@ -9,6 +9,23 @@ type SignOutButtonProps = {
   label?: string;
 };
 
+async function withLogoutTimeout<T>(promise: Promise<T>, timeoutMs = 3000) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timeoutHandle = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
 export function SignOutButton({
   className,
   label = "Cerrar sesión",
@@ -21,10 +38,14 @@ export function SignOutButton({
 
     try {
       const supabase = createBrowserSupabaseClient();
-      await supabase.auth.signOut({ scope: "local" });
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-      });
+      await withLogoutTimeout(supabase.auth.signOut({ scope: "local" }));
+      await withLogoutTimeout(
+        fetch("/api/auth/sign-out", {
+          method: "POST",
+          cache: "no-store",
+          credentials: "same-origin",
+        }),
+      );
 
       if (typeof window !== "undefined") {
         for (const key of Object.keys(window.localStorage)) {
