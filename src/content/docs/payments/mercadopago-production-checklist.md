@@ -45,14 +45,22 @@ La route hace este gate:
 
 ## Variables necesarias en producción
 
-### Obligatorias
+### Base de app y Supabase
 
 ```text
 NEXT_PUBLIC_BASE_URL
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+### Pago online
+
+```text
 MERCADOPAGO_ACCESS_TOKEN
 ```
 
-### Recomendadas / operativas
+### Seguridad operativa
 
 ```text
 MERCADOPAGO_WEBHOOK_SECRET

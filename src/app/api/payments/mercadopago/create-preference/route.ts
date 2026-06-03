@@ -3,6 +3,56 @@ import { createMercadoPagoCheckoutForParticipation } from "@/lib/payments/paymen
 import { hasMercadoPagoAccessToken } from "@/lib/payments/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+type DiagnosticErrorShape = {
+  name?: unknown;
+  message?: unknown;
+  stack?: unknown;
+  code?: unknown;
+  details?: unknown;
+  hint?: unknown;
+  status?: unknown;
+  cause?: unknown;
+};
+
+function readObjectRecord(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function buildErrorDiagnostics(error: unknown) {
+  const typedError = error as DiagnosticErrorShape | null;
+  const causeRecord = readObjectRecord(typedError?.cause);
+
+  return {
+    name: typedError?.name ?? null,
+    message: typedError?.message ?? null,
+    stack:
+      process.env.NODE_ENV === "development" && typeof typedError?.stack === "string"
+        ? typedError.stack
+        : undefined,
+    supabase:
+      typedError?.code || typedError?.details || typedError?.hint
+        ? {
+            code: typedError.code ?? null,
+            message: typedError.message ?? null,
+            details: typedError.details ?? null,
+            hint: typedError.hint ?? null,
+          }
+        : null,
+    mercadoPago:
+      typedError?.status || causeRecord?.status || causeRecord?.message || causeRecord?.cause
+        ? {
+            status: typedError?.status ?? causeRecord?.status ?? null,
+            message: causeRecord?.message ?? typedError?.message ?? null,
+            cause: causeRecord?.cause ?? typedError?.cause ?? null,
+          }
+        : null,
+  };
+}
+
 export async function POST() {
   if (!hasMercadoPagoAccessToken()) {
     return NextResponse.json(
@@ -74,10 +124,16 @@ export async function POST() {
       }
     }
 
+    console.error("[payments:create-preference] failed", {
+      ...buildErrorDiagnostics(error),
+      profileId: user.id,
+      hasUserEmail: Boolean(user.email),
+    });
+
     return NextResponse.json(
       {
         ok: false,
-        error: "No pudimos iniciar el pago con Mercado Pago en este momento.",
+        error: "No pudimos abrir la inscripción ahora. Probá de nuevo.",
       },
       { status: 500 },
     );
