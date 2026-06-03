@@ -65,7 +65,7 @@ function formatKickoff(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
-async function withClientTimeout<T>(promise: Promise<T>, timeoutMs = 12000): Promise<T> {
+async function withClientTimeout<T>(promise: PromiseLike<T>, timeoutMs = 12000): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
   try {

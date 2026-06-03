@@ -174,6 +174,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 Entrás al Prode, cargás tus pronósticos y activás tu inscripción cuando quieras competir.
               </p>
             </div>
+            <PromoCountdown variant="surface" />
 
             <MercadoPagoBadge compact secondaryText="Pago online seguro" />
 
@@ -212,6 +213,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 Tus pronósticos pueden quedar guardados. Activá tu inscripción para que compitan por premios y ranking.
               </p>
             </div>
+            <PromoCountdown variant="surface" />
 
             <MercadoPagoBadge compact secondaryText="Pagá online y entrá a competir" />
 
