@@ -13,6 +13,31 @@ import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
+type UpcomingMatch = {
+  id: string;
+  phase: string;
+  group_name: string | null;
+  starts_at: string;
+  home_team: {
+    code: string;
+    name: string;
+  }[] | null;
+  away_team: {
+    code: string;
+    name: string;
+  }[] | null;
+};
+
+function formatStartsAt(startsAt: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(startsAt));
+}
+
 export default async function DashboardPage() {
   let hasAuthenticatedUser = false;
   let userEmail: string | null = null;
@@ -34,6 +59,7 @@ export default async function DashboardPage() {
       }
     | null = null;
   let predictionCount = 0;
+  let upcomingMatches: UpcomingMatch[] = [];
   let fallbackMessage =
     "No pudimos revisar tu sesión ahora. Reintentá en unos minutos o volvé a entrar.";
 
@@ -54,6 +80,7 @@ export default async function DashboardPage() {
       { data: profileData },
       { data: participationRows },
       { count: userPredictionCount },
+      { data: upcomingMatchRows },
     ] = await withSupabaseTimeout(
       Promise.all([
         supabase
@@ -71,6 +98,22 @@ export default async function DashboardPage() {
           .from("predictions")
           .select("id", { count: "exact", head: true })
           .eq("profile_id", user.id),
+        supabase
+          .from("matches")
+          .select(
+            `
+              id,
+              phase,
+              group_name,
+              starts_at,
+              home_team:teams!matches_home_team_id_fkey(code, name),
+              away_team:teams!matches_away_team_id_fkey(code, name)
+            `,
+          )
+          .eq("status", "scheduled")
+          .gt("starts_at", new Date().toISOString())
+          .order("starts_at", { ascending: true })
+          .limit(2),
       ]),
       "Supabase dashboard query timed out",
     );
@@ -78,6 +121,7 @@ export default async function DashboardPage() {
     profile = profileData;
     participation = pickPrimaryParticipation(participationRows ?? []).participation;
     predictionCount = userPredictionCount ?? 0;
+    upcomingMatches = (upcomingMatchRows ?? []) as UpcomingMatch[];
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =
@@ -190,6 +234,87 @@ export default async function DashboardPage() {
         <StatCard label="Tus picks" value={String(predictionCount)} detail={picksLabel} />
         <StatCard label="Estado" value={stateLabel} detail={participationActive ? "Ya entrás a competir por premios." : "Pagá con Mercado Pago para entrar en juego."} />
         <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <SurfaceCard title="Estado de juego">
+          <div className="grid gap-3">
+            <p className="font-serif text-[1.9rem] font-bold uppercase text-[var(--color-primary)]">
+              {stateLabel}
+            </p>
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Tus picks quedan guardados.
+            </p>
+            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                Tus picks
+              </p>
+              <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">
+                {picksLabel}
+              </p>
+            </div>
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard title="Próximos partidos">
+          {upcomingMatches.length > 0 ? (
+            <div className="grid gap-3">
+              {upcomingMatches.map((match) => {
+                const homeTeam = match.home_team?.[0];
+                const awayTeam = match.away_team?.[0];
+
+                return (
+                  <div
+                    key={match.id}
+                    className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                      {match.phase}
+                      {match.group_name ? ` • Grupo ${match.group_name}` : ""}
+                    </p>
+                    <p className="mt-2 font-serif text-[1.35rem] font-bold uppercase text-[var(--color-ink)]">
+                      {homeTeam?.code ?? "LOC"} vs {awayTeam?.code ?? "VIS"}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
+                      {formatStartsAt(match.starts_at)}
+                    </p>
+                  </div>
+                );
+              })}
+              <Link
+                href="/matches"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+              >
+                Ir a partidos
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              <p className="text-sm leading-6 text-[var(--color-muted)]">
+                Todavía no hay partidos cargados.
+              </p>
+              <Link
+                href="/matches"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+              >
+                Ir a partidos
+              </Link>
+            </div>
+          )}
+        </SurfaceCard>
+
+        <div className="grid gap-4">
+          <SurfaceCard title="Racha">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Racha: se activa cuando empiecen a jugarse los partidos.
+            </p>
+          </SurfaceCard>
+          <SurfaceCard title="Tu evolución">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Tu evolución aparecerá cuando haya resultados cargados.
+            </p>
+          </SurfaceCard>
+        </div>
       </section>
 
       <SurfaceCard title="Cuenta">
