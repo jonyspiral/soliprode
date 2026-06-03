@@ -1,8 +1,9 @@
 import { PaymentStatusCard } from "@/components/payments/payment-status-card";
 import {
-  getPaymentAttemptByExternalReference,
-  syncPaymentAttemptFromExternalReference,
-} from "@/lib/payments/payment-attempts";
+  buildPaymentReturnPath,
+  readPaymentReturnParams,
+  resolvePaymentReturn,
+} from "@/lib/payments/payment-return";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -12,15 +13,29 @@ type PaymentReturnPageProps = {
 
 export default async function PaymentPendingPage({ searchParams }: PaymentReturnPageProps) {
   const params = await searchParams;
-  const externalReference =
-    typeof params.external_reference === "string" ? params.external_reference : null;
+  const returnParams = readPaymentReturnParams(params);
 
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!externalReference) {
+  console.info("[payments:return:pending] received", {
+    collectionId: returnParams.collectionId,
+    externalReference: returnParams.externalReference,
+    merchantOrderId: returnParams.merchantOrderId,
+    paymentId: returnParams.paymentId,
+    preferenceId: returnParams.preferenceId,
+    status: returnParams.status,
+    hasUser: Boolean(user),
+  });
+
+  if (
+    !returnParams.externalReference &&
+    !returnParams.paymentId &&
+    !returnParams.collectionId &&
+    !returnParams.preferenceId
+  ) {
     return (
       <PaymentStatusCard
         title="Pago pendiente"
@@ -32,10 +47,10 @@ export default async function PaymentPendingPage({ searchParams }: PaymentReturn
   }
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/payment/pending?external_reference=${externalReference}`)}`);
+    redirect(`/login?next=${encodeURIComponent(buildPaymentReturnPath("pending", params))}`);
   }
 
-  const attempt = await getPaymentAttemptByExternalReference(externalReference);
+  const { attempt, syncResult } = await resolvePaymentReturn(returnParams);
 
   if (!attempt || attempt.profile_id !== user.id) {
     return (
@@ -47,8 +62,6 @@ export default async function PaymentPendingPage({ searchParams }: PaymentReturn
       />
     );
   }
-
-  const syncResult = await syncPaymentAttemptFromExternalReference(externalReference);
 
   if (syncResult?.syncResult.approved) {
     redirect("/dashboard");

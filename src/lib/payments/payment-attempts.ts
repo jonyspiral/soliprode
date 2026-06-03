@@ -44,6 +44,8 @@ type PaymentAttemptRow = {
   raw_provider_response: unknown;
 };
 
+export type PaymentAttemptLookup = PaymentAttemptRow;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -346,6 +348,33 @@ export async function syncPaymentAttemptFromPaymentId(paymentId: string | number
   }
 
   return syncPaymentAttemptFromExternalReference(externalReference);
+}
+
+export async function getPaymentAttemptByPreferenceId(preferenceId: string) {
+  const service = createServiceRoleSupabaseClient();
+  const { data, error } = await service
+    .from("payment_attempts")
+    .select(
+      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
+    )
+    .eq("provider_preference_id", preferenceId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as PaymentAttemptRow | null) ?? null;
+}
+
+export async function syncPaymentAttemptFromPreferenceId(preferenceId: string) {
+  const attempt = await getPaymentAttemptByPreferenceId(preferenceId);
+
+  if (!attempt) {
+    return null;
+  }
+
+  return syncPaymentAttemptFromExternalReference(attempt.external_reference);
 }
 
 export async function getPaymentAttemptByExternalReference(externalReference: string) {
