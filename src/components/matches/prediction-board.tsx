@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { savePredictionAction } from "@/app/matches/actions";
 import { CountryFlag } from "@/components/country-flag";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type MatchTeam = {
   id: string;
@@ -65,23 +65,6 @@ function formatKickoff(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
-async function withClientTimeout<T>(promise: PromiseLike<T>, timeoutMs = 12000): Promise<T> {
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race<T>([
-      promise,
-      new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => reject(new Error("prediction_save_timeout")), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
-  }
-}
-
 function formatStatus(match: MatchBoardItem) {
   if (!isMatchOpen(match)) {
     return "Cerrado";
@@ -130,30 +113,6 @@ function parseScore(value: string) {
   const parsed = Number.parseInt(trimmed, 10);
 
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-}
-
-function isClosedError(error: { message?: string; code?: string } | null) {
-  if (!error) {
-    return false;
-  }
-
-  const message = `${error.message ?? ""} ${error.code ?? ""}`.toLowerCase();
-
-  return (
-    message.includes("row-level security") ||
-    message.includes("prediction_closes_at") ||
-    message.includes("scheduled") ||
-    message.includes("violates")
-  );
-}
-
-function isTimeoutError(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    String((error as { message?: string }).message).toLowerCase().includes("timeout")
-  );
 }
 
 export function PredictionBoard({
@@ -247,16 +206,6 @@ export function PredictionBoard({
       return;
     }
 
-    const payload = {
-      profile_id: currentUserId,
-      user_id: currentUserId,
-      match_id: match.id,
-      predicted_home: homeScore,
-      predicted_away: awayScore,
-      predicted_home_score: homeScore,
-      predicted_away_score: awayScore,
-    };
-
     setSavingMatchId(match.id);
     setJustSavedMatchId(null);
     setFeedback((current) => {
@@ -266,18 +215,24 @@ export function PredictionBoard({
     });
 
     try {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error } = await withClientTimeout(
-        supabase
-          .from("predictions")
-          .upsert(payload, { onConflict: "profile_id,match_id" })
-          .select("id, match_id, predicted_home, predicted_away, locked_at, points")
-          .single(),
-      );
+      const result = await savePredictionAction({
+        matchId: match.id,
+        homeScore,
+        awayScore,
+      });
 
-      if (error || !data) {
-        throw error ?? new Error("No pudimos guardar el pronóstico.");
+      if (!result.ok) {
+        setFeedback((current) => ({
+          ...current,
+          [match.id]: {
+            tone: "error",
+            message: result.message,
+          },
+        }));
+        return;
       }
+
+      const data = result.prediction;
 
       setPredictionState((current) => ({
         ...current,
@@ -299,50 +254,19 @@ export function PredictionBoard({
       }));
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
-        console.error("[matches] savePrediction failed", {
+        console.error("[matches] savePrediction action call failed", {
           matchId: match.id,
           currentUserId,
           profileId: currentUserId,
-          payload,
           error,
         });
       }
-
-      const safeError =
-        typeof error === "object" && error !== null
-          ? {
-              message: "message" in error ? (error as { message?: string }).message ?? null : null,
-              code: "code" in error ? (error as { code?: string }).code ?? null : null,
-              details: "details" in error ? (error as { details?: string }).details ?? null : null,
-              hint: "hint" in error ? (error as { hint?: string }).hint ?? null : null,
-            }
-          : {
-              message: error instanceof Error ? error.message : String(error),
-              code: null,
-              details: null,
-              hint: null,
-            };
-
-      console.error("[matches] prediction save error", {
-        ...safeError,
-        payload,
-        userId: currentUserId,
-        profileId: currentUserId,
-        matchId: match.id,
-      });
-
-      const supabaseError =
-        typeof error === "object" && error !== null && "message" in error ? (error as { message?: string; code?: string }) : null;
 
       setFeedback((current) => ({
         ...current,
         [match.id]: {
           tone: "error",
-          message: isClosedError(supabaseError)
-            ? "Este partido ya cerró."
-            : isTimeoutError(error)
-              ? "No pudimos guardar el pronóstico. Probá de nuevo."
-              : "No pudimos guardar el pronóstico. Probá de nuevo.",
+          message: "No pudimos guardar el pronóstico. Probá de nuevo.",
         },
       }));
     } finally {
