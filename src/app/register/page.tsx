@@ -36,18 +36,18 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-white">
-        <div className="mx-auto max-w-[18rem] text-center">
-          <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
+      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-white md:-mx-6 md:rounded-[2rem] md:px-6 md:pb-10">
+        <div className="mx-auto max-w-[18rem] text-center md:max-w-[36rem]">
+          <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em] md:text-[4rem]">
             Creá tu cuenta y empezá a jugar
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
+          <p className="mt-3 text-sm leading-6 text-[#dfe6ff] md:mx-auto md:max-w-[26rem] md:text-[1.1rem] md:leading-7">
             Después cargás tus pronósticos y pagás para competir por premios.
           </p>
         </div>
       </section>
 
-      <section className="relative mb-1 mt-2 flex items-center justify-between px-4">
+      <section className="relative mb-1 mt-2 flex items-center justify-between px-4 md:px-8">
         <div className="absolute left-8 right-8 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-line)]" />
         <div className="absolute left-8 right-1/2 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--color-primary)]" />
         {[

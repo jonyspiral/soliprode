@@ -48,12 +48,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-center text-white">
-        <div className="mx-auto max-w-[18rem]">
-          <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em]">
+      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] px-4 pb-8 pt-10 text-center text-white md:-mx-6 md:rounded-[2rem] md:px-6 md:pb-10">
+        <div className="mx-auto max-w-[18rem] md:max-w-[34rem]">
+          <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.94] tracking-[-0.03em] md:text-[4rem]">
             Entrá al Prode
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[#dfe6ff]">
+          <p className="mt-3 text-sm leading-6 text-[#dfe6ff] md:mx-auto md:max-w-[24rem] md:text-[1.1rem] md:leading-7">
             Cargá tus pronósticos, sumá puntos y peleá el ranking.
           </p>
         </div>

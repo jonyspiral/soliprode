@@ -97,8 +97,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden bg-[#001a5c] sm:-mx-4">
-        <div className="relative flex min-h-[540px] flex-col items-center justify-end px-4 pb-10 text-center">
+      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[#001a5c] md:-mx-6 md:rounded-[2rem]">
+        <div className="relative flex min-h-[540px] flex-col items-center justify-end px-4 pb-10 text-center md:min-h-[36rem] md:px-8 md:pb-12">
           <Image
             src="/lio_copa.jpeg"
             alt="Lionel Messi con la Copa del Mundo"
@@ -108,20 +108,20 @@ export default async function Home({ searchParams }: HomeProps) {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_48%,rgba(0,26,92,0.65)_65%,rgba(0,26,92,0.95)_80%,#001a5c_100%)]" />
-          <div className="relative z-10 grid max-w-[19rem] gap-3">
+          <div className="relative z-10 grid max-w-[19rem] gap-3 md:max-w-[34rem] md:gap-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#dfe6ff]">
               {heroState.eyebrow}
             </p>
-            <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)]">
+            <h1 className="font-serif text-[2.5rem] font-bold uppercase leading-[0.9] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.7)] md:text-[4.5rem]">
               {heroState.title}
             </h1>
-            <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
+            <p className="text-[0.95rem] font-medium leading-6 text-[#dfe6ff] drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)] md:text-[1.2rem] md:leading-7">
               {heroState.description}
             </p>
-            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4]">
+            <p className="text-[0.72rem] font-normal leading-5 text-[#9aafd4] md:text-[0.9rem] md:leading-6">
               {heroState.detail}
             </p>
-            <div className="mt-1 grid gap-3">
+            <div className="mt-1 grid gap-3 md:mx-auto md:w-full md:max-w-[28rem] md:grid-cols-2">
               <Link
                 href={heroState.primaryHref}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-6 py-4 text-sm font-bold uppercase tracking-[0.08em] text-[#1a1c1c]"

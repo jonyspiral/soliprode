@@ -148,7 +148,7 @@ export function AppShell({ children }: AppShellProps) {
     return (
       <div className="min-h-screen bg-transparent">
         <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-          <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
+          <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
             <button
               type="button"
               onClick={() => router.push("/")}
@@ -164,7 +164,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-8 pt-[4.5rem]">
+        <main className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-4 pb-10 pt-[4.5rem] md:px-6">
           {children}
         </main>
       </div>
@@ -174,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="text-[var(--color-primary)] transition hover:opacity-80">
             <SoccerBallIcon className="h-5 w-5" />
           </Link>
@@ -185,7 +185,7 @@ export function AppShell({ children }: AppShellProps) {
             {authReady && isAuthenticated ? (
               <SignOutButton
                 label="Cerrar sesión"
-                className="inline-flex rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]"
+                className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:inline-flex"
               />
             ) : null}
             <AvatarChip />
@@ -193,7 +193,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         {showPendingPaymentBanner ? (
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
-            <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
+            <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 md:px-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
                 Tus picks todavía no compiten
               </p>
@@ -210,12 +210,12 @@ export function AppShell({ children }: AppShellProps) {
 
       <main
         className={[
-          "mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-24",
+          "mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 md:px-6",
           showPendingPaymentBanner ? "pt-[6.75rem]" : "pt-[4.5rem]",
         ].join(" ")}
       >
         {isSecondaryScreen ? (
-          <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+          <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
             {secondaryNavItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (
@@ -239,7 +239,7 @@ export function AppShell({ children }: AppShellProps) {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[color:var(--color-surface)]/96 px-2 py-2 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center justify-around gap-2">
+        <div className="mx-auto flex max-w-xl items-center justify-around gap-2">
           {mobileNavItems.map((item) => {
             const active = isActive(pathname, item.href);
 

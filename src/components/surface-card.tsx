@@ -26,10 +26,10 @@ export function SurfaceCard({
   const descriptionClass = tone === "primary" ? "text-[#dfe6ff]" : "text-[var(--color-muted)]";
 
   return (
-    <section className={`rounded-lg p-4 ${toneClasses[tone]}`}>
+    <section className={`rounded-[1.25rem] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] md:p-5 ${toneClasses[tone]}`}>
       {title ? (
-        <div className="mb-4">
-          <h2 className={`font-serif text-[1.6rem] font-bold uppercase leading-none ${titleClass}`}>
+        <div className="mb-4 md:mb-5">
+          <h2 className={`font-serif text-[1.6rem] font-bold uppercase leading-none md:text-[1.85rem] ${titleClass}`}>
             {title}
           </h2>
           {description ? (

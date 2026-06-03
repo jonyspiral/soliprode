@@ -137,7 +137,7 @@ type PageStackProps = {
 };
 
 export function PageStack({ children }: PageStackProps) {
-  return <div className="flex flex-col gap-5 pb-24 md:gap-6 md:pb-8">{children}</div>;
+  return <div className="flex flex-col gap-5 pb-24 md:gap-7 md:pb-10">{children}</div>;
 }
 
 type InfoNoticeProps = {
