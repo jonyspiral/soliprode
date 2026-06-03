@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { savePredictionAction } from "@/app/matches/actions";
 import { CountryFlag } from "@/components/country-flag";
+import { formatZoneLabel } from "@/lib/fixture/zone-labels";
 
 type MatchTeam = {
   id: string;
@@ -314,7 +315,7 @@ export function PredictionBoard({
             <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2.5">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                  {match.group_code ? `Grupo ${match.group_code} · ` : ""}
+                  {match.group_code ? `${formatZoneLabel(match.group_code)} · ` : ""}
                   {match.round_name}
                 </p>
                 <p className="mt-1 text-[13px] font-semibold text-[var(--color-ink)]">

@@ -35,7 +35,7 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 ## Migración de fixture real
 
 - Archivo: `supabase/migrations/009_fixture_schema_hardening.sql`
-- Objetivo: extender `teams`, `matches` y `predictions` para soportar fixture real, grupos A-L, cierre server-side de pronósticos y administración segura sin cargar datos falsos.
+- Objetivo: extender `teams`, `matches` y `predictions` para soportar fixture real, zonas A-L, cierre server-side de pronósticos y administración segura sin cargar datos falsos.
 - Documento específico: `src/content/docs/database/fixture-schema.md`.
 
 ## Tablas
@@ -93,6 +93,10 @@ Campos nuevos de fixture real:
 - `group_code`
 - `group_position`
 
+Nota de lenguaje:
+- `group_code` se mantiene como campo tecnico.
+- La UI de fixture muestra `Zona A`, `Zona B`, etc. para no confundir con grupos de jugadores.
+
 ### `matches`
 
 Fixture del torneo con estado y score final cuando exista.
@@ -113,6 +117,7 @@ Campos nuevos de fixture real:
 Nota de compatibilidad:
 - `score_home` y `score_away` siguen siendo los campos que usa el scoring actual.
 - `home_score` y `away_score` quedan sincronizados como aliases.
+- `group_code` sigue igual internamente; en labels visibles de fixture se presenta como `Zona`.
 
 ### `predictions`
 

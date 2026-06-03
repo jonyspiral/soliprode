@@ -3,6 +3,7 @@ import { PredictionBoard, type MatchBoardItem } from "@/components/matches/predi
 import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { formatZoneLabel, normalizeZoneCode, NO_ZONE_KEY } from "@/lib/fixture/zone-labels";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -77,13 +78,25 @@ type PredictionRow = {
   points: number;
 };
 
+type MatchesPageProps = {
+  searchParams?: Promise<{
+    zona?: string;
+    zone?: string;
+  }>;
+};
+
 function groupMatches(matches: MatchBoardItem[]) {
   return matches.reduce<Record<string, MatchBoardItem[]>>((acc, match) => {
-    const groupKey = match.group_code ?? "Sin grupo";
+    const groupKey = match.group_code ?? NO_ZONE_KEY;
     acc[groupKey] ??= [];
     acc[groupKey].push(match);
     return acc;
   }, {});
+}
+
+function getExistingZoneCodes(matches: MatchBoardItem[]) {
+  return [...new Set(matches.map((match) => normalizeZoneCode(match.group_code)).filter(Boolean))]
+    .sort() as string[];
 }
 
 function normalizeRelatedTeam(team: MatchRow["home_team"] | MatchRow["away_team"]) {
@@ -242,7 +255,8 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
   return { matches, usedFallback: true };
 }
 
-export default async function MatchesPage() {
+export default async function MatchesPage({ searchParams }: MatchesPageProps) {
+  const params = searchParams ? await searchParams : undefined;
   let matches: MatchBoardItem[] = [];
   let predictions: PredictionRow[] = [];
   let currentUserId: string | null = null;
@@ -295,7 +309,14 @@ export default async function MatchesPage() {
   }
 
   const participationActive = participationStatus === "paid";
-  const groupedMatches = groupMatches(matches);
+  const existingZoneCodes = getExistingZoneCodes(matches);
+  const requestedZoneCode = normalizeZoneCode(params?.zona ?? params?.zone);
+  const selectedZoneCode =
+    requestedZoneCode && existingZoneCodes.includes(requestedZoneCode) ? requestedZoneCode : null;
+  const visibleMatches = selectedZoneCode
+    ? matches.filter((match) => normalizeZoneCode(match.group_code) === selectedZoneCode)
+    : matches;
+  const groupedMatches = groupMatches(visibleMatches);
   const orderedGroupCodes = Object.keys(groupedMatches).sort();
   const subcopy = currentUserId
     ? participationActive
@@ -351,11 +372,44 @@ export default async function MatchesPage() {
         </SurfaceCard>
       ) : null}
 
+      {!dataNotice && matches.length > 0 ? (
+        <nav
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
+          aria-label="Filtrar partidos por zona"
+        >
+          <Link
+            href="/matches"
+            className={[
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
+              selectedZoneCode
+                ? "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]"
+                : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white",
+            ].join(" ")}
+          >
+            Todas
+          </Link>
+          {existingZoneCodes.map((zoneCode) => (
+            <Link
+              key={zoneCode}
+              href={`/matches?zona=${encodeURIComponent(zoneCode)}`}
+              className={[
+                "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
+                selectedZoneCode === zoneCode
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                  : "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]",
+              ].join(" ")}
+            >
+              {formatZoneLabel(zoneCode)}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
+
       {!dataNotice && matches.length > 0
         ? orderedGroupCodes.map((groupCode) => (
             <SurfaceCard
               key={groupCode}
-              title={groupCode === "Sin grupo" ? "Partidos" : `Grupo ${groupCode}`}
+              title={groupCode === NO_ZONE_KEY ? "Partidos" : formatZoneLabel(groupCode)}
               description={`${groupedMatches[groupCode]?.length ?? 0} partido${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"} cargado${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"}.`}
             >
               <PredictionBoard

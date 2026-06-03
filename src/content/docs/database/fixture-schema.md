@@ -16,7 +16,7 @@ Migracion principal:
 
 Dejar Supabase listo para operar el Mundial con:
 
-- equipos por grupo o zona;
+- equipos por zona;
 - partidos con fecha, horario y cierre de pronostico;
 - pronosticos por usuario;
 - resultados publicados por admin;
@@ -44,6 +44,12 @@ Reglas:
 - `group_code` acepta `A` a `L`.
 - `flag_emoji` es la fuente MVP para bandera; no se requieren assets externos.
 - No se carga ningun equipo real desde la migracion.
+
+Lenguaje de UI:
+
+- `group_code` sigue siendo el campo tecnico interno por compatibilidad.
+- La interfaz publica debe mostrar `Zona A`, `Zona B`, etc.
+- `Grupo` queda reservado para grupos del juego: amigos, equipo de 11, ranking grupal y premio grupal.
 
 ## Partidos
 
@@ -164,14 +170,14 @@ Fuente de admin:
 
 Las acciones administrativas del frontend siguen obligadas a verificar admin server-side antes de usar `service_role`.
 
-## Grupos A-L y etapa futura
+## Zonas A-L y etapa futura
 
-La base ya permite grupos `A` a `L` en equipos y partidos.
+La base ya permite zonas `A` a `L` en equipos y partidos usando el campo tecnico `group_code`.
 
 Queda pendiente para otra etapa:
 
 - cargar fixture real;
-- calcular standings de fase de grupos;
+- calcular standings de fase de zonas;
 - puntos de tabla;
 - diferencia de gol;
 - mejores terceros;
@@ -187,7 +193,7 @@ La base queda lista para que Admin pueda operar:
 - listar equipos;
 - crear y editar equipos;
 - listar partidos;
-- filtrar por grupo;
+- filtrar por zona;
 - crear y editar partidos;
 - cargar resultado;
 - cerrar partido;
