@@ -4,6 +4,7 @@ import {
   syncPaymentAttemptFromExternalReference,
 } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type PaymentReturnPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -19,7 +20,7 @@ export default async function PaymentPendingPage({ searchParams }: PaymentReturn
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !externalReference) {
+  if (!externalReference) {
     return (
       <PaymentStatusCard
         title="Pago pendiente"
@@ -28,6 +29,10 @@ export default async function PaymentPendingPage({ searchParams }: PaymentReturn
         tone="info"
       />
     );
+  }
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/payment/pending?external_reference=${externalReference}`)}`);
   }
 
   const attempt = await getPaymentAttemptByExternalReference(externalReference);
@@ -46,14 +51,7 @@ export default async function PaymentPendingPage({ searchParams }: PaymentReturn
   const syncResult = await syncPaymentAttemptFromExternalReference(externalReference);
 
   if (syncResult?.syncResult.approved) {
-    return (
-      <PaymentStatusCard
-        title="Pago aprobado"
-        description="Tu participación ya quedó activa."
-        notice="Aunque volviste por la ruta pendiente, la verificación real ya confirmó el pago."
-        tone="info"
-      />
-    );
+    redirect("/dashboard");
   }
 
   return (

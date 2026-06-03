@@ -4,6 +4,7 @@ import {
   syncPaymentAttemptFromExternalReference,
 } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type PaymentReturnPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -19,7 +20,7 @@ export default async function PaymentFailurePage({ searchParams }: PaymentReturn
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !externalReference) {
+  if (!externalReference) {
     return (
       <PaymentStatusCard
         title="Pago no completado"
@@ -28,6 +29,10 @@ export default async function PaymentFailurePage({ searchParams }: PaymentReturn
         tone="error"
       />
     );
+  }
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/payment/failure?external_reference=${externalReference}`)}`);
   }
 
   const attempt = await getPaymentAttemptByExternalReference(externalReference);
@@ -46,14 +51,7 @@ export default async function PaymentFailurePage({ searchParams }: PaymentReturn
   const syncResult = await syncPaymentAttemptFromExternalReference(externalReference);
 
   if (syncResult?.syncResult.approved) {
-    return (
-      <PaymentStatusCard
-        title="Pago aprobado"
-        description="Tu participación ya quedó activa."
-        notice="Aunque volviste por la ruta de fallo, la verificación server-side terminó confirmando el pago real."
-        tone="info"
-      />
-    );
+    redirect("/dashboard");
   }
 
   return (

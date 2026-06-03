@@ -4,6 +4,7 @@ import {
   syncPaymentAttemptFromExternalReference,
 } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type PaymentReturnPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -19,7 +20,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentReturn
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !externalReference) {
+  if (!externalReference) {
     return (
       <PaymentStatusCard
         title="Pago recibido"
@@ -28,6 +29,10 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentReturn
         tone="info"
       />
     );
+  }
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/payment/success?external_reference=${externalReference}`)}`);
   }
 
   const attempt = await getPaymentAttemptByExternalReference(externalReference);
@@ -46,14 +51,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentReturn
   const syncResult = await syncPaymentAttemptFromExternalReference(externalReference);
 
   if (syncResult?.syncResult.approved) {
-    return (
-      <PaymentStatusCard
-        title="Pago aprobado"
-        description="Tu participación ya quedó activa."
-        notice="La verificación server-side confirmó tu pago. Tus pronósticos futuros ya pueden competir por premios y rankings."
-        tone="info"
-      />
-    );
+    redirect("/dashboard");
   }
 
   return (
