@@ -1,11 +1,12 @@
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { CountryFlag } from "@/components/country-flag";
 import { ActivationPanel } from "@/components/participation/activation-panel";
 import {
-  HighlightMetric,
   InfoNotice,
   PageStack,
+  StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -21,7 +22,6 @@ export default async function DashboardPage() {
         public_alias: string;
         whatsapp: string | null;
         email: string | null;
-        role: string;
       }
     | null = null;
   let participation:
@@ -105,198 +105,125 @@ export default async function DashboardPage() {
     );
   }
 
-  const participationDate = participation
-    ? new Date(participation.created_at).toLocaleDateString("es-AR")
-    : "Pendiente";
   const participationStatus = participation?.payment_status ?? "pending";
   const participationActive = participationStatus === "paid";
+  const aliasLabel = profile?.public_alias?.trim() || "jugador";
+  const mainMessage = participationActive
+    ? "Ya estás compitiendo."
+    : "Tus picks quedan guardados. Falta pagar para competir por premios.";
+  const stateLabel = participationActive ? "Compitiendo" : "Falta pagar";
+  const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
   return (
     <PageStack>
-      <section className="overflow-hidden rounded-lg bg-[var(--color-primary)] p-4 text-white">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
-              Panel del jugador
-            </p>
-            <h1 className="mt-3 font-serif text-[2rem] font-bold uppercase leading-[0.95]">
-              {`Hola${profile?.public_alias ? ` ${profile.public_alias}` : ""}!`}
-              <br />
-              <span className="text-[var(--color-gold-soft)]">
-                {participationActive ? "Ya estás peleando el ranking." : "Tus picks todavía no compiten por premios."}
-              </span>
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
-              {profile?.email ?? userEmail ?? "Sin email"} · {participationActive ? "participación activa" : "falta activar tu participación"}
-            </p>
-          </div>
-          <div className="rounded-lg border border-white/20 bg-white/10 p-3 text-right">
-            <p className="font-serif text-[1.7rem] font-bold leading-none">{predictionCount}</p>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
-              Pronósticos
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2">
-        <HighlightMetric
-          label="Inscripción"
-          value={participationActive ? "paid" : "pendiente"}
-          detail={
-            participationActive
-              ? "Ya entrás en ranking, premios y competencia oficial."
-              : "Tu cuenta ya existe. Falta pagar con Mercado Pago para que tus picks compitan de verdad."
-          }
-        />
-        <HighlightMetric
-          label="Alias"
-          value={profile?.public_alias ?? "Pendiente"}
-          detail="Así aparecés en la competencia."
-        />
-        <HighlightMetric
-          label="Cuenta"
-          value={profile?.email ?? userEmail ?? "Sin email"}
-          detail="Email principal de acceso."
-        />
-        <SurfaceCard tone="accent" title="Pago y activación">
-          <ActivationPanel
-            participationId={participation?.id ?? null}
-            participationStatus={participationStatus}
-            draftCount={predictionCount}
-            initialPaymentReference={participation?.payment_reference ?? null}
-            initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
+      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[#001a5c] md:-mx-6 md:rounded-[2rem]">
+        <div className="relative flex min-h-[420px] flex-col justify-end px-4 pb-8 text-left md:min-h-[34rem] md:px-8 md:pb-10">
+          <Image
+            src="/lio_copa.jpeg"
+            alt="Jugador con la copa del mundo"
+            fill
+            priority
+            className="object-cover object-[55%_18%]"
+            sizes="(max-width: 768px) 100vw, 1200px"
           />
-        </SurfaceCard>
-      </section>
-
-      <SurfaceCard title="Cómo viene tu torneo" description="Lectura rápida del envión que puede tomar tu panel cuando empiecen a sumar los puntos.">
-        <div className="grid gap-4">
-          <div className="relative flex h-44 items-end justify-between pt-4">
-            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
-              <div className="w-full border-t border-[var(--color-line)]/50" />
-              <div className="w-full border-t border-[var(--color-line)]/50" />
-              <div className="w-full border-t border-[var(--color-line)]/50" />
-              <div className="w-full border-t border-[var(--color-line)]/50" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_44%,rgba(0,26,92,0.68)_62%,rgba(0,26,92,0.94)_82%,#001a5c_100%)]" />
+          <div className="relative z-10 flex items-end justify-between gap-4">
+            <div className="grid max-w-[18rem] gap-3 md:max-w-[32rem] md:gap-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#dfe6ff]">
+                Panel del jugador
+              </p>
+              <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.65)] md:text-[4rem]">
+                {`Hola, ${aliasLabel}`}
+              </h1>
+              <p className="max-w-[16rem] text-base font-semibold leading-7 text-[#ffe16d] drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)] md:max-w-[28rem] md:text-[1.35rem]">
+                {mainMessage}
+              </p>
+              <p className="text-sm leading-6 text-[#dfe6ff] md:text-[1rem]">
+                {picksLabel}
+              </p>
             </div>
-            {["40%", "55%", "45%", "70%", "85%"].map((height, index) => (
-              <div
-                key={height}
-                className={[
-                  "relative z-10 w-[12%] rounded-t-sm",
-                  index === 4
-                    ? "border border-[var(--color-primary)] bg-[var(--color-primary)] shadow-[0_0_8px_rgba(154,225,255,0.4)]"
-                    : index === 2
-                      ? "border border-[var(--color-secondary)]/20 bg-[var(--color-secondary-soft)]"
-                      : "bg-[var(--color-surface-muted)]",
-                ].join(" ")}
-                style={{ height }}
-              />
-            ))}
-          </div>
-          <div className="flex justify-between px-2 text-[12px] font-medium text-[var(--color-muted)]">
-            <span>F1</span>
-            <span>F2</span>
-            <span>F3</span>
-            <span>F4</span>
-            <span className="font-bold text-[var(--color-primary)]">F5</span>
+            <div className="hidden rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-white md:inline-flex">
+              {stateLabel}
+            </div>
           </div>
         </div>
-      </SurfaceCard>
-
-      <section className="grid gap-4 sm:grid-cols-2">
-        <SurfaceCard tone="accent" title="Racha actual">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Momentum
-              </p>
-              <p className="mt-2 font-serif text-[1.9rem] font-bold uppercase text-[var(--color-ink)]">
-                3 plenos
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-gold-soft)] font-serif text-2xl font-bold text-[var(--color-ink)]">
-              3
-            </div>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard title="Tu cuenta">
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Nombre
-              </span>
-              <span className="text-sm font-semibold text-[var(--color-ink)]">
-                {profile?.full_name ?? "Pendiente"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                WhatsApp
-              </span>
-              <span className="text-sm font-semibold text-[var(--color-ink)]">
-                {profile?.whatsapp ?? "Opcional"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Rol
-              </span>
-              <span className="text-sm font-semibold capitalize text-[var(--color-ink)]">
-                {profile?.role ?? "player"}
-              </span>
-            </div>
-            <SignOutButton
-              className="inline-flex items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-            />
-          </div>
-        </SurfaceCard>
       </section>
 
-      <SurfaceCard title="Próximos partidos" description="Lo próximo que vas a mirar para mover tus picks y subir en la tabla.">
-        <div className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)]">
-          <div className="flex items-center justify-between bg-[var(--color-primary)] px-3 py-2 text-white">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">Fase de grupos</span>
-            <span className="rounded-full bg-[var(--color-gold-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink)]">
-              Hoy 20:30
-            </span>
+      {participationActive ? (
+        <SurfaceCard title="Ya estás compitiendo" description="Seguí cargando tus pronósticos y mirá cómo viene la tabla.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Link
+              href="/matches"
+              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Cargá tus pronósticos
+            </Link>
+            <Link
+              href="/rankings"
+              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            >
+              Ver ranking
+            </Link>
           </div>
-          <div className="grid grid-cols-3 items-center bg-white p-4">
-            <div className="text-center">
-              <CountryFlag country="Argentina" label="Argentina" size="sm" className="mx-auto mb-1" />
-              <p className="font-serif text-[1.35rem] font-bold text-[var(--color-ink)]">ARG</p>
-            </div>
-            <div className="text-center">
-              <div className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-1 font-serif text-[1.4rem] font-bold text-[var(--color-ink)]">
-                VS
+        </SurfaceCard>
+      ) : (
+        <SurfaceCard tone="accent" title="Pagá con Mercado Pago" description="Tus picks quedan guardados. Pagá para que compitan por premios.">
+          <div className="grid gap-4">
+            <ActivationPanel
+              participationId={participation?.id ?? null}
+              participationStatus={participationStatus}
+              draftCount={predictionCount}
+              initialPaymentReference={participation?.payment_reference ?? null}
+              initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
+            />
+            <Link
+              href="/matches"
+              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            >
+              Cargar pronósticos
+            </Link>
+          </div>
+        </SurfaceCard>
+      )}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Tus picks" value={String(predictionCount)} detail={picksLabel} />
+        <StatCard label="Estado" value={stateLabel} detail={participationActive ? "Ya entrás a competir por premios." : "Pagá con Mercado Pago para entrar en juego."} />
+        <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
+      </section>
+
+      <SurfaceCard title="Cuenta">
+        <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  Nombre
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)]">
+                  {profile?.full_name ?? "Pendiente"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  Email
+                </span>
+                <span className="truncate pl-3 text-sm font-semibold text-[var(--color-ink)]">
+                  {profile?.email ?? userEmail ?? "Sin email"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                  WhatsApp
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)]">
+                  {profile?.whatsapp ?? "Opcional"}
+                </span>
               </div>
             </div>
-            <div className="text-center">
-              <CountryFlag country="Brasil" label="Brasil" size="sm" className="mx-auto mb-1" />
-              <p className="font-serif text-[1.35rem] font-bold text-[var(--color-ink)]">BRA</p>
-            </div>
-          </div>
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard title="Tu participación" description="Estado real de tu cuenta dentro del torneo.">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Estado actual
-            </p>
-            <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-              {participationActive ? "activa" : "pendiente"}
-            </p>
-          </div>
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-              Fecha de alta
-            </p>
-            <p className="mt-2 font-serif text-4xl uppercase tracking-[0.06em] text-[var(--color-primary)]">
-              {participationDate}
-            </p>
+            <SignOutButton
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)] sm:min-w-[160px]"
+            />
           </div>
         </div>
       </SurfaceCard>
