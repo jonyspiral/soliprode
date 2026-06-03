@@ -63,7 +63,7 @@ function normalizeProviderApprovedAt(value: string | null | undefined) {
 function mapMercadoPagoStatus(status: string | null | undefined) {
   switch (status) {
     case "approved":
-      return "paid";
+      return "approved";
     case "in_process":
     case "pending":
       return "payment_pending";
@@ -249,7 +249,7 @@ async function applyAttemptAndParticipationState(
     })
     .eq("id", attempt.id);
 
-  if (safeAttemptStatus === "paid") {
+  if (safeAttemptStatus === "approved") {
     const paidAt = nowIso();
     const activatedAt = nowIso();
     const eligibleFrom = resolveOnlineEligibleFrom(
