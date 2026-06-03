@@ -20,6 +20,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
+- Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
 
 ## Áreas actuales
 
@@ -33,6 +34,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Contrato de voz | `src/content/docs/contracts/voice-contract.md` |
 | Contrato visual Athletic Social | `src/content/docs/contracts/athletic-social-design-contract.md` |
 | Contrato de implementación UI/UX | `src/content/docs/contracts/ui-ux-implementation-contract.md` |
+| Auditoría UI 2026-06-02 | `src/content/docs/ui-audit-2026-06-02.md` |
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |

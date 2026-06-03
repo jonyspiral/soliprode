@@ -61,7 +61,11 @@ Sin rediseñar todavía, listar páginas con riesgo:
 | Profile | cerrar sesión / editar datos básicos | puede duplicarse con dashboard y volverse administrativa | medio | cuenta, datos básicos, logout | P2 |
 | Admin | publicar / confirmar acciones operativas | por naturaleza puede contaminar patrones del jugador | alto | admin cards, alerts, tables, action rows | P1 |
 
-Estado: DOCUMENTADO.
+Estado: IMPLEMENTADO.
+
+Artefacto:
+
+- `src/content/docs/ui-audit-2026-06-02.md`
 
 ## Fase 3 — Componentes base a proteger
 
