@@ -586,6 +586,7 @@ No conviene abrir cobro real si primero no existe un panel operativo simple para
 - [ ] Liquidación interna.
 - [ ] Export de reporte de promotores.
 - [ ] Ranking avanzado por conversión.
+- [ ] Notificaciones PWA, email o WhatsApp como fase futura.
 
 ## 16. Orden de implementación recomendado
 
@@ -643,6 +644,11 @@ Para que el producto ya no solo cobre sino compita de verdad, necesita además:
 - Bonus predictions.
 - Export de reportes y cierres operativos.
 - Optimización de métricas, retención y escalado social.
+- Notificaciones PWA, email y WhatsApp, documentadas en `src/content/docs/roadmap/pwa-notifications-roadmap.md`.
+
+Regla:
+
+- no implementar notificaciones antes de cerrar fixture, pronósticos, pagos, activación paid, ranking individual, ranking de grupos y Admin operativo.
 
 ## Riesgos operativos
 
@@ -1076,7 +1082,8 @@ Orden:
 3. reconciliación;
 4. exportables;
 5. liquidación interna;
-6. ranking avanzado de promotores.
+6. ranking avanzado de promotores;
+7. notificaciones como fase futura si el juego principal ya está sólido.
 
 Meta:
 

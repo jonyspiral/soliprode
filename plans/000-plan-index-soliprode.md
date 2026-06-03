@@ -27,6 +27,7 @@ Objetivo: centralizar los planes activos y evitar duplicados mientras SoliProde 
 | Correctivo de grants autenticados de runtime | `supabase/migrations/005_fix_authenticated_runtime_grants.sql` | Datos / seguridad | IMPLEMENTADO | Alinea los grants SQL del rol `authenticated` con las policies RLS ya definidas para bootstrap de perfil, participación y módulos interactivos | P0 | Aplicar la migración en Supabase para estabilizar login, registro y writes del usuario | Agente técnico |
 | MVP recaudable | `plans/soliprode-mvp-recaudable-plan.md` | Producto / operación | PROPUESTO | Define qué falta para poder cobrar inscripciones reales, con Mercado Pago online-first, activación competitiva, competencia por premios y operación de grupos/promotores | P0 | Desglosar este plan en entregables técnicos y confirmar decisiones comerciales pendientes | Producto + agente técnico |
 | Contratos UI de SoliProde | `plans/soliprode-ui-contracts-implementation-plan.md` | Producto / diseño / gobierno | ACTIVO | Formaliza contratos obligatorios de voz, diseño Athletic Social y UI/UX para frenar drift visual y de copy | P1 | Ejecutar auditoría de UI actual página por página contra estos contratos | Producto + agente técnico |
+| Roadmap de notificaciones PWA | `src/content/docs/roadmap/pwa-notifications-roadmap.md` | Producto / post-MVP | DOCUMENTADO | Define Push PWA, email y WhatsApp como fase futura, fuera del MVP inmediato | P2 | No implementar hasta terminar fixture, pronósticos, pagos, rankings, grupos y Admin | Producto + agente técnico |
 
 ## Regla visual obligatoria
 
@@ -54,3 +55,4 @@ La dirección visual activa del producto es `Athletic Social` de Stitch. No se d
 - Bonus predictions.
 - Reportería operativa y comercial.
 - Liquidación interna de promotores.
+- Notificaciones PWA, email y WhatsApp como fase futura documentada.

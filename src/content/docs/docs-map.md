@@ -1,7 +1,7 @@
 ---
 title: "Documentación de SoliProde"
 description: "Mapa principal de la documentación técnica y operativa del proyecto."
-lastUpdated: "2026-06-02"
+lastUpdated: "2026-06-03"
 ---
 
 # Documentación de SoliProde
@@ -20,6 +20,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Fixture real y pronósticos: `src/content/docs/database/fixture-schema.md`
+- Roadmap de notificaciones PWA: `src/content/docs/roadmap/pwa-notifications-roadmap.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
 - Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
 - Referencia visual Stitch: `src/content/docs/visual-reference/stitch-reference.md`
@@ -44,6 +45,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Fixture real y pronósticos | `src/content/docs/database/fixture-schema.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
 | Grupos competitivos MVP | `src/content/docs/groups-competitive-mvp.md` |
+| Roadmap de notificaciones PWA | `src/content/docs/roadmap/pwa-notifications-roadmap.md` |
 
 ## Contratos de producto, tono y UI
 
@@ -80,3 +82,12 @@ Y antes de agregar una nueva pantalla, card, banner o patrón visual:
 - Administración.
 - Promotores y operación comercial.
 - Integración con Supabase.
+- Notificaciones PWA, email y WhatsApp como fase futura post-MVP.
+
+## Roadmap futuro de notificaciones
+
+Las notificaciones PWA están documentadas como fase futura en:
+
+- `src/content/docs/roadmap/pwa-notifications-roadmap.md`
+
+No forman parte del MVP inmediato y no deben implementarse hasta terminar fixture, pronósticos, pagos, activación paid, rankings, grupos y Admin.
