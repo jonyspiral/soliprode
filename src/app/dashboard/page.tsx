@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { HomeLanding } from "@/components/home/home-landing";
 import { ActivationPanel } from "@/components/participation/activation-panel";
 import {
   InfoNotice,
@@ -9,6 +10,7 @@ import {
   StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -162,6 +164,44 @@ export default async function DashboardPage() {
   const stateLabel = participationUiState.statusLabel;
   const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
+  if (!participationActive) {
+    return (
+      <PageStack>
+        <HomeLanding
+          entryPrice={entryConfig.initialPrice}
+          primaryAction={{ href: "/matches", label: "Entrá al Prode" }}
+          secondaryAction={{ href: "/profile", label: "Ya tengo cuenta" }}
+        />
+
+        <SurfaceCard
+          tone="accent"
+          title={
+            participationUiState.isPendingReview
+              ? "Estamos verificando tu inscripción"
+              : "Completá tu inscripción"
+          }
+          description={participationUiState.supportText}
+        >
+          <div className="grid gap-4">
+            <ActivationPanel
+              participationId={participation?.id ?? null}
+              participationStatus={participationStatus}
+              draftCount={predictionCount}
+              initialPaymentReference={participation?.payment_reference ?? null}
+              initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
+            />
+            <Link
+              href="/matches"
+              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            >
+              Cargar pronósticos
+            </Link>
+          </div>
+        </SurfaceCard>
+      </PageStack>
+    );
+  }
+
   return (
     <PageStack>
       <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[#001a5c] md:-mx-6 md:rounded-[2rem]">
@@ -197,50 +237,22 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {participationActive ? (
-        <SurfaceCard title="Ya estás compitiendo" description="Seguí cargando tus pronósticos y mirá cómo viene la tabla.">
-          <div className="grid gap-3 md:grid-cols-2">
-            <Link
-              href="/matches"
-              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-            >
-              Cargá tus pronósticos
-            </Link>
-            <Link
-              href="/rankings"
-              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-            >
-              Ver ranking
-            </Link>
-          </div>
-        </SurfaceCard>
-      ) : (
-        <SurfaceCard
-          tone="accent"
-          title={
-            participationUiState.isPendingReview
-              ? "Estamos verificando tu inscripción"
-              : "Completá tu inscripción"
-          }
-          description={participationUiState.supportText}
-        >
-          <div className="grid gap-4">
-            <ActivationPanel
-              participationId={participation?.id ?? null}
-              participationStatus={participationStatus}
-              draftCount={predictionCount}
-              initialPaymentReference={participation?.payment_reference ?? null}
-              initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
-            />
-            <Link
-              href="/matches"
-              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-            >
-              Cargar pronósticos
-            </Link>
-          </div>
-        </SurfaceCard>
-      )}
+      <SurfaceCard title="Ya estás compitiendo" description="Seguí cargando tus pronósticos y mirá cómo viene la tabla.">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Link
+            href="/matches"
+            className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+          >
+            Cargá tus pronósticos
+          </Link>
+          <Link
+            href="/rankings"
+            className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
+            Ver ranking
+          </Link>
+        </div>
+      </SurfaceCard>
 
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Tus pronósticos" value={String(predictionCount)} detail={picksLabel} />
