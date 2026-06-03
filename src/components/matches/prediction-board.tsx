@@ -168,10 +168,12 @@ export function PredictionBoard({
   );
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, FeedbackState>>({});
+  const [justSavedMatchId, setJustSavedMatchId] = useState<string | null>(null);
 
   function setValue(matchId: string, side: "home" | "away", nextValue: string) {
     setPredictionState((current) => {
       const previous = current[matchId];
+      const normalizedValue = /^\d+$/.test(nextValue.trim()) ? String(Math.max(0, Number.parseInt(nextValue, 10))) : nextValue;
 
       return {
         ...current,
@@ -182,11 +184,19 @@ export function PredictionBoard({
           predicted_away: previous?.predicted_away ?? 0,
           locked_at: previous?.locked_at ?? null,
           points: previous?.points ?? 0,
-          homeValue: side === "home" ? nextValue : previous?.homeValue ?? "0",
-          awayValue: side === "away" ? nextValue : previous?.awayValue ?? "0",
+          homeValue: side === "home" ? normalizedValue : previous?.homeValue ?? "0",
+          awayValue: side === "away" ? normalizedValue : previous?.awayValue ?? "0",
         },
       };
     });
+  }
+
+  function adjustValue(matchId: string, side: "home" | "away", delta: number) {
+    const previous = predictionState[matchId];
+    const currentValue = side === "home" ? previous?.homeValue ?? "0" : previous?.awayValue ?? "0";
+    const parsedValue = parseScore(currentValue) ?? 0;
+    const nextValue = String(Math.max(0, parsedValue + delta));
+    setValue(matchId, side, nextValue);
   }
 
   async function savePrediction(match: MatchBoardItem) {
@@ -237,7 +247,18 @@ export function PredictionBoard({
       return;
     }
 
+    const payload = {
+      profile_id: currentUserId,
+      user_id: currentUserId,
+      match_id: match.id,
+      predicted_home: homeScore,
+      predicted_away: awayScore,
+      predicted_home_score: homeScore,
+      predicted_away_score: awayScore,
+    };
+
     setSavingMatchId(match.id);
+    setJustSavedMatchId(null);
     setFeedback((current) => {
       const next = { ...current };
       delete next[match.id];
@@ -249,18 +270,7 @@ export function PredictionBoard({
       const { data, error } = await withClientTimeout(
         supabase
           .from("predictions")
-          .upsert(
-            {
-              profile_id: currentUserId,
-              user_id: currentUserId,
-              match_id: match.id,
-              predicted_home: homeScore,
-              predicted_away: awayScore,
-              predicted_home_score: homeScore,
-              predicted_away_score: awayScore,
-            },
-            { onConflict: "profile_id,match_id" },
-          )
+          .upsert(payload, { onConflict: "profile_id,match_id" })
           .select("id, match_id, predicted_home, predicted_away, locked_at, points")
           .single(),
       );
@@ -277,6 +287,7 @@ export function PredictionBoard({
           awayValue: String(data.predicted_away),
         },
       }));
+      setJustSavedMatchId(match.id);
       setFeedback((current) => ({
         ...current,
         [match.id]: {
@@ -291,9 +302,34 @@ export function PredictionBoard({
         console.error("[matches] savePrediction failed", {
           matchId: match.id,
           currentUserId,
+          profileId: currentUserId,
+          payload,
           error,
         });
       }
+
+      const safeError =
+        typeof error === "object" && error !== null
+          ? {
+              message: "message" in error ? (error as { message?: string }).message ?? null : null,
+              code: "code" in error ? (error as { code?: string }).code ?? null : null,
+              details: "details" in error ? (error as { details?: string }).details ?? null : null,
+              hint: "hint" in error ? (error as { hint?: string }).hint ?? null : null,
+            }
+          : {
+              message: error instanceof Error ? error.message : String(error),
+              code: null,
+              details: null,
+              hint: null,
+            };
+
+      console.error("[matches] prediction save error", {
+        ...safeError,
+        payload,
+        userId: currentUserId,
+        profileId: currentUserId,
+        matchId: match.id,
+      });
 
       const supabaseError =
         typeof error === "object" && error !== null && "message" in error ? (error as { message?: string; code?: string }) : null;
@@ -306,7 +342,7 @@ export function PredictionBoard({
             ? "Este partido ya cerró."
             : isTimeoutError(error)
               ? "No pudimos guardar el pronóstico. Probá de nuevo."
-            : "No pudimos guardar este pronóstico. Intentá de nuevo.",
+              : "No pudimos guardar el pronóstico. Probá de nuevo.",
         },
       }));
     } finally {
@@ -332,6 +368,19 @@ export function PredictionBoard({
         const awayValue = state?.awayValue ?? "0";
         const note = feedback[match.id];
         const open = isMatchOpen(match);
+        const homeSavedValue = state?.predicted_home ?? 0;
+        const awaySavedValue = state?.predicted_away ?? 0;
+        const isDirty = homeValue !== String(homeSavedValue) || awayValue !== String(awaySavedValue);
+        const buttonLabel =
+          savingMatchId === match.id
+            ? "Guardando..."
+            : !open
+              ? "Este partido ya cerró"
+              : isDirty || !state?.id
+                ? "Guardar"
+                : justSavedMatchId === match.id
+                  ? "Guardado ✓"
+                  : "Guardado";
 
         return (
           <article
@@ -363,7 +412,7 @@ export function PredictionBoard({
               </span>
             </div>
 
-            <div className="grid gap-3 p-3">
+            <div className="grid gap-2.5 p-3">
               {[
                 {
                   key: `${match.id}-home`,
@@ -378,7 +427,7 @@ export function PredictionBoard({
                   value: awayValue,
                 },
               ].map(({ key, team, side, value }) => (
-                <div key={key} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-3">
+                <div key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <CountryFlag
                       country={team.name}
@@ -401,17 +450,32 @@ export function PredictionBoard({
                     </div>
                   </div>
 
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    step={1}
-                    disabled={!open || savingMatchId === match.id}
-                    value={value}
-                    onChange={(event) => setValue(match.id, side, event.target.value)}
-                    className="min-h-10 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1.35rem] font-bold text-[var(--color-primary)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label={`Goles ${team.name}`}
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => adjustValue(match.id, side, -1)}
+                      disabled={!open || savingMatchId === match.id}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label={`Restar gol ${team.name}`}
+                    >
+                      -
+                    </button>
+                    <span
+                      className="flex h-9 min-w-[2.6rem] items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1.2rem] font-bold text-[var(--color-primary)]"
+                      aria-label={`Goles ${team.name}`}
+                    >
+                      {value}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => adjustValue(match.id, side, 1)}
+                      disabled={!open || savingMatchId === match.id}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label={`Sumar gol ${team.name}`}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -432,9 +496,9 @@ export function PredictionBoard({
                 type="button"
                 onClick={() => void savePrediction(match)}
                 disabled={!isAuthenticated || !open || savingMatchId === match.id}
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-2.5 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-9 items-center justify-center self-start rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {savingMatchId === match.id ? "Guardando..." : open ? "Guardar pronóstico" : "Este partido ya cerró"}
+                {buttonLabel}
               </button>
             </div>
           </article>

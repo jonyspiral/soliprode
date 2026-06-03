@@ -58,7 +58,8 @@ export function AppShell({ children }: AppShellProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [participationPaid, setParticipationPaid] = useState<boolean | null>(null);
-  const showPendingPaymentBanner = authReady && isAuthenticated && participationPaid === false;
+  const showPendingPaymentBanner =
+    authReady && isAuthenticated && participationPaid === false && pathname !== "/matches";
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();

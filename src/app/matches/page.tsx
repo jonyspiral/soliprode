@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PredictionBoard, type MatchBoardItem } from "@/components/matches/prediction-board";
+import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -321,15 +322,7 @@ export default async function MatchesPage() {
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             Tus pronósticos quedan guardados. Completá tu inscripción para jugar.
           </p>
-          <div className="flex flex-col items-start gap-1 sm:items-end">
-            <Link
-              href="/dashboard"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-            >
-              Completar inscripción
-            </Link>
-            <span className="text-[11px] leading-5 text-[var(--color-muted)]">con Mercado Pago</span>
-          </div>
+          <CompleteRegistrationButton className="sm:max-w-[18rem] sm:justify-items-end" />
         </div>
       ) : null}
 
