@@ -22,6 +22,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Fixture real y pronósticos: `src/content/docs/database/fixture-schema.md`
 - Importación controlada del fixture: `src/content/docs/database/fixture-import.md`
+- Usuarios QA de prueba: `src/content/docs/qa/test-users.md`
 - Roadmap de notificaciones PWA: `src/content/docs/roadmap/pwa-notifications-roadmap.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
 - Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
@@ -47,6 +48,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
 | Fixture real y pronósticos | `src/content/docs/database/fixture-schema.md` |
 | Importación controlada del fixture | `src/content/docs/database/fixture-import.md` |
+| Usuarios QA de prueba | `src/content/docs/qa/test-users.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
 | Grupos competitivos MVP | `src/content/docs/groups-competitive-mvp.md` |
 | Roadmap de notificaciones PWA | `src/content/docs/roadmap/pwa-notifications-roadmap.md` |

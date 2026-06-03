@@ -10,20 +10,21 @@ import {
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 type UpcomingMatch = {
   id: string;
-  phase: string;
-  group_name: string | null;
+  round_name: string;
+  group_code: string | null;
   starts_at: string;
   home_team: {
-    code: string;
+    fifa_code: string;
     name: string;
   }[] | null;
   away_team: {
-    code: string;
+    fifa_code: string;
     name: string;
   }[] | null;
 };
@@ -103,11 +104,11 @@ export default async function DashboardPage() {
           .select(
             `
               id,
-              phase,
-              group_name,
+              round_name,
+              group_code,
               starts_at,
-              home_team:teams!matches_home_team_id_fkey(code, name),
-              away_team:teams!matches_away_team_id_fkey(code, name)
+              home_team:teams!matches_home_team_id_fkey(fifa_code, name),
+              away_team:teams!matches_away_team_id_fkey(fifa_code, name)
             `,
           )
           .eq("status", "scheduled")
@@ -150,12 +151,15 @@ export default async function DashboardPage() {
   }
 
   const participationStatus = participation?.payment_status ?? "pending";
-  const participationActive = participationStatus === "paid";
+  const participationUiState = resolveParticipationUiState(participationStatus);
+  const participationActive = participationUiState.isPaid;
   const aliasLabel = profile?.public_alias?.trim() || "jugador";
   const mainMessage = participationActive
     ? "Ya estás compitiendo."
-    : "Tus pronósticos quedan guardados. Falta pagar para competir por premios.";
-  const stateLabel = participationActive ? "Compitiendo" : "Falta pagar";
+    : participationUiState.isPendingReview
+      ? "Estamos verificando tu inscripción."
+      : "Tus pronósticos todavía no compiten.";
+  const stateLabel = participationUiState.statusLabel;
   const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
   return (
@@ -211,7 +215,15 @@ export default async function DashboardPage() {
           </div>
         </SurfaceCard>
       ) : (
-        <SurfaceCard tone="accent" title="Pagá con Mercado Pago" description="Tus pronósticos quedan guardados. Pagá para que compitan por premios.">
+        <SurfaceCard
+          tone="accent"
+          title={
+            participationUiState.isPendingReview
+              ? "Estamos verificando tu inscripción"
+              : "Completá tu inscripción"
+          }
+          description={participationUiState.supportText}
+        >
           <div className="grid gap-4">
             <ActivationPanel
               participationId={participation?.id ?? null}
@@ -232,7 +244,17 @@ export default async function DashboardPage() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Tus pronósticos" value={String(predictionCount)} detail={picksLabel} />
-        <StatCard label="Estado" value={stateLabel} detail={participationActive ? "Ya entrás a competir por premios." : "Pagá con Mercado Pago para entrar en juego."} />
+        <StatCard
+          label="Estado"
+          value={stateLabel}
+          detail={
+            participationActive
+              ? "Ya entrás a competir por premios."
+              : participationUiState.isPendingReview
+                ? "Tu inscripción todavía no figura como activa."
+                : "Completá tu inscripción para entrar al ranking."
+          }
+        />
         <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
       </section>
 
@@ -243,7 +265,7 @@ export default async function DashboardPage() {
               {stateLabel}
             </p>
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos quedan guardados.
+              {participationUiState.supportText}
             </p>
             <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
@@ -269,11 +291,11 @@ export default async function DashboardPage() {
                     className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3"
                   >
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                      {match.phase}
-                      {match.group_name ? ` • Grupo ${match.group_name}` : ""}
+                      {match.round_name}
+                      {match.group_code ? ` • Grupo ${match.group_code}` : ""}
                     </p>
                     <p className="mt-2 font-serif text-[1.35rem] font-bold uppercase text-[var(--color-ink)]">
-                      {homeTeam?.code ?? "LOC"} vs {awayTeam?.code ?? "VIS"}
+                      {homeTeam?.fifa_code ?? "LOC"} vs {awayTeam?.fifa_code ?? "VIS"}
                     </p>
                     <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
                       {formatStartsAt(match.starts_at)}

@@ -4,6 +4,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -74,7 +75,8 @@ export default async function ProfilePage() {
     );
   }
 
-  const stateLabel = participationStatus === "paid" ? "Compitiendo" : "Falta pagar";
+  const participationUiState = resolveParticipationUiState(participationStatus);
+  const stateLabel = participationUiState.statusLabel;
 
   return (
     <PageStack>
@@ -84,7 +86,7 @@ export default async function ProfilePage() {
             {profile?.public_alias ?? "Jugador"}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <StatCard label="Estado" value={stateLabel} detail="Así está hoy tu cuenta en el torneo." />
+            <StatCard label="Estado" value={stateLabel} detail={participationUiState.supportText} />
             <StatCard label="Alias" value={profile?.public_alias ?? "Pendiente"} detail="Así aparecés en el juego." />
           </div>
         </div>
@@ -92,6 +94,19 @@ export default async function ProfilePage() {
 
       <SurfaceCard title="Cuenta">
         <div className="grid gap-3">
+          {!participationUiState.isPaid ? (
+            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                Inscripción
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+                {participationUiState.statusLabel}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
+                {participationUiState.supportText}
+              </p>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
               Nombre

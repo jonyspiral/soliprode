@@ -25,8 +25,8 @@ const gameFlow = [
   },
   {
     step: "Paso 3",
-    title: "Pagás y competís",
-    description: "Pagás con Mercado Pago y tus pronósticos pasan a competir por premios y rankings.",
+    title: "Completás y competís",
+    description: "Completás tu inscripción y tus pronósticos pasan a competir por premios y rankings.",
   },
 ];
 
@@ -88,9 +88,9 @@ export default async function Home({ searchParams }: HomeProps) {
         }
       : {
           eyebrow: "Volvé al juego",
-          title: "Tus pronósticos ya te están esperando",
-          description: "Tus pronósticos pueden quedar guardados. Pagá para que compitan por premios.",
-          detail: "Volvé al panel, cargá tus pronósticos y activalos con Mercado Pago.",
+          title: "Tus pronósticos todavía no compiten",
+          description: "Tus pronósticos quedan guardados.",
+          detail: "Volvé al panel y completá tu inscripción cuando quieras entrar al ranking.",
           primaryHref: "/dashboard",
           primaryLabel: "Ir al panel",
           secondaryHref: "/matches",
@@ -179,7 +179,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <MercadoPagoBadge compact secondaryText="Pago online seguro" />
 
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos se pueden cargar gratis. Para que entren al ranking general y peleen premios, pagás con Mercado Pago.
+              Tus pronósticos se pueden cargar gratis. Después completás tu inscripción para que entren al ranking general y peleen premios.
             </p>
           </div>
         </SurfaceCard>
@@ -210,15 +210,15 @@ export default async function Home({ searchParams }: HomeProps) {
                 {entryPrice}
               </p>
               <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                Tus pronósticos pueden quedar guardados. Activá tu inscripción para que compitan por premios y ranking.
+                Tus pronósticos quedan guardados. Completá tu inscripción para que entren al ranking y peleen premios.
               </p>
             </div>
             <PromoCountdown variant="surface" />
 
-            <MercadoPagoBadge compact secondaryText="Pagá online y entrá a competir" />
+            <MercadoPagoBadge compact secondaryText="completás online y entrás a competir" />
 
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos pueden quedar guardados. Pagá con Mercado Pago para que compitan por premios y ranking.
+              Tus pronósticos quedan guardados. Completá tu inscripción para que compitan por premios y ranking.
             </p>
           </div>
         </SurfaceCard>
@@ -240,7 +240,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="grid gap-3 text-sm leading-6 text-[var(--color-muted)]">
             <p>1. Creás tu cuenta gratis.</p>
             <p>2. Guardás pronósticos como borrador.</p>
-            <p>3. Pagás con Mercado Pago.</p>
+            <p>3. Completás tu inscripción.</p>
             <p>4. Tus pronósticos entran a competir por premios y ranking oficial.</p>
           </div>
         </SurfaceCard>

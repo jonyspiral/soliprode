@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { EntryCountdown } from "@/components/payments/entry-countdown";
+import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
+import { resolveParticipationUiState } from "@/lib/participations/status";
 
 type ActivationPanelProps = {
   participationId: string | null;
@@ -23,14 +25,13 @@ export function ActivationPanel({
   initialPaymentSubmittedAt,
 }: ActivationPanelProps) {
   const [showFallback, setShowFallback] = useState(false);
-  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
-  const [startingCheckout, setStartingCheckout] = useState(false);
   const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
   const [paymentSubmittedAt, setPaymentSubmittedAt] = useState(initialPaymentSubmittedAt);
   const [savingReference, setSavingReference] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const priceLabel = useMemo(() => formatEntryPrice(entryConfig.initialPrice), []);
+  const participationUiState = resolveParticipationUiState(participationStatus);
 
   async function saveReference() {
     if (!participationId) {
@@ -73,33 +74,6 @@ export function ActivationPanel({
     }
   }
 
-  async function startMercadoPagoCheckout() {
-    setStartingCheckout(true);
-    setPaymentNotice(null);
-
-    try {
-      const response = await fetch("/api/payments/mercadopago/create-preference", {
-        method: "POST",
-      });
-      const payload = (await response.json()) as {
-        ok: boolean;
-        error?: string;
-        checkoutUrl?: string;
-      };
-
-      if (!response.ok || !payload.ok || !payload.checkoutUrl) {
-        setPaymentNotice(payload.error ?? "No pudimos iniciar el pago online en este momento.");
-        return;
-      }
-
-      window.location.assign(payload.checkoutUrl);
-    } catch {
-      setPaymentNotice("No pudimos iniciar el pago online en este momento.");
-    } finally {
-      setStartingCheckout(false);
-    }
-  }
-
   if (participationStatus === "paid") {
     return (
       <div className="grid gap-4">
@@ -125,6 +99,33 @@ export function ActivationPanel({
     );
   }
 
+  if (participationUiState.isPendingReview) {
+    return (
+      <div className="grid gap-4">
+        <div className="rounded-[1.25rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
+          <div className="grid gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Estado de inscripción
+            </p>
+            <h3 className="font-serif text-[1.9rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+              Estamos verificando tu inscripción
+            </h3>
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Tus pronósticos quedan guardados. Cuando el pago quede confirmado, pasan a competir.
+            </p>
+            <MercadoPagoBadge compact secondaryText="Seguimos esperando confirmación final" className="w-fit" />
+            <Link
+              href="/matches"
+              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              Ver pronósticos
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4">
       <div className="rounded-[1.25rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
@@ -134,7 +135,7 @@ export function ActivationPanel({
               Inscripción inicial
             </p>
             <h3 className="font-serif text-[1.9rem] font-bold uppercase leading-none text-[var(--color-ink)]">
-              Falta pagar para competir
+              Completá tu inscripción
             </h3>
           </div>
           <div className="flex items-end justify-between gap-3">
@@ -144,23 +145,11 @@ export function ActivationPanel({
             <MercadoPagoBadge compact secondaryText="" className="min-w-0 px-2 py-1.5 text-[11px]" />
           </div>
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Tus pronósticos ya quedan guardados.
+            {participationUiState.statusLabel}
           </p>
           <EntryCountdown className="bg-white/70" />
           <div className="grid gap-3">
-            <button
-              type="button"
-              onClick={() => void startMercadoPagoCheckout()}
-              disabled={startingCheckout}
-              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-            >
-              {startingCheckout ? "Abriendo Mercado Pago..." : "Pagá con Mercado Pago"}
-            </button>
-            {paymentNotice ? (
-              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
-                {paymentNotice}
-              </p>
-            ) : null}
+            <CompleteRegistrationButton />
           </div>
         </div>
       </div>

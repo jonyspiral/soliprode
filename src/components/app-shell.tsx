@@ -11,6 +11,7 @@ import {
   secondaryNavItems,
 } from "@/lib/navigation";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = {
@@ -57,9 +58,13 @@ export function AppShell({ children }: AppShellProps) {
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const [participationPaid, setParticipationPaid] = useState<boolean | null>(null);
+  const [participationStatus, setParticipationStatus] = useState<string | null>(null);
+  const participationUiState = resolveParticipationUiState(participationStatus);
   const showPendingPaymentBanner =
-    authReady && isAuthenticated && participationPaid === false && pathname !== "/matches";
+    authReady &&
+    isAuthenticated &&
+    !participationUiState.isPaid &&
+    pathname !== "/matches";
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -68,7 +73,7 @@ export function AppShell({ children }: AppShellProps) {
     async function syncParticipation(userId: string | null) {
       if (!userId) {
         if (active) {
-          setParticipationPaid(null);
+          setParticipationStatus(null);
         }
         return;
       }
@@ -85,14 +90,14 @@ export function AppShell({ children }: AppShellProps) {
           return;
         }
 
-        setParticipationPaid(
+        setParticipationStatus(
           pickPrimaryParticipation(
             (data ?? []) as Array<{ created_at: string; payment_status: string }>,
-          ).participation?.payment_status === "paid",
+          ).participation?.payment_status ?? null,
         );
       } catch {
         if (active) {
-          setParticipationPaid(null);
+          setParticipationStatus(null);
         }
       }
     }
@@ -115,7 +120,7 @@ export function AppShell({ children }: AppShellProps) {
         }
 
         setIsAuthenticated(false);
-        setParticipationPaid(null);
+        setParticipationStatus(null);
       } finally {
         if (active) {
           setAuthReady(true);
@@ -209,14 +214,16 @@ export function AppShell({ children }: AppShellProps) {
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 md:px-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-                Tus pronósticos todavía no compiten
+                {participationUiState.shellBannerText}
               </p>
-              <Link
-                href="/dashboard"
-                className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-              >
-                Pagá con Mercado Pago
-              </Link>
+              {participationUiState.needsCompletion ? (
+                <Link
+                  href="/dashboard"
+                  className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+                >
+                  Completar inscripción
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}

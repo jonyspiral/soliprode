@@ -29,7 +29,7 @@ export function MercadoPagoBadge({
         />
       </div>
       <div className="min-w-0">
-        <p className="truncate font-semibold text-[var(--color-ink)]">Pagás con Mercado Pago</p>
+        <p className="truncate font-semibold text-[var(--color-ink)]">Mercado Pago</p>
         {secondaryText ? (
           <p className="truncate text-[11px] leading-4 text-[var(--color-muted)]">{secondaryText}</p>
         ) : null}
