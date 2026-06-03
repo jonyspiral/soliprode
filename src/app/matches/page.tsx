@@ -6,6 +6,8 @@ import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
+export const dynamic = "force-dynamic";
+
 type MatchRow = {
   id: string;
   stage: string;
@@ -16,22 +18,53 @@ type MatchRow = {
   status: string;
   venue: string | null;
   city: string | null;
-  home_team: {
-    id: string;
-    name: string;
-    short_name: string;
-    fifa_code: string;
-    country_code: string;
-    flag_emoji: string | null;
-  }[] | null;
-  away_team: {
-    id: string;
-    name: string;
-    short_name: string;
-    fifa_code: string;
-    country_code: string;
-    flag_emoji: string | null;
-  }[] | null;
+  home_team_id: string;
+  away_team_id: string;
+  home_team:
+    | {
+        id: string;
+        name: string;
+        short_name: string;
+        fifa_code: string;
+        country_code: string;
+        flag_emoji: string | null;
+      }
+    | {
+        id: string;
+        name: string;
+        short_name: string;
+        fifa_code: string;
+        country_code: string;
+        flag_emoji: string | null;
+      }[]
+    | null;
+  away_team:
+    | {
+        id: string;
+        name: string;
+        short_name: string;
+        fifa_code: string;
+        country_code: string;
+        flag_emoji: string | null;
+      }
+    | {
+        id: string;
+        name: string;
+        short_name: string;
+        fifa_code: string;
+        country_code: string;
+        flag_emoji: string | null;
+      }[]
+    | null;
+};
+
+type TeamRow = {
+  id: string;
+  name: string;
+  short_name: string;
+  fifa_code: string;
+  country_code: string;
+  flag_emoji: string | null;
 };
 
 type PredictionRow = {
@@ -52,6 +85,162 @@ function groupMatches(matches: MatchBoardItem[]) {
   }, {});
 }
 
+function normalizeRelatedTeam(team: MatchRow["home_team"] | MatchRow["away_team"]) {
+  if (!team) {
+    return null;
+  }
+
+  return Array.isArray(team) ? (team[0] ?? null) : team;
+}
+
+function fallbackTeam(teamId: string): MatchBoardItem["home_team"] {
+  return {
+    id: teamId,
+    name: "Equipo",
+    short_name: "Equipo",
+    fifa_code: "TBD",
+    country_code: "",
+    flag_emoji: null,
+  };
+}
+
+function isDynamicServerUsageError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    (error as { digest?: string }).digest === "DYNAMIC_SERVER_USAGE"
+  );
+}
+
+async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
+  const directMatchQuery = supabase
+    .from("matches")
+    .select(
+      `
+        id,
+        stage,
+        round_name,
+        group_code,
+        starts_at,
+        prediction_closes_at,
+        status,
+        venue,
+        city,
+        home_team_id,
+        away_team_id,
+        home_team:teams!matches_home_team_id_fkey(
+          id,
+          name,
+          short_name,
+          fifa_code,
+          country_code,
+          flag_emoji
+        ),
+        away_team:teams!matches_away_team_id_fkey(
+          id,
+          name,
+          short_name,
+          fifa_code,
+          country_code,
+          flag_emoji
+        )
+      `,
+    )
+    .order("starts_at", { ascending: true });
+
+  const { data: directRows, error: directError } = await directMatchQuery;
+
+  if (directError) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[matches] direct join query failed", directError);
+    }
+  } else if (directRows) {
+    const normalizedMatches = (directRows as MatchRow[]).map((match) => {
+      const homeTeam = normalizeRelatedTeam(match.home_team);
+      const awayTeam = normalizeRelatedTeam(match.away_team);
+
+      return {
+        id: match.id,
+        stage: match.stage,
+        round_name: match.round_name,
+        group_code: match.group_code,
+        starts_at: match.starts_at,
+        prediction_closes_at: match.prediction_closes_at,
+        status: match.status,
+        venue: match.venue,
+        city: match.city,
+        home_team: homeTeam ?? fallbackTeam(match.home_team_id),
+        away_team: awayTeam ?? fallbackTeam(match.away_team_id),
+      };
+    });
+
+    const hasMissingTeams = normalizedMatches.some(
+      (match) => match.home_team.fifa_code === "TBD" || match.away_team.fifa_code === "TBD",
+    );
+
+    if (!hasMissingTeams) {
+      return { matches: normalizedMatches, usedFallback: false };
+    }
+
+    console.warn("[matches] direct join returned matches with missing teams, switching to two-step fallback");
+  }
+
+  const { data: baseMatchRows, error: baseMatchError } = await supabase
+    .from("matches")
+    .select(
+      "id, stage, round_name, group_code, starts_at, prediction_closes_at, status, venue, city, home_team_id, away_team_id",
+    )
+    .order("starts_at", { ascending: true });
+
+  if (baseMatchError) {
+    throw baseMatchError;
+  }
+
+  const teamIds = [...new Set(((baseMatchRows ?? []) as MatchRow[]).flatMap((match) => [match.home_team_id, match.away_team_id]))];
+  const { data: teamRows, error: teamError } = teamIds.length
+    ? await supabase
+        .from("teams")
+        .select("id, name, short_name, fifa_code, country_code, flag_emoji")
+        .in("id", teamIds)
+    : { data: [], error: null };
+
+  if (teamError) {
+    throw teamError;
+  }
+
+  const teamMap = new Map(((teamRows ?? []) as TeamRow[]).map((team) => [team.id, team]));
+
+  const matches = ((baseMatchRows ?? []) as MatchRow[]).map((match) => {
+    const homeTeam = teamMap.get(match.home_team_id);
+    const awayTeam = teamMap.get(match.away_team_id);
+
+    if (!homeTeam || !awayTeam) {
+      console.warn("[matches] missing team data for match", {
+        matchId: match.id,
+        homeTeamId: match.home_team_id,
+        awayTeamId: match.away_team_id,
+      });
+    }
+
+    return {
+      id: match.id,
+      stage: match.stage,
+      round_name: match.round_name,
+      group_code: match.group_code,
+      starts_at: match.starts_at,
+      prediction_closes_at: match.prediction_closes_at,
+      status: match.status,
+      venue: match.venue,
+      city: match.city,
+      home_team: homeTeam ?? fallbackTeam(match.home_team_id),
+      away_team: awayTeam ?? fallbackTeam(match.away_team_id),
+    };
+  });
+
+  return { matches, usedFallback: true };
+}
+
 export default async function MatchesPage() {
   let matches: MatchBoardItem[] = [];
   let predictions: PredictionRow[] = [];
@@ -66,39 +255,6 @@ export default async function MatchesPage() {
     } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     currentUserId = user?.id ?? null;
-
-    const matchQuery = supabase
-      .from("matches")
-      .select(
-        `
-          id,
-          stage,
-          round_name,
-          group_code,
-          starts_at,
-          prediction_closes_at,
-          status,
-          venue,
-          city,
-          home_team:teams!matches_home_team_id_fkey(
-            id,
-            name,
-            short_name,
-            fifa_code,
-            country_code,
-            flag_emoji
-          ),
-          away_team:teams!matches_away_team_id_fkey(
-            id,
-            name,
-            short_name,
-            fifa_code,
-            country_code,
-            flag_emoji
-          )
-        `,
-      )
-      .order("starts_at", { ascending: true });
 
     const participationQuery = currentUserId
       ? supabase
@@ -116,43 +272,24 @@ export default async function MatchesPage() {
           .eq("profile_id", currentUserId)
       : Promise.resolve({ data: [], error: null });
 
-    const [{ data: matchRows }, { data: participationRows }, { data: predictionRows }] =
+    const [{ matches: loadedMatches }, { data: participationRows }, { data: predictionRows }] =
       await withSupabaseTimeout(
-        Promise.all([matchQuery, participationQuery, predictionQuery]),
+        Promise.all([loadMatchesWithTeams(supabase), participationQuery, predictionQuery]),
         "Supabase matches query timed out",
       );
 
-    matches = ((matchRows ?? []) as MatchRow[])
-      .map((match) => {
-        const homeTeam = match.home_team?.[0] ?? null;
-        const awayTeam = match.away_team?.[0] ?? null;
-
-        if (!homeTeam || !awayTeam) {
-          return null;
-        }
-
-        return {
-          id: match.id,
-          stage: match.stage,
-          round_name: match.round_name,
-          group_code: match.group_code,
-          starts_at: match.starts_at,
-          prediction_closes_at: match.prediction_closes_at,
-          status: match.status,
-          venue: match.venue,
-          city: match.city,
-          home_team: homeTeam,
-          away_team: awayTeam,
-        };
-      })
-      .filter((match): match is MatchBoardItem => Boolean(match));
-
+    matches = loadedMatches;
     predictions = (predictionRows ?? []) as PredictionRow[];
     participationStatus =
       pickPrimaryParticipation(
         (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
       ).participation?.payment_status ?? "pending";
-  } catch {
+  } catch (error) {
+    if (isDynamicServerUsageError(error)) {
+      throw error;
+    }
+
+    console.error("[matches] failed to load real matches", error);
     dataNotice = "No pudimos cargar los partidos ahora. Reintentá en unos minutos.";
   }
 
