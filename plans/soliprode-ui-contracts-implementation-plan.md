@@ -15,6 +15,7 @@ Adoptar contratos explícitos de tono, system design y UI/UX como regla de traba
 - `src/content/docs/contracts/voice-contract.md`
 - `src/content/docs/contracts/athletic-social-design-contract.md`
 - `src/content/docs/contracts/ui-ux-implementation-contract.md`
+- `src/content/docs/visual-reference/stitch-reference.md`
 - `src/content/docs/docs-map.md`
 - `plans/000-plan-index-soliprode.md`
 - `.antigravity-context.md`
@@ -43,6 +44,7 @@ Luego:
 - linkearlos en `docs-map`;
 - linkearlos en el índice de planes;
 - referenciarlos en `.antigravity-context.md`.
+- sumar referencia visual Stitch como guía de clima visual y proporciones.
 
 Estado: IMPLEMENTADO.
 
@@ -96,8 +98,15 @@ Antes de tocar UI o copy, revisar:
 - `src/content/docs/contracts/voice-contract.md`
 - `src/content/docs/contracts/athletic-social-design-contract.md`
 - `src/content/docs/contracts/ui-ux-implementation-contract.md`
+- `src/content/docs/ui-audit-2026-06-02.md`
+- `src/content/docs/visual-reference/stitch-reference.md`
 
 Estado: ACTIVO.
+
+Nota:
+
+- La referencia Stitch guía jerarquía y proporciones.
+- No habilita copiar pantallas pixel-perfect ni inventar datos para parecerse al mock.
 
 ## Fase 5 — Refactor visual posterior
 

@@ -21,6 +21,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
 - Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
+- Referencia visual Stitch: `src/content/docs/visual-reference/stitch-reference.md`
 
 ## Áreas actuales
 
@@ -35,6 +36,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Contrato visual Athletic Social | `src/content/docs/contracts/athletic-social-design-contract.md` |
 | Contrato de implementación UI/UX | `src/content/docs/contracts/ui-ux-implementation-contract.md` |
 | Auditoría UI 2026-06-02 | `src/content/docs/ui-audit-2026-06-02.md` |
+| Referencia visual Stitch | `src/content/docs/visual-reference/stitch-reference.md` |
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
@@ -46,6 +48,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Voice Contract: `src/content/docs/contracts/voice-contract.md`
 - Athletic Social Design Contract: `src/content/docs/contracts/athletic-social-design-contract.md`
 - UI/UX Implementation Contract: `src/content/docs/contracts/ui-ux-implementation-contract.md`
+- Stitch Visual Reference: `src/content/docs/visual-reference/stitch-reference.md`
 
 ## Regla para cambios visuales
 
@@ -62,6 +65,8 @@ Y antes de tocar copy, CTA o tono de producto, revisar también:
 Y antes de agregar una nueva pantalla, card, banner o patrón visual:
 
 - `src/content/docs/contracts/ui-ux-implementation-contract.md`
+- `src/content/docs/ui-audit-2026-06-02.md`
+- `src/content/docs/visual-reference/stitch-reference.md`
 
 ## Áreas esperadas a futuro
 
