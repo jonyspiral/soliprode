@@ -1,0 +1,3 @@
+# Template only. Comment lines that start with # are ignored by the importer.
+match_number,stage,round_name,group_code,group_position_home,group_position_away,home_team_name,home_short_name,home_fifa_code,home_country_code,home_flag_emoji,away_team_name,away_short_name,away_fifa_code,away_country_code,away_flag_emoji,starts_at,prediction_closes_at,venue,city,status
+# 1,group_stage,Fase de grupos,A,1,2,HOME TEAM,HOME,AAA,AA,🏳️,AWAY TEAM,AWAY,BBB,BB,🏳️,2026-06-11T18:00:00Z,2026-06-11T18:00:00Z,Official Venue,Official City,scheduled

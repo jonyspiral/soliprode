@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fixture:validate": "node scripts/fixture/import-fixture.mjs --file scripts/fixture/worldcup-2026-group-stage.template.csv",
+    "fixture:import": "node scripts/fixture/import-fixture.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
