@@ -37,6 +37,8 @@ type CountryFlagProps = {
   label?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
+  emoji?: string | null;
+  countryCode?: string | null;
 };
 
 export function CountryFlag({
@@ -44,10 +46,16 @@ export function CountryFlag({
   label,
   className = "",
   size = "md",
+  emoji,
+  countryCode,
 }: CountryFlagProps) {
   const normalized = normalizeCountry(country);
-  const code = FLAG_MAP[normalized];
-  const emoji = code ? toFlagEmoji(code) : "🏳";
+  const normalizedCountryCode = countryCode?.trim().toUpperCase() ?? null;
+  const mappedCode = FLAG_MAP[normalized];
+  const resolvedEmoji =
+    emoji?.trim() ||
+    (normalizedCountryCode ? toFlagEmoji(normalizedCountryCode) : null) ||
+    (mappedCode ? toFlagEmoji(mappedCode) : "🏳");
   const sizeClass =
     size === "sm"
       ? "h-10 w-10 text-xl"
@@ -65,7 +73,7 @@ export function CountryFlag({
       aria-label={label ?? country}
       title={label ?? country}
     >
-      <span aria-hidden="true">{emoji}</span>
+      <span aria-hidden="true">{resolvedEmoji}</span>
     </div>
   );
 }

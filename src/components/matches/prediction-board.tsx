@@ -1,26 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { CountryFlag } from "@/components/country-flag";
-import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type MatchTeam = {
   id: string;
   name: string;
-  code: string;
-  flag_url: string | null;
+  short_name: string;
+  fifa_code: string;
+  country_code: string;
+  flag_emoji: string | null;
 };
 
 export type MatchBoardItem = {
   id: string;
-  phase: string;
-  group_name: string | null;
+  stage: string;
+  round_name: string;
+  group_code: string | null;
   starts_at: string;
+  prediction_closes_at: string;
   status: string;
-  score_home: number | null;
-  score_away: number | null;
+  venue: string | null;
+  city: string | null;
   home_team: MatchTeam;
   away_team: MatchTeam;
 };
@@ -35,8 +38,8 @@ type PredictionSnapshot = {
 };
 
 type PredictionState = PredictionSnapshot & {
-  homeValue: number;
-  awayValue: number;
+  homeValue: string;
+  awayValue: string;
 };
 
 type FeedbackState = {
@@ -54,6 +57,7 @@ type PredictionBoardProps = {
 
 function formatKickoff(startsAt: string) {
   return new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -61,15 +65,69 @@ function formatKickoff(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
+function formatStatus(match: MatchBoardItem) {
+  if (!isMatchOpen(match)) {
+    return "Cerrado";
+  }
+
+  switch (match.status) {
+    case "live":
+      return "En vivo";
+    case "finished":
+      return "Finalizado";
+    case "cancelled":
+      return "Cancelado";
+    case "closed":
+      return "Cerrado";
+    default:
+      return "Abierto";
+  }
+}
+
 function buildState(predictions: PredictionSnapshot[]) {
   return predictions.reduce<Record<string, PredictionState>>((acc, prediction) => {
     acc[prediction.match_id] = {
       ...prediction,
-      homeValue: prediction.predicted_home,
-      awayValue: prediction.predicted_away,
+      homeValue: String(prediction.predicted_home),
+      awayValue: String(prediction.predicted_away),
     };
     return acc;
   }, {});
+}
+
+function isMatchOpen(match: MatchBoardItem) {
+  return match.status === "scheduled" && new Date(match.prediction_closes_at).getTime() > Date.now();
+}
+
+function parseScore(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return 0;
+  }
+
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function isClosedError(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  const message = `${error.message ?? ""} ${error.code ?? ""}`.toLowerCase();
+
+  return (
+    message.includes("row-level security") ||
+    message.includes("prediction_closes_at") ||
+    message.includes("scheduled") ||
+    message.includes("violates")
+  );
 }
 
 export function PredictionBoard({
@@ -85,12 +143,7 @@ export function PredictionBoard({
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, FeedbackState>>({});
 
-  const savedCount = useMemo(
-    () => Object.keys(predictionState).length,
-    [predictionState],
-  );
-
-  function setValue(matchId: string, side: "home" | "away", nextValue: number) {
+  function setValue(matchId: string, side: "home" | "away", nextValue: string) {
     setPredictionState((current) => {
       const previous = current[matchId];
 
@@ -99,24 +152,22 @@ export function PredictionBoard({
         [matchId]: {
           id: previous?.id ?? "",
           match_id: matchId,
-          predicted_home: previous?.predicted_home ?? Math.max(0, side === "home" ? nextValue : 0),
-          predicted_away: previous?.predicted_away ?? Math.max(0, side === "away" ? nextValue : 0),
+          predicted_home: previous?.predicted_home ?? 0,
+          predicted_away: previous?.predicted_away ?? 0,
           locked_at: previous?.locked_at ?? null,
           points: previous?.points ?? 0,
-          homeValue:
-            side === "home" ? Math.max(0, nextValue) : previous?.homeValue ?? 0,
-          awayValue:
-            side === "away" ? Math.max(0, nextValue) : previous?.awayValue ?? 0,
+          homeValue: side === "home" ? nextValue : previous?.homeValue ?? "0",
+          awayValue: side === "away" ? nextValue : previous?.awayValue ?? "0",
         },
       };
     });
   }
 
-  async function savePrediction(matchId: string) {
+  async function savePrediction(match: MatchBoardItem) {
     if (!isAuthenticated || !currentUserId) {
       setFeedback((current) => ({
         ...current,
-        [matchId]: {
+        [match.id]: {
           tone: "error",
           message: "Entrá con tu cuenta para guardar pronósticos.",
         },
@@ -124,49 +175,67 @@ export function PredictionBoard({
       return;
     }
 
-    const state = predictionState[matchId] ?? {
+    if (!isMatchOpen(match)) {
+      setFeedback((current) => ({
+        ...current,
+        [match.id]: {
+          tone: "error",
+          message: "Este partido ya cerró.",
+        },
+      }));
+      return;
+    }
+
+    const state = predictionState[match.id] ?? {
       id: "",
-      match_id: matchId,
+      match_id: match.id,
       predicted_home: 0,
       predicted_away: 0,
       locked_at: null,
       points: 0,
-      homeValue: 0,
-      awayValue: 0,
+      homeValue: "0",
+      awayValue: "0",
     };
 
-    setSavingMatchId(matchId);
+    const homeScore = parseScore(state.homeValue);
+    const awayScore = parseScore(state.awayValue);
+
+    if (homeScore === null || awayScore === null) {
+      setFeedback((current) => ({
+        ...current,
+        [match.id]: {
+          tone: "error",
+          message: "Ingresá goles válidos con números enteros desde 0.",
+        },
+      }));
+      return;
+    }
+
+    setSavingMatchId(match.id);
     setFeedback((current) => {
       const next = { ...current };
-      delete next[matchId];
+      delete next[match.id];
       return next;
     });
 
     try {
       const supabase = createBrowserSupabaseClient();
-      const payload = {
-        predicted_home: state.homeValue,
-        predicted_away: state.awayValue,
-      };
-
-      const query = state.id
-        ? supabase
-            .from("predictions")
-            .update(payload)
-            .eq("id", state.id)
-            .select("id, match_id, predicted_home, predicted_away, locked_at, points")
-            .single()
-        : supabase
-            .from("predictions")
-            .insert({
-              profile_id: currentUserId,
-              match_id: matchId,
-              ...payload,
-            })
-            .select("id, match_id, predicted_home, predicted_away, locked_at, points")
-            .single();
-
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from("predictions")
+        .upsert(
+          {
+            profile_id: currentUserId,
+            user_id: currentUserId,
+            match_id: match.id,
+            predicted_home: homeScore,
+            predicted_away: awayScore,
+            predicted_home_score: homeScore,
+            predicted_away_score: awayScore,
+          },
+          { onConflict: "profile_id,match_id" },
+        )
+        .select("id, match_id, predicted_home, predicted_away, locked_at, points")
+        .single();
 
       if (error || !data) {
         throw error ?? new Error("No pudimos guardar el pronóstico.");
@@ -174,27 +243,32 @@ export function PredictionBoard({
 
       setPredictionState((current) => ({
         ...current,
-        [matchId]: {
+        [match.id]: {
           ...data,
-          homeValue: data.predicted_home,
-          awayValue: data.predicted_away,
+          homeValue: String(data.predicted_home),
+          awayValue: String(data.predicted_away),
         },
       }));
       setFeedback((current) => ({
         ...current,
-        [matchId]: {
+        [match.id]: {
           tone: "success",
           message: participationActive
-            ? "Pronóstico guardado. Va a competir si el partido no empezó."
-            : "Pronóstico guardado como borrador. Para que participe por premios, pagá tu participación.",
+            ? "Pronóstico guardado. Ya compite en el ranking."
+            : "Pronóstico guardado. Queda en borrador hasta pagar.",
         },
       }));
-    } catch {
+    } catch (error) {
+      const supabaseError =
+        typeof error === "object" && error !== null && "message" in error ? (error as { message?: string; code?: string }) : null;
+
       setFeedback((current) => ({
         ...current,
-        [matchId]: {
+        [match.id]: {
           tone: "error",
-          message: "No pudimos guardar este pronóstico. Intentá de nuevo.",
+          message: isClosedError(supabaseError)
+            ? "Este partido ya cerró."
+            : "No pudimos guardar este pronóstico. Intentá de nuevo.",
         },
       }));
     } finally {
@@ -204,51 +278,11 @@ export function PredictionBoard({
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-between gap-3 rounded-lg border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Pronósticos guardados
-          </p>
-          <p className="mt-1 font-serif text-[1.9rem] font-bold text-[var(--color-primary)]">
-            {savedCount}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Estado
-          </p>
-          <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
-            {participationActive ? "Listos para competir" : "Borrador hasta pagar"}
-          </p>
-        </div>
-      </div>
-
-      {isAuthenticated && !participationActive ? (
-        <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-          <MercadoPagoBadge compact secondaryText="Para que tus pronósticos compitan por premios" />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos ya están guardados. Para que entren al ranking y peleen premios, pagá tu participación.
-            </p>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-            >
-              Pagar con Mercado Pago
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
       {!isAuthenticated ? (
-        <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4 text-sm leading-6 text-[var(--color-muted)]">
-          Podés mirar el fixture ahora mismo. Para guardar pronósticos,{" "}
+        <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4 text-sm leading-6 text-[var(--color-muted)]">
+          Mirá el fixture ahora. Para guardar pronósticos,{" "}
           <Link href="/login" className="font-semibold text-[var(--color-primary)]">
-            ingresá con tu cuenta
-          </Link>
-          {" "}o{" "}
-          <Link href="/register" className="font-semibold text-[var(--color-primary)]">
-            creá una gratis
+            entrá al Prode
           </Link>
           .
         </div>
@@ -256,75 +290,90 @@ export function PredictionBoard({
 
       {matches.map((match) => {
         const state = predictionState[match.id];
-        const homeValue = state?.homeValue ?? 0;
-        const awayValue = state?.awayValue ?? 0;
+        const homeValue = state?.homeValue ?? "0";
+        const awayValue = state?.awayValue ?? "0";
         const note = feedback[match.id];
-        const kickoff = formatKickoff(match.starts_at);
+        const open = isMatchOpen(match);
 
         return (
           <article
             key={match.id}
-            className="overflow-hidden rounded-lg border-[1.5px] border-[var(--color-primary)] bg-[var(--color-surface)]"
+            className="overflow-hidden rounded-[1.25rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_10px_24px_rgba(0,50,125,0.05)]"
           >
-            <div className="flex items-center justify-between bg-[var(--color-primary)] px-4 py-2 text-white">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">
-                  {match.phase}
-                  {match.group_name ? ` • Grupo ${match.group_name}` : ""}
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                  {match.round_name}
+                  {match.group_code ? ` • Grupo ${match.group_code}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-[#dfe6ff]">{kickoff}</p>
+                <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+                  {formatKickoff(match.starts_at)}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--color-muted)]">
+                  {match.venue && match.city ? `${match.venue} • ${match.city}` : match.venue ?? match.city ?? "Sede por confirmar"}
+                </p>
               </div>
-              <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em]">
-                {participationActive ? "Compite" : "Borrador"}
+              <span
+                className={[
+                  "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
+                  open
+                    ? "bg-[rgba(154,225,255,0.22)] text-[var(--color-secondary)]"
+                    : "bg-[var(--color-surface)] text-[var(--color-muted)]",
+                ].join(" ")}
+              >
+                {formatStatus(match)}
               </span>
             </div>
 
             <div className="grid gap-4 p-4">
               {[
                 {
+                  key: `${match.id}-home`,
                   team: match.home_team,
                   side: "home" as const,
                   value: homeValue,
+                  label: "Local",
                 },
                 {
+                  key: `${match.id}-away`,
                   team: match.away_team,
                   side: "away" as const,
                   value: awayValue,
+                  label: "Visitante",
                 },
-              ].map(({ team, side, value }, index) => (
-                <div
-                  key={`${match.id}-${team.id}`}
-                  className={index === 0 ? "flex items-center justify-between border-b border-[var(--color-line)] pb-4" : "flex items-center justify-between"}
-                >
-                  <div className="flex items-center gap-3">
-                    <CountryFlag country={team.name} label={team.name} size="md" />
-                    <div>
-                      <p className="font-serif text-[1.5rem] font-bold uppercase leading-none text-[var(--color-ink)]">
-                        {team.code}
+              ].map(({ key, team, side, value, label }) => (
+                <div key={key} className="grid grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CountryFlag
+                      country={team.name}
+                      label={team.name}
+                      size="sm"
+                      emoji={team.flag_emoji}
+                      countryCode={team.country_code}
+                      className="shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                        {label}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--color-muted)]">{team.name}</p>
+                      <p className="truncate font-serif text-[1.45rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+                        {team.short_name}
+                      </p>
+                      <p className="truncate text-sm text-[var(--color-muted)]">{team.name}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setValue(match.id, side, value - 1)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-[var(--color-ink)]"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-serif text-[2.2rem] font-bold text-[var(--color-primary)]">
-                      {value}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setValue(match.id, side, value + 1)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-white"
-                    >
-                      +
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    disabled={!open || savingMatchId === match.id}
+                    value={value}
+                    onChange={(event) => setValue(match.id, side, event.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 text-center font-serif text-[1.6rem] font-bold text-[var(--color-primary)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label={`Goles ${label.toLowerCase()} ${team.name}`}
+                  />
                 </div>
               ))}
 
@@ -343,15 +392,11 @@ export function PredictionBoard({
 
               <button
                 type="button"
-                onClick={() => void savePrediction(match.id)}
-                disabled={savingMatchId === match.id}
-                className="flex items-center justify-center gap-2 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 font-serif text-[1.2rem] uppercase text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={() => void savePrediction(match)}
+                disabled={!isAuthenticated || !open || savingMatchId === match.id}
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {savingMatchId === match.id
-                  ? "Guardando..."
-                  : participationActive
-                    ? "Guardar pronóstico"
-                    : "Guardar pronóstico"}
+                {savingMatchId === match.id ? "Guardando..." : open ? "Guardar pronóstico" : "Este partido ya cerró"}
               </button>
             </div>
           </article>
