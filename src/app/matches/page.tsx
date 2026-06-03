@@ -299,7 +299,7 @@ export default async function MatchesPage() {
   const subcopy = currentUserId
     ? participationActive
       ? "Tus pronósticos ya compiten en el ranking."
-      : "Tus pronósticos quedan guardados. Terminá tu inscripción para competir por premios."
+      : "Tus pronósticos quedan guardados. Completá tu inscripción para jugar."
     : "Entrá al Prode para guardar tus pronósticos cuando esté el fixture.";
 
   return (
@@ -317,16 +317,19 @@ export default async function MatchesPage() {
       </section>
 
       {currentUserId && !participationActive ? (
-        <div className="flex flex-col gap-3 rounded-[1.15rem] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 rounded-[1.05rem] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Tus pronósticos quedan guardados. Terminá tu inscripción para competir por premios.
+            Tus pronósticos quedan guardados. Completá tu inscripción para jugar.
           </p>
-          <Link
-            href="/dashboard"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-          >
-            Pagar con Mercado Pago
-          </Link>
+          <div className="flex flex-col items-start gap-1 sm:items-end">
+            <Link
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Completar inscripción
+            </Link>
+            <span className="text-[11px] leading-5 text-[var(--color-muted)]">con Mercado Pago</span>
+          </div>
         </div>
       ) : null}
 

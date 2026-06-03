@@ -65,6 +65,23 @@ function formatKickoff(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
+async function withClientTimeout<T>(promise: Promise<T>, timeoutMs = 12000): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race<T>([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error("prediction_save_timeout")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
 function formatStatus(match: MatchBoardItem) {
   if (!isMatchOpen(match)) {
     return "Cerrado";
@@ -127,6 +144,15 @@ function isClosedError(error: { message?: string; code?: string } | null) {
     message.includes("prediction_closes_at") ||
     message.includes("scheduled") ||
     message.includes("violates")
+  );
+}
+
+function isTimeoutError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    String((error as { message?: string }).message).toLowerCase().includes("timeout")
   );
 }
 
@@ -220,22 +246,24 @@ export function PredictionBoard({
 
     try {
       const supabase = createBrowserSupabaseClient();
-      const { data, error } = await supabase
-        .from("predictions")
-        .upsert(
-          {
-            profile_id: currentUserId,
-            user_id: currentUserId,
-            match_id: match.id,
-            predicted_home: homeScore,
-            predicted_away: awayScore,
-            predicted_home_score: homeScore,
-            predicted_away_score: awayScore,
-          },
-          { onConflict: "profile_id,match_id" },
-        )
-        .select("id, match_id, predicted_home, predicted_away, locked_at, points")
-        .single();
+      const { data, error } = await withClientTimeout(
+        supabase
+          .from("predictions")
+          .upsert(
+            {
+              profile_id: currentUserId,
+              user_id: currentUserId,
+              match_id: match.id,
+              predicted_home: homeScore,
+              predicted_away: awayScore,
+              predicted_home_score: homeScore,
+              predicted_away_score: awayScore,
+            },
+            { onConflict: "profile_id,match_id" },
+          )
+          .select("id, match_id, predicted_home, predicted_away, locked_at, points")
+          .single(),
+      );
 
       if (error || !data) {
         throw error ?? new Error("No pudimos guardar el pronóstico.");
@@ -255,10 +283,18 @@ export function PredictionBoard({
           tone: "success",
           message: participationActive
             ? "Pronóstico guardado. Ya compite en el ranking."
-            : "Pronóstico guardado. Queda en borrador hasta pagar.",
+            : "Pronóstico guardado. Completá tu inscripción para jugar.",
         },
       }));
     } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[matches] savePrediction failed", {
+          matchId: match.id,
+          currentUserId,
+          error,
+        });
+      }
+
       const supabaseError =
         typeof error === "object" && error !== null && "message" in error ? (error as { message?: string; code?: string }) : null;
 
@@ -268,6 +304,8 @@ export function PredictionBoard({
           tone: "error",
           message: isClosedError(supabaseError)
             ? "Este partido ya cerró."
+            : isTimeoutError(error)
+              ? "No pudimos guardar el pronóstico. Probá de nuevo."
             : "No pudimos guardar este pronóstico. Intentá de nuevo.",
         },
       }));
@@ -277,9 +315,9 @@ export function PredictionBoard({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       {!isAuthenticated ? (
-        <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4 text-sm leading-6 text-[var(--color-muted)]">
+        <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
           Mirá el fixture ahora. Para guardar pronósticos,{" "}
           <Link href="/login" className="font-semibold text-[var(--color-primary)]">
             entrá al Prode
@@ -298,24 +336,24 @@ export function PredictionBoard({
         return (
           <article
             key={match.id}
-            className="overflow-hidden rounded-[1.25rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_10px_24px_rgba(0,50,125,0.05)]"
+            className="overflow-hidden rounded-[1.1rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_8px_18px_rgba(0,50,125,0.05)]"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2.5">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                  {match.group_code ? `Grupo ${match.group_code} · ` : ""}
                   {match.round_name}
-                  {match.group_code ? ` • Grupo ${match.group_code}` : ""}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+                <p className="mt-1 text-[13px] font-semibold text-[var(--color-ink)]">
                   {formatKickoff(match.starts_at)}
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--color-muted)]">
+                <p className="mt-0.5 text-[11px] leading-5 text-[var(--color-muted)]">
                   {match.venue && match.city ? `${match.venue} • ${match.city}` : match.venue ?? match.city ?? "Sede por confirmar"}
                 </p>
               </div>
               <span
                 className={[
-                  "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
+                  "rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
                   open
                     ? "bg-[rgba(154,225,255,0.22)] text-[var(--color-secondary)]"
                     : "bg-[var(--color-surface)] text-[var(--color-muted)]",
@@ -325,24 +363,22 @@ export function PredictionBoard({
               </span>
             </div>
 
-            <div className="grid gap-4 p-4">
+            <div className="grid gap-3 p-3">
               {[
                 {
                   key: `${match.id}-home`,
                   team: match.home_team,
                   side: "home" as const,
                   value: homeValue,
-                  label: "Local",
                 },
                 {
                   key: `${match.id}-away`,
                   team: match.away_team,
                   side: "away" as const,
                   value: awayValue,
-                  label: "Visitante",
                 },
-              ].map(({ key, team, side, value, label }) => (
-                <div key={key} className="grid grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-4">
+              ].map(({ key, team, side, value }) => (
+                <div key={key} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <CountryFlag
                       country={team.name}
@@ -353,13 +389,15 @@ export function PredictionBoard({
                       className="shrink-0"
                     />
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                        {label}
-                      </p>
-                      <p className="truncate font-serif text-[1.45rem] font-bold uppercase leading-none text-[var(--color-ink)]">
-                        {team.short_name}
-                      </p>
-                      <p className="truncate text-sm text-[var(--color-muted)]">{team.name}</p>
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <p className="shrink-0 font-serif text-[1.1rem] font-bold uppercase leading-none text-[var(--color-primary)]">
+                          {team.fifa_code}
+                        </p>
+                        <p className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+                          {team.short_name}
+                        </p>
+                      </div>
+                      <p className="truncate text-[11px] leading-5 text-[var(--color-muted)]">{team.name}</p>
                     </div>
                   </div>
 
@@ -371,8 +409,8 @@ export function PredictionBoard({
                     disabled={!open || savingMatchId === match.id}
                     value={value}
                     onChange={(event) => setValue(match.id, side, event.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 text-center font-serif text-[1.6rem] font-bold text-[var(--color-primary)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label={`Goles ${label.toLowerCase()} ${team.name}`}
+                    className="min-h-10 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1.35rem] font-bold text-[var(--color-primary)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label={`Goles ${team.name}`}
                   />
                 </div>
               ))}
@@ -380,7 +418,7 @@ export function PredictionBoard({
               {note ? (
                 <p
                   className={[
-                    "rounded-lg border px-4 py-3 text-sm leading-6",
+                    "rounded-lg border px-3 py-2 text-sm leading-6",
                     note.tone === "error"
                       ? "border-[var(--color-error)]/25 bg-[#ffdad6] text-[#93000a]"
                       : "border-[var(--color-secondary)]/25 bg-[rgba(154,225,255,0.25)] text-[var(--color-secondary)]",
@@ -394,7 +432,7 @@ export function PredictionBoard({
                 type="button"
                 onClick={() => void savePrediction(match)}
                 disabled={!isAuthenticated || !open || savingMatchId === match.id}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-2.5 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingMatchId === match.id ? "Guardando..." : open ? "Guardar pronóstico" : "Este partido ya cerró"}
               </button>
