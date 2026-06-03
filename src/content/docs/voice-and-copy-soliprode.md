@@ -1,7 +1,7 @@
 ---
 title: "SoliProde Voice & Copy System"
 description: "Guía obligatoria de tono y copy de producto para SoliProde."
-lastUpdated: "2026-06-02"
+lastUpdated: "2026-06-03"
 ---
 
 # SoliProde Voice & Copy System
@@ -39,7 +39,7 @@ No debe sonar como:
 
 ## Regla de foco
 
-- 90% premio / juego / competencia / ranking / grupos
+- 90% premio / juego / competencia / ranking / Teams
 - 10% solidaridad
 
 La solidaridad existe, pero entra como respaldo del proyecto y no como headline dominante.
@@ -51,15 +51,36 @@ La solidaridad existe, pero entra como respaldo del proyecto y no como headline 
 - pronosticá;
 - sumá puntos;
 - subí en el ranking;
-- ganale a tu grupo;
-- armá tu equipo de 11;
-- pagá con Mercado Pago;
-- activá tu participación;
+- empujá a tu Team;
+- creá tu Team de 11;
+- armá un Plantel amplio;
+- completá tu Pase Solidario;
+- aporte confirmado;
+- Jugador activo;
 - tus pronósticos compiten por premios;
-- DT del grupo;
+- DT del Team;
 - premio en juego;
 - ranking general;
-- ranking de grupo.
+- ranking de Team.
+
+## Nomenclatura visible aprobada
+
+- Usuario no logueado = `Visitante`
+- Usuario logueado sin aporte = `Registrado`
+- Usuario logueado con aporte = `Jugador activo`
+- Pago = `Aporte confirmado`
+- Entrada al torneo = `Pase Solidario`
+- Equipo = `Team`
+- Líder del equipo = `Capitán`
+- Grupo de jugadores = `Plantel`
+- Participante individual = `Jugador`
+- Jugador del Team con más puntos = `DT`
+
+## Regla de Teams
+
+Usar esta explicación cuando haga falta:
+
+`El Team puede tener un Plantel amplio. Para el ranking suman los mejores 11 Jugadores activos.`
 
 ## Palabras y frases a evitar
 
@@ -80,22 +101,23 @@ La solidaridad existe, pero entra como respaldo del proyecto y no como headline 
 
 ### Home
 
-- `Jugá el Prode del Mundial y competí por premios.`
-- `Cargá tus pronósticos, sumá puntos y ganale a tu grupo.`
+- `Jugá el Mundial. Llevate todo.`
+- `Creá tu Team de 11 amigos y compitan por la gloria.`
 
 ### Pago
 
-- `Pagá con Mercado Pago y activá tus pronósticos.`
-- `Tus picks están guardados. Para que compitan por premios, pagá tu participación.`
+- `Completá tu inscripción para jugar.`
+- `Aporte confirmado. Ya sos Jugador activo.`
 
 ### Grupo
 
-- `Armá tu equipo de 11.`
-- `El que más puntos tiene es el DT del grupo.`
+- `Creá tu Team de 11.`
+- `El Capitán arma el equipo. El DT se gana el puesto sumando puntos.`
 
 ### Solidaridad
 
-- `Jugás por premios. También ayudás a financiar una tesis universitaria.`
+- `Además bancás a universitarios a terminar su carrera.`
+- `SoliProde es una creación sin fines de lucro.`
 
 ## CTA
 
@@ -112,8 +134,9 @@ Ejemplos:
 
 - `Crear cuenta y jugar`
 - `Continuar con Google`
-- `Pagá y entrá a competir`
-- `Pagar con Mercado Pago`
+- `Entrá al Prode`
+- `Cargá tus pronósticos`
+- `Completá tu inscripción para jugar`
 
 ## Reglas prohibidas
 
@@ -131,4 +154,4 @@ Antes de tocar Home, auth, dashboard, matches, rankings o cualquier CTA visible,
 - `src/content/docs/design-system-athletic-social.md`
 - `src/content/docs/voice-and-copy-soliprode.md`
 
-Si una propuesta visual o de copy no suena a Mundial, ranking, grupo y premio, está fuera de tono.
+Si una propuesta visual o de copy no suena a Mundial, ranking, Team y premio, está fuera de tono.

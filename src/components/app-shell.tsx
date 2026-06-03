@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -10,6 +11,7 @@ import {
   mobileNavItemsLoggedOut,
   secondaryNavItems,
 } from "@/lib/navigation";
+import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -47,6 +49,26 @@ function AvatarChip() {
     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[var(--color-line)] bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)] text-[10px] font-bold text-white">
       SP
     </div>
+  );
+}
+
+function BrandLogo() {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary)] p-1.5 shadow-[0_8px_18px_rgba(0,50,125,0.18)]">
+        <Image
+          src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
+          alt=""
+          width={28}
+          height={28}
+          className="h-7 w-7"
+          priority
+        />
+      </span>
+      <span className="font-serif text-[1.55rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.8rem]">
+        SoliProde
+      </span>
+    </span>
   );
 }
 
@@ -168,8 +190,8 @@ export function AppShell({ children }: AppShellProps) {
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
-            <Link href="/" className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
-              SoliProde
+            <Link href="/" aria-label="SoliProde">
+              <BrandLogo />
             </Link>
             <div className="w-10" />
           </div>
@@ -186,11 +208,11 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
-          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="text-[var(--color-primary)] transition hover:opacity-80">
+          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="text-[var(--color-primary)] transition hover:opacity-80" aria-label="Ir al inicio">
             <SoccerBallIcon className="h-5 w-5" />
           </Link>
-          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-primary)]">
-            SoliProde
+          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} aria-label="SoliProde">
+            <BrandLogo />
           </Link>
           <div className="flex items-center gap-2">
             {authReady && isAuthenticated ? (
@@ -221,7 +243,7 @@ export function AppShell({ children }: AppShellProps) {
                   href="/dashboard"
                   className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
                 >
-                  Completar inscripción
+                  Completar Pase Solidario
                 </Link>
               ) : null}
             </div>

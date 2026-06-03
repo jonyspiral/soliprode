@@ -1,7 +1,7 @@
 ---
 title: "SoliProde Voice Contract"
 description: "Contrato obligatorio de tono y copy para producto, UI y mensajes de SoliProde."
-lastUpdated: "2026-06-02"
+lastUpdated: "2026-06-03"
 ---
 
 # SoliProde Voice Contract
@@ -21,11 +21,11 @@ El tono debe ser:
 - claro;
 - argentino neutro;
 - mobile-first;
-- orientado a premio, ranking, grupo y acción.
+- orientado a premio, ranking, Team y acción.
 
 ## Estrategia
 
-- 90% juego, premio, competencia, ranking y grupos.
+- 90% juego, premio, competencia, ranking y Teams.
 - 10% solidaridad.
 
 La solidaridad acompaña, no lidera el mensaje.
@@ -37,15 +37,36 @@ La solidaridad acompaña, no lidera el mensaje.
 - Cargá tus pronósticos
 - Sumá puntos
 - Subí en el ranking
-- Ganale a tu grupo
-- Armá tu equipo de 11
-- Sos el DT del grupo
+- Empujá a tu Team
+- Creá tu Team de 11
+- Armá un Plantel amplio
+- Sos el DT del Team
+- Pase Solidario
+- Aporte confirmado
 - Competí por premios
-- Pagá con Mercado Pago
-- Tus picks compiten por premios
+- Tus pronósticos compiten por premios
 - Ver partidos
 - Ver ranking
 - Ir al panel
+
+## Nomenclatura aprobada
+
+- Usuario no logueado: `Visitante`
+- Usuario logueado sin aporte: `Registrado`
+- Usuario logueado con aporte: `Jugador activo`
+- Pago confirmado: `Aporte confirmado`
+- Entrada al torneo: `Pase Solidario`
+- Equipo: `Team`
+- Líder del Team: `Capitán`
+- Grupo de jugadores: `Plantel`
+- Participante individual: `Jugador`
+- Jugador del Team con más puntos: `DT`
+
+## Regla de Teams
+
+Copy recomendado:
+
+`El Team puede tener un Plantel amplio. Para el ranking suman los mejores 11 Jugadores activos.`
 
 ## Evitar
 
@@ -56,7 +77,7 @@ La solidaridad acompaña, no lidera el mensaje.
 - superficie
 - arquitectura
 - experiencia institucional
-- participación pendiente de activación
+- estado pendiente de activación
 - gestionar participación
 - usuario habilitado en el sistema
 - copy legalista
@@ -70,7 +91,7 @@ Incorrecto:
 
 Correcto:
 
-`Tus picks están guardados. Pagá con Mercado Pago para que compitan por premios.`
+`Tus pronósticos quedan guardados. Completá tu inscripción para jugar.`
 
 Incorrecto:
 
@@ -92,13 +113,14 @@ Correcto:
 
 Home:
 
-- `Jugá el Prode del Mundial y competí por premios.`
-- `Cargá tus pronósticos, sumá puntos y ganale a tu grupo.`
+- `Jugá el Mundial. Llevate todo.`
+- `Creá tu Team de 11 amigos y compitan por la gloria.`
+- `Además bancás a universitarios a terminar su carrera.`
 
 Pago:
 
-- `Pagá con Mercado Pago y entrá a competir.`
-- `Tus picks están guardados. Pagá para que compitan.`
+- `Completá tu inscripción para jugar.`
+- `Aporte confirmado. Ya sos Jugador activo.`
 
 Ranking:
 
@@ -107,12 +129,12 @@ Ranking:
 
 Grupo:
 
-- `Armá tu equipo de 11.`
-- `El que más puntos tiene es el DT del grupo.`
+- `Creá tu Team de 11.`
+- `El Capitán arma el equipo. El DT se gana el puesto sumando puntos.`
 
 Solidaridad:
 
-- `Jugás por premios. También ayudás a financiar una tesis universitaria.`
+- `SoliProde es una creación sin fines de lucro.`
 
 ## Regla
 

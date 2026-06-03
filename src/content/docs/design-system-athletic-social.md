@@ -1,7 +1,7 @@
 ---
 title: "Design System Athletic Social"
 description: "Dirección visual obligatoria de SoliProde basada en Stitch."
-lastUpdated: "2026-06-02"
+lastUpdated: "2026-06-03"
 ---
 
 # Athletic Social
@@ -16,7 +16,7 @@ Dirección visual elegida desde Stitch para SoliProde.
 
 ## Principio
 
-SoliProde debe sentirse como un prode competitivo, social y mobile-first, con foco en premio, ranking, Mundial y activación de participación.
+SoliProde debe sentirse como un prode competitivo, social y mobile-first, con foco en premio, ranking, Mundial, Team y Pase Solidario.
 
 No es una plataforma institucional, ni una landing solidaria, ni un dashboard SaaS genérico.
 
@@ -32,13 +32,23 @@ No es una plataforma institucional, ni una landing solidaria, ni un dashboard Sa
 
 - CTA principal: grande, clara, amarillo/dorado, con peso visual dominante.
 - CTA secundaria: sobria, contenida, sin competir con la principal.
-- Mercado Pago: badge o señal compacta, nunca protagonista gráfica del hero.
+- Mercado Pago: señal compacta solo donde corresponda. No debe ser CTA principal visible de Home.
 - Las acciones importantes deben hablar en lenguaje directo:
   - jugá,
   - competí,
-  - pagá,
-  - activá,
+  - completá tu inscripción,
+  - completá tu Pase Solidario,
   - sumá puntos.
+
+## Marca y logos
+
+- Logo principal de producto: `public/soliprode-logo.svg` en header y superficies de marca.
+- Isotipo/pelota compacto: `public/soliprode-logo.svg` para estados chicos y loading.
+- Badge reducido: `public/icon-192.png`.
+- Favicon: `public/favicon.ico`.
+- Apple/iconos PWA: `public/apple-touch-icon.png`, `public/icon-192.png`, `public/icon-512.png`.
+
+Las rutas productivas están centralizadas en `src/lib/brand-assets.ts`.
 
 ## Cards
 
@@ -64,9 +74,9 @@ El producto debe hablar en tono competitivo y directo:
 - Jugá.
 - Competí.
 - Sumá puntos.
-- Ganale a tu grupo.
-- Pagá con Mercado Pago.
-- Activá tu participación.
+- Empujá a tu Team.
+- Completá tu Pase Solidario.
+- Aporte confirmado.
 
 La solidaridad existe, pero como capa secundaria. Nunca debe tapar el núcleo del juego.
 
@@ -74,7 +84,7 @@ La solidaridad existe, pero como capa secundaria. Nunca debe tapar el núcleo de
 
 - No usar métricas falsas.
 - No mostrar fixture falso como si fuera real.
-- No esconder el pago cuando ya forma parte del MVP recaudable.
+- No esconder el Pase Solidario cuando ya forma parte del MVP recaudable.
 - No transformar SoliProde en plataforma solidaria antes que juego competitivo.
 - No usar layouts institucionales o estilo ONG.
 - No usar UI genérica de dashboard SaaS.
