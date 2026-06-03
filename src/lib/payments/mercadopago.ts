@@ -162,5 +162,5 @@ export async function searchMercadoPagoPaymentByExternalReference(externalRefere
 }
 
 export function resolveMercadoPagoCheckoutUrl(preference: MercadoPagoPreferenceResponse) {
-  return preference.sandbox_init_point || preference.init_point || null;
+  return preference.init_point || preference.sandbox_init_point || null;
 }
