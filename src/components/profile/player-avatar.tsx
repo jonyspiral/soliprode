@@ -1,6 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import { getPlayerInitials } from "@/lib/player/identity";
 
+function buildAvatarSrc(imageUrl: string) {
+  const searchParams = new URLSearchParams({ src: imageUrl });
+  return `/api/avatar?${searchParams.toString()}`;
+}
+
 type PlayerAvatarProps = {
   imageUrl?: string | null;
   label: string;
@@ -21,11 +26,10 @@ export function PlayerAvatar({
         className={sizeClass}
       >
         <img
-          src={imageUrl}
+          src={buildAvatarSrc(imageUrl)}
           alt={label}
           className="player-avatar-media"
           loading="lazy"
-          referrerPolicy="no-referrer"
         />
       </div>
     );
