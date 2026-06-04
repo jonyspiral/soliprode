@@ -2,8 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
-import { ActivationPanel } from "@/components/participation/activation-panel";
-import { UserStatusCard } from "@/components/participation/user-status-card";
 import {
   InfoNotice,
   PageStack,
@@ -180,35 +178,6 @@ export default async function DashboardPage() {
     return (
       <PageStack>
         <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
-
-        <UserStatusCard
-          alias={aliasLabel}
-          statusLabel={stateLabel}
-          isPaid={false}
-        />
-
-        <SurfaceCard
-          id="solidarity-pass"
-          tone="accent"
-          title="Pase Solidario"
-          description="Completá tu Aporte para pasar a competir oficialmente."
-        >
-          <div className="grid gap-4">
-            <ActivationPanel
-              participationId={participation?.id ?? null}
-              participationStatus={participationStatus}
-              draftCount={predictionCount}
-              initialPaymentReference={participation?.payment_reference ?? null}
-              initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
-            />
-            <Link
-              href="/matches"
-              className="inline-flex min-h-14 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-            >
-              Cargar pronósticos
-            </Link>
-          </div>
-        </SurfaceCard>
       </PageStack>
     );
   }

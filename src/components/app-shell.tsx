@@ -243,7 +243,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
             <div className="mx-auto w-full max-w-6xl md:px-2">
               <StartCheckoutCard className="block w-full rounded-xl border border-[rgba(233,196,0,0.22)] bg-[rgba(255,255,255,0.72)] px-4 py-3 text-left transition hover:border-[rgba(233,196,0,0.45)]">
-                <div className="flex items-start justify-between gap-3">
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
                       No activo
@@ -252,7 +252,7 @@ export function AppShell({ children }: AppShellProps) {
                       No tenés Pase Solidario. Debés terminar tu inscripción para competir.
                     </p>
                   </div>
-                  <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                  <span className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]">
                     Completar Aporte Solidario
                   </span>
                 </div>
@@ -265,7 +265,7 @@ export function AppShell({ children }: AppShellProps) {
       <main
         className={[
           "mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 md:px-6",
-          showPendingPaymentBanner ? "pt-[6.75rem]" : "pt-[4.5rem]",
+          showPendingPaymentBanner ? "pt-[8rem] md:pt-[7.5rem]" : "pt-[4.5rem]",
         ].join(" ")}
       >
         {isSecondaryScreen ? (

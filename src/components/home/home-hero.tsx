@@ -15,7 +15,7 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
   const heroTitle = isActive
     ? `Hola${state.alias ? `, ${state.alias}` : ""}`
     : isRegistered
-      ? "Seguís a un paso de jugar"
+      ? "Ya podés activar tu juego"
       : "¡Jugá el Mundial y llevate todo!";
   const heroCopy = isActive
     ? "Ya estás compitiendo. Mirá tu score y cómo viene tu Team."
@@ -25,7 +25,7 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
   const heroHighlight = isActive
     ? null
     : isRegistered
-      ? state.predictionCountLabel
+      ? null
       : "Jugás un Prode Mundial… para ser campeón, tenés que sumar. Creá equipo con 11 amigos y competí por la Copa SoliProde.";
 
   return (
@@ -65,18 +65,6 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
               <Link href={state.secondaryAction.href} className="home-landing-button-secondary">
                 {state.secondaryAction.label}
               </Link>
-            </div>
-          ) : null}
-          {isRegistered ? (
-            <div className="home-landing-status-strip">
-              <div className="home-landing-status-chip">
-                <span className="home-landing-status-chip-label">Estado</span>
-                <strong>Registrado</strong>
-              </div>
-              <div className="home-landing-status-chip">
-                <span className="home-landing-status-chip-label">Pronósticos</span>
-                <strong>{state.predictionCountLabel}</strong>
-              </div>
             </div>
           ) : null}
           {isActive ? (
