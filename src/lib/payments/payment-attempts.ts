@@ -312,7 +312,30 @@ async function applyAttemptAndParticipationState(
   };
 }
 
-export async function syncLatestPendingPaymentAttemptForParticipation(participationId: string) {
+async function getPaymentInfoForAttempt(attempt: PaymentAttemptRow) {
+  if (attempt.provider_payment_id) {
+    return getMercadoPagoPayment(attempt.provider_payment_id);
+  }
+
+  return searchMercadoPagoPaymentByExternalReference(attempt.external_reference);
+}
+
+function isApprovedPaymentForAttempt(
+  attempt: PaymentAttemptRow,
+  paymentInfo: MercadoPagoPaymentInfo | null,
+) {
+  if (!paymentInfo) {
+    return false;
+  }
+
+  return (
+    mapMercadoPagoStatus(paymentInfo.status) === "paid" &&
+    Number(paymentInfo.transaction_amount) === Number(attempt.amount) &&
+    paymentInfo.external_reference === attempt.external_reference
+  );
+}
+
+export async function syncPendingPaymentAttemptsForParticipation(participationId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
     .from("payment_attempts")
@@ -323,20 +346,49 @@ export async function syncLatestPendingPaymentAttemptForParticipation(participat
     .eq("provider", "mercadopago")
     .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(10);
 
   if (error) {
     throw error;
   }
 
-  const attempt = (data as PaymentAttemptRow | null) ?? null;
+  const attempts = ((data ?? []) as PaymentAttemptRow[]) ?? [];
 
-  if (!attempt) {
+  if (attempts.length === 0) {
     return null;
   }
 
-  return syncPaymentAttemptFromExternalReference(attempt.external_reference);
+  let latestPaymentInfo: MercadoPagoPaymentInfo | null | undefined;
+
+  for (const attempt of attempts) {
+    const paymentInfo = await getPaymentInfoForAttempt(attempt);
+
+    if (attempt.id === attempts[0]?.id) {
+      latestPaymentInfo = paymentInfo;
+    }
+
+    if (isApprovedPaymentForAttempt(attempt, paymentInfo)) {
+      const syncResult = await applyAttemptAndParticipationState(attempt, paymentInfo);
+
+      return {
+        attempt,
+        paymentInfo,
+        syncResult,
+      };
+    }
+  }
+
+  const latestAttempt = attempts[0];
+  const syncResult = await applyAttemptAndParticipationState(
+    latestAttempt,
+    latestPaymentInfo ?? null,
+  );
+
+  return {
+    attempt: latestAttempt,
+    paymentInfo: latestPaymentInfo ?? null,
+    syncResult,
+  };
 }
 
 export async function syncPaymentAttemptFromExternalReference(externalReference: string) {
@@ -346,13 +398,7 @@ export async function syncPaymentAttemptFromExternalReference(externalReference:
     return null;
   }
 
-  let paymentInfo: MercadoPagoPaymentInfo | null = null;
-
-  if (attempt.provider_payment_id) {
-    paymentInfo = await getMercadoPagoPayment(attempt.provider_payment_id);
-  } else {
-    paymentInfo = await searchMercadoPagoPaymentByExternalReference(externalReference);
-  }
+  const paymentInfo = await getPaymentInfoForAttempt(attempt as PaymentAttemptRow);
 
   const syncResult = await applyAttemptAndParticipationState(
     attempt as PaymentAttemptRow,

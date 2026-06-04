@@ -14,7 +14,7 @@ import { getPlayerDisplayName } from "@/lib/player/identity";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
-import { syncLatestPendingPaymentAttemptForParticipation } from "@/lib/payments/payment-attempts";
+import { syncPendingPaymentAttemptsForParticipation } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
 
     if (participation && SYNCABLE_PAYMENT_STATUSES.has(participation.payment_status)) {
       try {
-        const paymentSync = await syncLatestPendingPaymentAttemptForParticipation(participation.id);
+        const paymentSync = await syncPendingPaymentAttemptsForParticipation(participation.id);
         const syncedStatus = paymentSync?.syncResult.participationStatus;
 
         if (syncedStatus) {
