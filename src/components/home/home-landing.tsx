@@ -69,6 +69,7 @@ export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
             label: entry.label,
             points: entry.points,
             position: entry.position,
+            avatarUrl: entry.avatarUrl,
           }))}
           teams={communityFeed.rankings.groups.map((entry) => ({
             key: entry.key,
