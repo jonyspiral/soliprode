@@ -2,6 +2,8 @@ function readConfiguredBaseUrl() {
   return process.env.NEXT_PUBLIC_BASE_URL?.trim() || null;
 }
 
+export const AUTH_NEXT_COOKIE_NAME = "soliprode_auth_next";
+
 function isLocalOrigin(origin: string | null) {
   if (!origin) {
     return false;
@@ -24,6 +26,23 @@ export function hasConfiguredAuthBaseUrl() {
 
 export function normalizeAuthNextPath(nextPath: string | null | undefined) {
   return nextPath?.startsWith("/") ? nextPath : "/dashboard";
+}
+
+export function persistAuthNextPath(nextPath: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const safeNextPath = normalizeAuthNextPath(nextPath);
+  document.cookie = `${AUTH_NEXT_COOKIE_NAME}=${encodeURIComponent(safeNextPath)}; Path=/; Max-Age=600; SameSite=Lax`;
+}
+
+export function clearPersistedAuthNextPath() {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${AUTH_NEXT_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 export function buildAuthCallbackUrl(nextPath = "/dashboard") {

@@ -17,7 +17,9 @@ import {
 } from "@/lib/auth/promoter-attribution";
 import {
   buildAuthCallbackUrl,
+  clearPersistedAuthNextPath,
   hasConfiguredAuthBaseUrl,
+  persistAuthNextPath,
 } from "@/lib/auth/oauth";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
@@ -75,6 +77,7 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
 
     try {
       persistPromoterCode(effectivePromoterCode);
+      persistAuthNextPath(nextPath);
       const redirectTo = buildAuthCallbackUrl(nextPath);
       const hasConfiguredBaseUrl = hasConfiguredAuthBaseUrl();
       const supabase = createBrowserSupabaseClient();
@@ -176,6 +179,7 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
         setSuccess(
           "La cuenta quedó creada. Si el email te frena, probá con Google o revisemos la configuración de Supabase para el MVP.",
         );
+        clearPersistedAuthNextPath();
         router.replace(loginHref);
         router.refresh();
         return;
@@ -189,6 +193,7 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
       }
 
       persistPromoterCode(null);
+      clearPersistedAuthNextPath();
       setSuccess("Cuenta lista. Ya podés entrar a jugar.");
       router.replace(nextPath);
       router.refresh();

@@ -16,7 +16,9 @@ import {
 } from "@/lib/auth/promoter-attribution";
 import {
   buildAuthCallbackUrl,
+  clearPersistedAuthNextPath,
   hasConfiguredAuthBaseUrl,
+  persistAuthNextPath,
 } from "@/lib/auth/oauth";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
@@ -71,6 +73,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
 
     try {
       persistPromoterCode(effectivePromoterCode);
+      persistAuthNextPath(nextPath);
       const redirectTo = buildAuthCallbackUrl(nextPath);
       const hasConfiguredBaseUrl = hasConfiguredAuthBaseUrl();
       const supabase = createBrowserSupabaseClient();
@@ -156,6 +159,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
       }
 
       persistPromoterCode(null);
+      clearPersistedAuthNextPath();
       setSuccess("Listo. Volvés a tu panel.");
       router.replace(nextPath);
       router.refresh();

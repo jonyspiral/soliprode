@@ -4,7 +4,11 @@ import {
   PROMOTER_COOKIE_NAME,
   normalizePromoterCode,
 } from "@/lib/auth/promoter-attribution";
-import { GOOGLE_OAUTH_ERROR_MESSAGE, normalizeAuthNextPath } from "@/lib/auth/oauth";
+import {
+  AUTH_NEXT_COOKIE_NAME,
+  GOOGLE_OAUTH_ERROR_MESSAGE,
+  normalizeAuthNextPath,
+} from "@/lib/auth/oauth";
 import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/config";
 
@@ -91,6 +95,13 @@ export async function POST(request: NextRequest) {
 
   if (request.cookies.get(PROMOTER_COOKIE_NAME)) {
     response.cookies.set(PROMOTER_COOKIE_NAME, "", {
+      path: "/",
+      maxAge: 0,
+    });
+  }
+
+  if (request.cookies.get(AUTH_NEXT_COOKIE_NAME)) {
+    response.cookies.set(AUTH_NEXT_COOKIE_NAME, "", {
       path: "/",
       maxAge: 0,
     });
