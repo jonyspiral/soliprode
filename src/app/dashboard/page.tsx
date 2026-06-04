@@ -38,6 +38,12 @@ type DashboardParticipation = {
   payment_submitted_at: string | null;
 };
 
+type DashboardPageProps = {
+  searchParams?: Promise<{
+    account_ready?: string;
+  }>;
+};
+
 async function loadDashboardAccountData(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
@@ -73,7 +79,10 @@ async function loadDashboardAccountData(
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const alreadyRetriedAccountBootstrap = params?.account_ready === "1";
+  let shouldReloadAfterAccountBootstrap = false;
   let hasAuthenticatedUser = false;
   let currentUserId: string | null = null;
   let profile: DashboardProfile | null = null;
@@ -104,7 +113,11 @@ export default async function DashboardPage() {
         throw new Error("dashboard_bootstrap_failed");
       }
 
-      accountData = await loadDashboardAccountData(supabase, user.id);
+      if (!alreadyRetriedAccountBootstrap) {
+        shouldReloadAfterAccountBootstrap = true;
+      } else {
+        accountData = await loadDashboardAccountData(supabase, user.id);
+      }
     }
 
     profile = accountData.profile;
@@ -135,6 +148,10 @@ export default async function DashboardPage() {
       fallbackMessage =
         "Tu sesión está abierta, pero no pudimos leer tu cuenta completa. Reintentá en unos minutos.";
     }
+  }
+
+  if (shouldReloadAfterAccountBootstrap) {
+    redirect("/dashboard?account_ready=1");
   }
 
   if (!hasAuthenticatedUser) {
