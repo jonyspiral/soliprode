@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo_Narrow, Inter } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/components/app-shell-client";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
 
 const inter = Inter({
