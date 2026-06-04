@@ -21,6 +21,11 @@ import {
   hasConfiguredAuthBaseUrl,
   persistAuthNextPath,
 } from "@/lib/auth/oauth";
+import {
+  GAME_NICKNAME_MAX_LENGTH,
+  GAME_NICKNAME_MIN_LENGTH,
+  normalizeGameNickname,
+} from "@/lib/player/identity";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -123,9 +128,7 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
 
     try {
       const fullName = String(formData.get("full_name") ?? "").trim();
-      const publicAlias = String(formData.get("public_alias") ?? "")
-        .trim()
-        .replace(/\s+/g, " ");
+      const publicAlias = normalizeGameNickname(String(formData.get("public_alias") ?? ""));
       const whatsapp = String(formData.get("whatsapp") ?? "").trim();
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "").trim();
@@ -138,8 +141,10 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
         return;
       }
 
-      if (publicAlias.length < 3) {
-        setError("El alias público tiene que tener al menos 3 caracteres.");
+      if (publicAlias.length < GAME_NICKNAME_MIN_LENGTH || publicAlias.length > GAME_NICKNAME_MAX_LENGTH) {
+        setError(
+          `El alias público tiene que tener entre ${GAME_NICKNAME_MIN_LENGTH} y ${GAME_NICKNAME_MAX_LENGTH} caracteres.`,
+        );
         return;
       }
 
@@ -270,6 +275,8 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
                 type="text"
                 required
                 autoComplete="nickname"
+                minLength={GAME_NICKNAME_MIN_LENGTH}
+                maxLength={GAME_NICKNAME_MAX_LENGTH}
                 className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
                 placeholder="Cómo querés aparecer"
               />

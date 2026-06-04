@@ -6,13 +6,14 @@ import {
   readRequiredString,
   type AuthFormState,
 } from "@/lib/supabase/auth";
+import {
+  GAME_NICKNAME_MAX_LENGTH,
+  GAME_NICKNAME_MIN_LENGTH,
+  normalizeGameNickname,
+} from "@/lib/player/identity";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export { initialAuthFormState };
-
-function normalizeAlias(alias: string) {
-  return alias.trim().replace(/\s+/g, " ");
-}
 
 export async function registerAction(
   _prevState: AuthFormState,
@@ -20,7 +21,7 @@ export async function registerAction(
 ): Promise<AuthFormState> {
   try {
     const fullName = readRequiredString(formData, "full_name");
-    const publicAlias = normalizeAlias(readRequiredString(formData, "public_alias"));
+    const publicAlias = normalizeGameNickname(readRequiredString(formData, "public_alias"));
     const whatsapp = readOptionalString(formData, "whatsapp");
     const email = readRequiredString(formData, "email");
     const password = readRequiredString(formData, "password");
@@ -28,9 +29,17 @@ export async function registerAction(
     const communityName = readOptionalString(formData, "community_name");
     const groupName = readOptionalString(formData, "group_name");
 
-    if (publicAlias.length < 3) {
+    if (publicAlias.length < GAME_NICKNAME_MIN_LENGTH) {
       return {
-        error: "El alias público tiene que tener al menos 3 caracteres.",
+        error: `El alias público tiene que tener entre ${GAME_NICKNAME_MIN_LENGTH} y ${GAME_NICKNAME_MAX_LENGTH} caracteres.`,
+        success: null,
+        redirectTo: null,
+      };
+    }
+
+    if (publicAlias.length > GAME_NICKNAME_MAX_LENGTH) {
+      return {
+        error: `El alias público tiene que tener entre ${GAME_NICKNAME_MIN_LENGTH} y ${GAME_NICKNAME_MAX_LENGTH} caracteres.`,
         success: null,
         redirectTo: null,
       };

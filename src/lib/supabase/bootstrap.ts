@@ -2,6 +2,12 @@ import type { User } from "@supabase/supabase-js";
 import { normalizePromoterCode } from "@/lib/auth/promoter-attribution";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import {
+  buildGameNicknameVariant,
+  isPublicAliasConflictError,
+  normalizeGameNickname,
+} from "@/lib/player/identity";
+import { isPublicAliasTaken } from "@/lib/player/public-alias-registry";
+import {
   createServerSupabaseClient,
   createServiceRoleSupabaseClient,
 } from "@/lib/supabase/server";
@@ -32,7 +38,59 @@ function buildFallbackAlias(user: User, metadata: SupabaseUserMetadata) {
     user.email?.split("@")[0] ??
     `jugador-${user.id.slice(0, 8)}`;
 
-  return aliasCandidate.replace(/\s+/g, " ").trim().slice(0, 40);
+  return normalizeGameNickname(aliasCandidate) || `jugador-${user.id.slice(0, 8)}`;
+}
+
+async function saveProfileWithUniqueAlias(input: {
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>;
+  profileId: string;
+  fullName: string | null;
+  publicAlias: string;
+  whatsapp: string | null;
+  email: string | null;
+  isRepair: boolean;
+}) {
+  for (let duplicateOffset = 0; duplicateOffset < 20; duplicateOffset += 1) {
+    const candidateAlias = buildGameNicknameVariant(input.publicAlias, duplicateOffset);
+
+    if (await isPublicAliasTaken(candidateAlias, input.profileId)) {
+      continue;
+    }
+
+    const basePayload = {
+      full_name: input.fullName,
+      public_alias: candidateAlias,
+      whatsapp: input.whatsapp,
+      email: input.email,
+    };
+    const query = input.isRepair
+      ? input.supabase.from("profiles").update(basePayload).eq("id", input.profileId)
+      : input.supabase.from("profiles").insert({
+          id: input.profileId,
+          ...basePayload,
+          role: "player",
+        });
+    const { error } = await query;
+
+    if (!error) {
+      return {
+        ok: true as const,
+        alias: candidateAlias,
+      };
+    }
+
+    if (!isPublicAliasConflictError(error)) {
+      return {
+        ok: false as const,
+        error,
+      };
+    }
+  }
+
+  return {
+    ok: false as const,
+    error: new Error("No pudimos asignar un nick de juego disponible."),
+  };
 }
 
 async function resolvePromoterId(promoterCode: string | null) {
@@ -96,16 +154,17 @@ export async function ensureRegisteredUserRecords(
   }
 
   if (!existingProfile) {
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: user.id,
-      full_name: fullName,
-      public_alias: publicAlias,
+    const profileInsertResult = await saveProfileWithUniqueAlias({
+      supabase,
+      profileId: user.id,
+      fullName,
+      publicAlias,
       whatsapp,
       email: user.email ?? null,
-      role: "player",
+      isRepair: false,
     });
 
-    if (profileError) {
+    if (!profileInsertResult.ok) {
       return {
         ok: false as const,
         error:
@@ -115,17 +174,17 @@ export async function ensureRegisteredUserRecords(
   }
 
   if (existingProfile && !existingProfile.public_alias) {
-    const { error: repairProfileError } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        public_alias: publicAlias,
-        whatsapp,
-        email: user.email ?? null,
-      })
-      .eq("id", user.id);
+    const repairProfileResult = await saveProfileWithUniqueAlias({
+      supabase,
+      profileId: user.id,
+      fullName,
+      publicAlias,
+      whatsapp,
+      email: user.email ?? null,
+      isRepair: true,
+    });
 
-    if (repairProfileError) {
+    if (!repairProfileResult.ok) {
       return {
         ok: false as const,
         error:

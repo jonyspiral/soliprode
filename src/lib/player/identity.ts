@@ -19,6 +19,10 @@ type PlayerIdentityUser = {
   } | null;
 };
 
+export const GAME_NICKNAME_MIN_LENGTH = 3;
+export const GAME_NICKNAME_MAX_LENGTH = 24;
+const PUBLIC_ALIAS_UNIQUE_INDEX = "profiles_public_alias_normalized_unique_idx";
+
 function firstNonEmpty(...values: Array<string | null | undefined>) {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
@@ -93,7 +97,43 @@ export function getPassStatus(paymentStatus: string | null | undefined) {
 }
 
 export function normalizeGameNickname(rawValue: string) {
-  return rawValue.trim().replace(/\s+/g, " ");
+  return rawValue.trim().replace(/\s+/g, " ").slice(0, GAME_NICKNAME_MAX_LENGTH);
+}
+
+export function getNormalizedGameNicknameKey(rawValue: string) {
+  return normalizeGameNickname(rawValue).toLowerCase();
+}
+
+export function isValidGameNickname(value: string) {
+  return value.length >= GAME_NICKNAME_MIN_LENGTH && value.length <= GAME_NICKNAME_MAX_LENGTH;
+}
+
+export function buildGameNicknameVariant(baseValue: string, duplicateOffset: number) {
+  const normalizedBase = normalizeGameNickname(baseValue) || "Jugador";
+
+  if (duplicateOffset <= 0) {
+    return normalizedBase;
+  }
+
+  const suffix = `-${duplicateOffset + 1}`;
+  const baseLimit = GAME_NICKNAME_MAX_LENGTH - suffix.length;
+  const trimmedBase = normalizedBase.slice(0, Math.max(baseLimit, 1)).trim();
+
+  return `${trimmedBase || "J"}${suffix}`;
+}
+
+export function isPublicAliasConflictError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? String(error.code ?? "") : "";
+  const message = "message" in error ? String(error.message ?? "") : "";
+
+  return (
+    code === "23505" &&
+    (message.includes(PUBLIC_ALIAS_UNIQUE_INDEX) || message.toLowerCase().includes("public_alias"))
+  );
 }
 
 export function normalizeWhatsapp(rawValue: string) {

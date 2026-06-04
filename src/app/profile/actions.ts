@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isPublicAliasTaken } from "@/lib/player/public-alias-registry";
 import {
+  GAME_NICKNAME_MAX_LENGTH,
+  GAME_NICKNAME_MIN_LENGTH,
+  isPublicAliasConflictError,
+  isValidGameNickname,
   isValidWhatsapp,
   normalizeGameNickname,
   normalizeWhatsapp,
@@ -38,10 +43,17 @@ export async function updateGameProfileAction(
     const { supabase, user } = await requireProfileUser();
     const nickname = normalizeGameNickname(String(formData.get("game_nickname") ?? ""));
 
-    if (nickname.length < 3 || nickname.length > 24) {
+    if (!isValidGameNickname(nickname)) {
       return {
         status: "error",
-        message: "Tu nick de juego debe tener entre 3 y 24 caracteres.",
+        message: `Tu nick de juego debe tener entre ${GAME_NICKNAME_MIN_LENGTH} y ${GAME_NICKNAME_MAX_LENGTH} caracteres.`,
+      };
+    }
+
+    if (await isPublicAliasTaken(nickname, user.id)) {
+      return {
+        status: "error",
+        message: "Ese nick ya lo está usando otro jugador. Elegí uno distinto.",
       };
     }
 
@@ -49,6 +61,13 @@ export async function updateGameProfileAction(
       .from("profiles")
       .update({ public_alias: nickname })
       .eq("id", user.id);
+
+    if (error && isPublicAliasConflictError(error)) {
+      return {
+        status: "error",
+        message: "Ese nick ya lo está usando otro jugador. Elegí uno distinto.",
+      };
+    }
 
     if (error) {
       return {

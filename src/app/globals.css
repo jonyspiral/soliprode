@@ -872,6 +872,13 @@ select {
   box-shadow: 0 10px 24px rgba(0, 50, 125, 0.18);
 }
 
+.player-avatar-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .player-avatar {
   width: 4rem;
   height: 4rem;

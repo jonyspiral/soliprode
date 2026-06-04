@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { getPlayerInitials } from "@/lib/player/identity";
 
 type PlayerAvatarProps = {
@@ -17,11 +18,16 @@ export function PlayerAvatar({
   if (imageUrl) {
     return (
       <div
-        aria-label={label}
         className={sizeClass}
-        role="img"
-        style={{ backgroundImage: `url("${imageUrl}")` }}
-      />
+      >
+        <img
+          src={imageUrl}
+          alt={label}
+          className="player-avatar-media"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
     );
   }
 
