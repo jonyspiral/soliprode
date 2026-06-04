@@ -18,8 +18,16 @@ import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
+type AppShellInitialSession = {
+  avatarUrl: string | null;
+  isAuthenticated: boolean;
+  isPaid: boolean;
+  userId: string | null;
+};
+
 type AppShellProps = {
   children: ReactNode;
+  initialSession?: AppShellInitialSession;
 };
 
 function isActive(pathname: string, href: string) {
@@ -75,17 +83,23 @@ function BrandLogo() {
   );
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, initialSession }: AppShellProps) {
   const pathname = usePathname();
   const isAuthScreen =
     pathname === "/login" || pathname === "/register" || pathname === "/auth/callback";
   const isPublicHome = pathname === "/";
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const initialIsAuthenticated = initialSession?.isAuthenticated ?? false;
+  const initialParticipationStatus = initialIsAuthenticated
+    ? initialSession?.isPaid
+      ? "paid"
+      : "pending"
+    : null;
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
+  const [authReady, setAuthReady] = useState(Boolean(initialSession));
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialSession?.avatarUrl ?? null);
   const [playerLabel, setPlayerLabel] = useState("Perfil");
-  const [participationStatus, setParticipationStatus] = useState<string | null>(null);
+  const [participationStatus, setParticipationStatus] = useState<string | null>(initialParticipationStatus);
   const participationUiState = resolveParticipationUiState(participationStatus);
   const showPendingPaymentBanner =
     authReady &&
@@ -99,7 +113,7 @@ export function AppShell({ children }: AppShellProps) {
     async function syncParticipation(userId: string | null) {
       if (!userId) {
         if (active) {
-          setParticipationStatus(null);
+          setParticipationStatus(initialParticipationStatus);
         }
         return;
       }
@@ -119,11 +133,11 @@ export function AppShell({ children }: AppShellProps) {
         setParticipationStatus(
           pickPrimaryParticipation(
             (data ?? []) as Array<{ created_at: string; payment_status: string }>,
-          ).participation?.payment_status ?? null,
+          ).participation?.payment_status ?? initialParticipationStatus,
         );
       } catch {
         if (active) {
-          setParticipationStatus(null);
+          setParticipationStatus(initialParticipationStatus);
         }
       }
     }
@@ -131,7 +145,7 @@ export function AppShell({ children }: AppShellProps) {
     async function syncProfileIdentity(user: { id: string; user_metadata?: Record<string, unknown> } | null) {
       if (!user) {
         if (active) {
-          setAvatarUrl(null);
+          setAvatarUrl(initialSession?.avatarUrl ?? null);
           setPlayerLabel("Perfil");
         }
         return;
@@ -168,11 +182,25 @@ export function AppShell({ children }: AppShellProps) {
           return;
         }
 
+        if (!user && initialIsAuthenticated) {
+          setIsAuthenticated(true);
+          void syncProfileIdentity(null);
+          void syncParticipation(initialSession?.userId ?? null);
+          return;
+        }
+
         setIsAuthenticated(Boolean(user));
         void syncProfileIdentity(user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null);
         void syncParticipation(user?.id ?? null);
       } catch {
         if (!active) {
+          return;
+        }
+
+        if (initialIsAuthenticated) {
+          setIsAuthenticated(true);
+          setAvatarUrl(initialSession?.avatarUrl ?? null);
+          setParticipationStatus(initialParticipationStatus);
           return;
         }
 
@@ -196,11 +224,12 @@ export function AppShell({ children }: AppShellProps) {
         return;
       }
 
-      setIsAuthenticated(Boolean(session?.user));
+      const nextIsAuthenticated = Boolean(session?.user) || initialIsAuthenticated;
+      setIsAuthenticated(nextIsAuthenticated);
       void syncProfileIdentity(
         session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null,
       );
-      void syncParticipation(session?.user?.id ?? null);
+      void syncParticipation(session?.user?.id ?? initialSession?.userId ?? null);
       setAuthReady(true);
     });
 
@@ -208,7 +237,7 @@ export function AppShell({ children }: AppShellProps) {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialIsAuthenticated, initialParticipationStatus, initialSession?.avatarUrl, initialSession?.userId]);
 
   const mobileNavItems =
     authReady && isAuthenticated
