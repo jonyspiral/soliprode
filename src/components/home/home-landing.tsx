@@ -1,6 +1,6 @@
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList } from "@/components/home/home-match-list";
-import { HomeRankingList } from "@/components/home/home-ranking-list";
+import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
 import type { HomeHeroState } from "@/lib/home/player-hero-state";
@@ -59,19 +59,24 @@ export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
       </div>
 
       <div className="home-landing-sheet">
-        <HomeRankingList
-          title="Ranking individual"
-          description="Top jugadores con puntaje oficial."
-          entries={communityFeed.rankings.individual}
-          emptyMessage="Todavía no hay ranking individual publicado."
-        />
-
-        <HomeRankingList
-          title="Ranking grupal"
-          description="Teams con mejor puntaje acumulado."
-          entries={communityFeed.rankings.groups}
-          emptyMessage="Todavía no hay ranking grupal publicado."
-          tone="group"
+        <RankingPodiumBlocks
+          hasComputedResults={
+            communityFeed.rankings.individual.some((entry) => entry.points > 0) ||
+            communityFeed.rankings.groups.some((entry) => entry.points > 0)
+          }
+          individual={communityFeed.rankings.individual.map((entry) => ({
+            key: entry.key,
+            label: entry.label,
+            points: entry.points,
+            position: entry.position,
+          }))}
+          teams={communityFeed.rankings.groups.map((entry) => ({
+            key: entry.key,
+            name: entry.name,
+            points: entry.points,
+            position: entry.position,
+            activeCount: entry.activeCount,
+          }))}
         />
 
         <HomeMatchList matches={communityFeed.matches} />

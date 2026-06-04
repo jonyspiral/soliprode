@@ -17,11 +17,19 @@ export type HomeCommunityMatch = {
   };
 };
 
-export type HomeCommunityRankingEntry = {
+export type HomeCommunityIndividualRanking = {
+  key: string;
   label: string;
   points: number;
   position: number;
-  detail?: string;
+};
+
+export type HomeCommunityGroupRanking = {
+  key: string;
+  name: string;
+  points: number;
+  position: number;
+  activeCount: number;
 };
 
 type HomeMatchRow = {
@@ -111,8 +119,8 @@ async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
 }
 
 async function getLandingRankings(): Promise<{
-  individual: HomeCommunityRankingEntry[];
-  groups: HomeCommunityRankingEntry[];
+  individual: HomeCommunityIndividualRanking[];
+  groups: HomeCommunityGroupRanking[];
 }> {
   try {
     const service = createServiceRoleSupabaseClient();
@@ -142,17 +150,19 @@ async function getLandingRankings(): Promise<{
       ((profileData ?? []) as HomeProfileRow[]).map((profile) => [profile.id, profile]),
     );
 
-    const individual: HomeCommunityRankingEntry[] = rankingRows.map((row) => ({
+    const individual: HomeCommunityIndividualRanking[] = rankingRows.map((row) => ({
+      key: row.profile_id,
       label: getPlayerDisplayName(profileMap.get(row.profile_id) ?? null),
       points: row.points ?? 0,
       position: row.position,
     }));
 
-    const groups: HomeCommunityRankingEntry[] = groupSnapshot.leaderboard.slice(0, 3).map((entry) => ({
-      label: entry.name,
+    const groups: HomeCommunityGroupRanking[] = groupSnapshot.leaderboard.slice(0, 3).map((entry) => ({
+      key: entry.groupId,
+      name: entry.name,
       points: entry.teamScore,
       position: entry.position,
-      detail: `${entry.activeCount} activos`,
+      activeCount: entry.activeCount,
     }));
 
     return { individual, groups };
