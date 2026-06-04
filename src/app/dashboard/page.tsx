@@ -10,6 +10,7 @@ import {
 import { SurfaceCard } from "@/components/surface-card";
 import { formatZoneLabel } from "@/lib/fixture/zone-labels";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
+import { getPlayerDisplayName } from "@/lib/player/identity";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -155,7 +156,7 @@ export default async function DashboardPage() {
   const participationStatus = participation?.payment_status ?? "pending";
   const participationUiState = resolveParticipationUiState(participationStatus);
   const participationActive = participationUiState.isPaid;
-  const aliasLabel = profile?.public_alias?.trim() || "jugador";
+  const aliasLabel = getPlayerDisplayName(profile);
   const stateLabel = participationUiState.statusLabel;
   const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
@@ -212,7 +213,7 @@ export default async function DashboardPage() {
           value={stateLabel}
           detail="Aporte confirmado y ranking activo."
         />
-        <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
+        <StatCard label="Nick de juego" value={aliasLabel} detail="Así aparecés en el torneo." />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">

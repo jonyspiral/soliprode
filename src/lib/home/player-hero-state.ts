@@ -1,4 +1,5 @@
 import { getGroupCompetitionSnapshot } from "@/lib/groups/competition";
+import { getPlayerDisplayName } from "@/lib/player/identity";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -9,6 +10,7 @@ type RankingRow = {
 };
 
 type ProfileRow = {
+  full_name: string | null;
   public_alias: string | null;
 };
 
@@ -59,7 +61,7 @@ export async function getPlayerHeroState(params: {
 
   const profileQuery = supabase
     .from("profiles")
-    .select("public_alias")
+    .select("public_alias, full_name")
     .eq("id", params.userId)
     .maybeSingle();
 
@@ -88,7 +90,7 @@ export async function getPlayerHeroState(params: {
     "Supabase home player summary timed out",
   );
 
-  const alias = (profileResult.data as ProfileRow | null)?.public_alias ?? null;
+  const alias = getPlayerDisplayName((profileResult.data as ProfileRow | null) ?? null);
   const predictionCount = predictionResult.count ?? 0;
   const predictionCountLabel = formatPredictionCountLabel(predictionCount);
   const participationUiState = resolveParticipationUiState(groupSnapshot.currentParticipationStatus);

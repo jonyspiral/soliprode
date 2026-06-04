@@ -7,6 +7,7 @@ import {
   StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { getPlayerDisplayName } from "@/lib/player/identity";
 import {
   createServerSupabaseClient,
   createServiceRoleSupabaseClient,
@@ -24,8 +25,9 @@ type RankingRow = {
 };
 
 type ProfileRow = {
+  full_name: string | null;
   id: string;
-  public_alias: string;
+  public_alias: string | null;
 };
 
 type RankingProfileMap = Record<string, string>;
@@ -88,7 +90,7 @@ export default async function RankingsPage() {
     const profileQuery = currentUserId
       ? supabase
           .from("profiles")
-          .select("id, public_alias")
+          .select("id, public_alias, full_name")
           .eq("id", currentUserId)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null });
@@ -116,7 +118,7 @@ export default async function RankingsPage() {
         "Supabase rankings query timed out",
       );
 
-    currentAlias = (profile as ProfileRow | null)?.public_alias ?? null;
+    currentAlias = getPlayerDisplayName((profile as ProfileRow | null) ?? null);
     participationStatus =
       pickPrimaryParticipation(
         (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
@@ -150,11 +152,11 @@ export default async function RankingsPage() {
       const service = createServiceRoleSupabaseClient();
       const { data: aliasRows } = await service
         .from("profiles")
-        .select("id, public_alias")
+        .select("id, public_alias, full_name")
         .in("id", aliasIds);
 
       rankingAliases = Object.fromEntries(
-        ((aliasRows ?? []) as ProfileRow[]).map((row) => [row.id, row.public_alias]),
+        ((aliasRows ?? []) as ProfileRow[]).map((row) => [row.id, getPlayerDisplayName(row)]),
       );
     }
   } catch {

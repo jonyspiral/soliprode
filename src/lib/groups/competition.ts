@@ -1,4 +1,5 @@
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
+import { getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 
 type ParticipationRow = {
@@ -18,7 +19,8 @@ type GroupRow = {
 
 type ProfileRow = {
   id: string;
-  public_alias: string;
+  full_name: string | null;
+  public_alias: string | null;
 };
 
 type RankingRow = {
@@ -99,7 +101,11 @@ export async function getGroupCompetitionSnapshot(
     : Promise.resolve({ data: null, error: null });
 
   const currentProfileQuery = currentUserId
-    ? service.from("profiles").select("id, public_alias").eq("id", currentUserId).maybeSingle()
+    ? service
+        .from("profiles")
+        .select("id, public_alias, full_name")
+        .eq("id", currentUserId)
+        .maybeSingle()
     : Promise.resolve({ data: null, error: null });
 
   const groupedParticipationsQuery = service
@@ -125,7 +131,7 @@ export async function getGroupCompetitionSnapshot(
     return {
       currentGroup: null,
       currentParticipationStatus: currentParticipation?.payment_status ?? null,
-      currentUserAlias: (currentProfileData as ProfileRow | null)?.public_alias ?? null,
+      currentUserAlias: getPlayerDisplayName((currentProfileData as ProfileRow | null) ?? null),
       leaderboard: [],
     };
   }
@@ -135,7 +141,7 @@ export async function getGroupCompetitionSnapshot(
 
   const [groupsResult, profilesResult, rankingsResult] = await Promise.all([
     service.from("groups").select("id, name, slug, invite_code, owner_profile_id").in("id", groupIds),
-    service.from("profiles").select("id, public_alias").in("id", profileIds),
+    service.from("profiles").select("id, public_alias, full_name").in("id", profileIds),
     service
       .from("rankings_cache")
       .select("profile_id, points, position")
@@ -161,7 +167,10 @@ export async function getGroupCompetitionSnapshot(
     const ranking = rankingMap.get(participation.profile_id);
     const member: GroupMemberSnapshot = {
       profileId: participation.profile_id,
-      alias: normalizeAlias(profile?.public_alias, `Jugador ${participation.profile_id.slice(0, 4)}`),
+      alias: normalizeAlias(
+        getPlayerDisplayName(profile),
+        `Jugador ${participation.profile_id.slice(0, 4)}`,
+      ),
       paymentStatus: participation.payment_status,
       points: ranking?.points ?? 0,
       generalPosition: ranking?.position ?? null,
@@ -240,7 +249,7 @@ export async function getGroupCompetitionSnapshot(
   return {
     currentGroup: currentGroupEntry,
     currentParticipationStatus: currentParticipation?.payment_status ?? null,
-    currentUserAlias: (currentProfileData as ProfileRow | null)?.public_alias ?? null,
+    currentUserAlias: getPlayerDisplayName((currentProfileData as ProfileRow | null) ?? null),
     leaderboard: leaderboard.map((entry) => ({
       groupId: entry.groupId,
       name: entry.name,
