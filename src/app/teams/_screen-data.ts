@@ -6,7 +6,6 @@ import type {
 import type { TeamMember, TeamRankingEntry } from "@/app/teams/_mock";
 
 export type TeamsScreenData = {
-  state: "guest" | "no-team" | "team" | "error";
   teamName: string;
   teamScore: number;
   statusLabel: string;
@@ -26,13 +25,9 @@ export type TeamsScreenData = {
     detail: string;
     points: number;
     accent: string;
-    profileId: string | null;
   };
   contributionLabel: string;
-  solidarityPassLabel: string;
-  gloryLabel: string;
   inviteCode: string | null;
-  inviteLinkPath: string | null;
   starters: TeamMember[];
   bench: TeamMember[];
   registered: TeamMember[];
@@ -54,7 +49,7 @@ function aliasToAccent(index: number) {
 
 function buildAliasParts(alias: string | null | undefined) {
   if (!alias || !alias.trim()) {
-    return { name: "Capitan del Team", alias: "SoliProde" };
+    return { name: "Capitán del Team", alias: "SoliProde" };
   }
 
   const parts = alias.trim().split(/\s+/);
@@ -76,11 +71,11 @@ function toStarter(member: GroupMemberSnapshot, index: number, captainProfileId:
   return {
     id: member.profileId,
     name: member.alias,
-    roleLabel: isCaptain ? "Capitan" : "Jugador activo",
+    roleLabel: isCaptain ? "Capitán" : "Jugador activo",
     points: member.points,
     status: isCaptain ? "captain" : isDt ? "dt" : "starter",
     accent: aliasToAccent(index),
-    note: isCaptain ? "El Capitan arma el Team." : undefined,
+    note: isCaptain ? "El Capitán arma el Team." : undefined,
     isCaptain,
     isDt,
   };
@@ -108,7 +103,7 @@ function toRegistered(member: GroupMemberSnapshot, index: number): TeamMember {
     note:
       member.paymentStatus === "pending"
         ? "Esperando Aporte confirmado."
-        : "Todavia no suma.",
+        : "Todavía no suma.",
   };
 }
 
@@ -135,12 +130,11 @@ export function buildTeamsScreenFallbackData(
     : [];
   const isGuest = options?.authStatus !== "member";
   const isError = options?.errorState === true;
-  const state = isError ? "error" : isGuest ? "guest" : "no-team";
   const statusLabel = isError ? "Estado seguro" : isGuest ? "Modo visitante" : "Sin Team";
   const headline = isError
     ? "No pudimos cargar tu Team ahora."
     : isGuest
-      ? "Entrá para armar tu Team o sumarte con un Pase Solidario."
+      ? "Entrá para armar tu Team o sumarte con un Código del Team."
       : "Todavía no tenés Team.";
   const supportCopy = isError
     ? "Reintentá en unos minutos. Mientras tanto, no vamos a mostrar datos inventados."
@@ -149,7 +143,6 @@ export function buildTeamsScreenFallbackData(
       : "Creá tu Team o unite por código. Cuando haya jugadores activos, se arma el 11 titular real.";
 
   return {
-    state,
     teamName: isError ? "Teams" : isGuest ? "Teams" : "Tu próximo Team",
     teamScore: 0,
     statusLabel,
@@ -171,13 +164,9 @@ export function buildTeamsScreenFallbackData(
       detail: "El DT aparece cuando haya Jugadores activos sumando puntos reales.",
       points: 0,
       accent: "#e9c400",
-      profileId: null,
     },
     contributionLabel: "Aporte confirmado",
-    solidarityPassLabel: "Pase Solidario",
-    gloryLabel: "La Gloria",
     inviteCode: null,
-    inviteLinkPath: null,
     starters: [],
     bench: [],
     registered: [],
@@ -211,10 +200,9 @@ export function buildTeamsScreenDataFromSnapshot(
   const ranking = snapshot.leaderboard.map((entry) => toRankingEntry(entry, currentGroup.groupId));
 
   return {
-    state: "team",
     teamName: currentGroup.name,
     teamScore,
-    statusLabel: currentGroup.activeCount >= 11 ? "En competencia" : "Team en formacion",
+    statusLabel: currentGroup.activeCount >= 11 ? "En competencia" : "Team en formación",
     headline: "Armá tu Team. Entran todos. Puntúan los mejores 11.",
     supportCopy:
       "El Capitán arma el Team. El DT se gana el puesto sumando puntos. Los mejores 11 salen a buscar La Gloria.",
@@ -222,25 +210,21 @@ export function buildTeamsScreenDataFromSnapshot(
     captain: {
       name: captainParts.name,
       alias: captainParts.alias,
-      badge: "Capitan",
-      detail: "Creador del Team y responsable de compartir el Pase Solidario.",
+      badge: "Capitán",
+      detail: "Creador del Team y responsable de compartir el link y el Código del Team.",
       accent: "#0c6780",
     },
     dt: {
-      name: dtMember?.alias ?? "Todavia no hay DT",
+      name: dtMember?.alias ?? "Todavía no hay DT",
       badge:
         dtMember && dtMember.profileId === currentGroup.ownerProfileId ? "Capitán · DT" : "DT del Team",
       detail:
-        "Jugador activo con mas puntos. El DT se gana el puesto sumando puntos.",
+        "Jugador activo con más puntos. El DT se gana el puesto sumando puntos.",
       points: dtMember?.points ?? 0,
       accent: "#e9c400",
-      profileId: dtMember?.profileId ?? null,
     },
     contributionLabel: "Aporte confirmado",
-    solidarityPassLabel: "Pase Solidario",
-    gloryLabel: "La Gloria",
     inviteCode: currentGroup.inviteCode,
-    inviteLinkPath: currentGroup.inviteCode ? `/groups?code=${currentGroup.inviteCode}` : null,
     starters,
     bench,
     registered,

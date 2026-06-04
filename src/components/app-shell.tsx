@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
 import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
+import styles from "@/components/app-shell.module.css";
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
@@ -224,21 +225,19 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
         {showPendingPaymentBanner ? (
-          <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
+          <div className={`${styles.statusBanner} px-4`}>
             <div className="mx-auto w-full max-w-6xl md:px-2">
-              <StartCheckoutCard className="block w-full rounded-xl border border-[rgba(233,196,0,0.22)] bg-[rgba(255,255,255,0.72)] px-4 py-3 text-left transition hover:border-[rgba(233,196,0,0.45)]">
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                      No activo
-                    </p>
-                    <p className="mt-1 text-sm leading-5 text-[var(--color-ink)]">
-                      No tenés Pase Solidario. Debés terminar tu inscripción para competir.
-                    </p>
+              <StartCheckoutCard className="block w-full text-left">
+                <div className={styles.statusBannerInner}>
+                  <div className={styles.statusBannerTrack}>
+                    <div className={styles.statusBannerMarquee}>
+                      <span className={styles.statusBannerKicker}>No activo</span>
+                      <span className={styles.statusBannerCopy}>
+                        No tenés Pase Solidario. Completá tu inscripción para competir.
+                      </span>
+                    </div>
                   </div>
-                  <span className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-                    Completar Aporte Solidario
-                  </span>
+                  <span className={styles.statusBannerCta}>Completar</span>
                 </div>
               </StartCheckoutCard>
             </div>
@@ -249,7 +248,7 @@ export function AppShell({ children }: AppShellProps) {
       <main
         className={[
           "mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-24 md:px-6",
-          showPendingPaymentBanner ? "pt-[8rem] md:pt-[7.5rem]" : "pt-[4.5rem]",
+          showPendingPaymentBanner ? "pt-[6.55rem] md:pt-[6.25rem]" : "pt-[4.5rem]",
         ].join(" ")}
       >
         {isSecondaryScreen ? (

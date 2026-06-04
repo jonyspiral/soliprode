@@ -12,6 +12,7 @@ type RegisterPageProps = {
   searchParams?: Promise<{
     p?: string;
     promoter?: string;
+    next?: string;
   }>;
 };
 
@@ -19,6 +20,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   let authErrorMessage: string | null = null;
   const params = searchParams ? await searchParams : undefined;
   const promoterCode = params ? readPromoterCodeFromSearchParams(new URLSearchParams(params)) : null;
+  const nextPath = params?.next?.startsWith("/") ? params.next : "/dashboard";
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -27,7 +29,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
     } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     if (user) {
-      redirect("/dashboard");
+      redirect(nextPath);
     }
   } catch {
     authErrorMessage =
@@ -79,7 +81,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       >
         <div className="grid gap-4">
           {authErrorMessage ? <InfoNotice message={authErrorMessage} tone="error" /> : null}
-          <RegisterForm promoterCode={promoterCode} />
+          <RegisterForm promoterCode={promoterCode} nextPath={nextPath} />
           <div className="relative overflow-hidden rounded-lg border border-[var(--color-line)] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-5 text-white">
             <div className="absolute inset-0 opacity-14 [background-image:linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.12)_25%,rgba(255,255,255,0.12)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.12)_75%,rgba(255,255,255,0.12)_76%,transparent_77%,transparent)] [background-size:22px_22px]" />
             <div className="relative z-10 flex items-center justify-between gap-4">
@@ -88,7 +90,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
                   Próximo paso
                 </p>
                 <p className="mt-2 font-serif text-[1.7rem] font-bold uppercase leading-none">
-                  Armás tu grupo
+                  Armás tu Team
                   <br />
                   y salís a competir
                 </p>

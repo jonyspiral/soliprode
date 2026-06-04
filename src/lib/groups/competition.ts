@@ -48,7 +48,6 @@ export type GroupLeaderboardEntry = {
   totalCount: number;
   teamScore: number;
   isEligible: boolean;
-  status: "preview" | "enabled";
   position: number;
   dtProfileId: string | null;
   dtAlias: string | null;
@@ -207,7 +206,6 @@ export async function getGroupCompetitionSnapshot(
         totalCount: members.length,
         teamScore,
         isEligible,
-        status: (isEligible ? "enabled" : "preview") as "enabled" | "preview",
         position: 0,
         dtProfileId: activeMembers[0]?.profileId ?? null,
         dtAlias: activeMembers[0]?.alias ?? null,
@@ -253,7 +251,6 @@ export async function getGroupCompetitionSnapshot(
       totalCount: entry.totalCount,
       teamScore: entry.teamScore,
       isEligible: entry.isEligible,
-      status: entry.status,
       position: entry.position,
       dtProfileId: entry.dtProfileId,
       dtAlias: entry.dtAlias,

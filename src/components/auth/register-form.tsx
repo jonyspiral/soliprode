@@ -25,6 +25,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type RegisterFormProps = {
   promoterCode?: string | null;
+  nextPath?: string;
 };
 
 function persistPromoterCode(promoterCode: string | null) {
@@ -40,7 +41,7 @@ function persistPromoterCode(promoterCode: string | null) {
   document.cookie = `${PROMOTER_COOKIE_NAME}=${encodeURIComponent(promoterCode)}; Path=/; Max-Age=2592000; SameSite=Lax`;
 }
 
-export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
+export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: RegisterFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -50,11 +51,22 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
     () => normalizePromoterCode(promoterCode),
     [promoterCode],
   );
-  const loginHref = appendPromoterQuery("/login", normalizedPromoterCode);
+  const [manualPromoterCode, setManualPromoterCode] = useState(() => normalizedPromoterCode ?? "");
+  const effectivePromoterCode = normalizedPromoterCode ?? normalizePromoterCode(manualPromoterCode);
+  const loginHref = useMemo(() => {
+    const basePath = appendPromoterQuery("/login", normalizedPromoterCode);
+    const searchParams = new URLSearchParams();
+
+    if (nextPath.startsWith("/")) {
+      searchParams.set("next", nextPath);
+    }
+
+    return searchParams.size > 0 ? `${basePath}${basePath.includes("?") ? "&" : "?"}${searchParams.toString()}` : basePath;
+  }, [nextPath, normalizedPromoterCode]);
 
   useEffect(() => {
-    persistPromoterCode(normalizedPromoterCode);
-  }, [normalizedPromoterCode]);
+    persistPromoterCode(effectivePromoterCode);
+  }, [effectivePromoterCode]);
 
   async function handleGoogleSignup() {
     setError(null);
@@ -62,8 +74,8 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
     setGooglePending(true);
 
     try {
-      persistPromoterCode(normalizedPromoterCode);
-      const redirectTo = buildAuthCallbackUrl("/dashboard");
+      persistPromoterCode(effectivePromoterCode);
+      const redirectTo = buildAuthCallbackUrl(nextPath);
       const hasConfiguredBaseUrl = hasConfiguredAuthBaseUrl();
       const supabase = createBrowserSupabaseClient();
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -92,7 +104,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
         hasConfiguredBaseUrl: hasConfiguredAuthBaseUrl(),
         redirectTo:
           typeof window !== "undefined" && window.location.origin
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
             : null,
       });
       setError("Google no está configurado todavía. Revisá Supabase Provider y URL base.");
@@ -114,9 +126,9 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
       const whatsapp = String(formData.get("whatsapp") ?? "").trim();
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "").trim();
-      const promoterCodeValue = normalizePromoterCode(
-        String(formData.get("promoter_code") ?? "").trim(),
-      );
+      const promoterCodeValue =
+        normalizedPromoterCode ??
+        normalizePromoterCode(String(formData.get("promoter_code") ?? "").trim());
 
       if (!fullName || !publicAlias || !email || !password) {
         setError("Completá nombre, alias, email y contraseña para entrar al torneo.");
@@ -135,7 +147,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
         email,
         password,
         options: {
-          emailRedirectTo: buildAuthCallbackUrl("/dashboard"),
+          emailRedirectTo: buildAuthCallbackUrl(nextPath),
           data: {
             full_name: fullName,
             public_alias: publicAlias,
@@ -178,7 +190,7 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
 
       persistPromoterCode(null);
       setSuccess("Cuenta lista. Ya podés entrar a jugar.");
-      router.replace("/dashboard");
+      router.replace(nextPath);
       router.refresh();
     } catch {
       setError("No pudimos crear tu cuenta ahora. Probá de nuevo en un rato.");
@@ -329,18 +341,26 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
               htmlFor="promoter_code"
               className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]"
             >
-              Código de promotor
+              Promotor
             </label>
             <input
               id="promoter_code"
               name="promoter_code"
               type="text"
-              defaultValue={normalizedPromoterCode ?? ""}
+              value={normalizedPromoterCode ?? manualPromoterCode}
+              onChange={(event) => {
+                if (!normalizedPromoterCode) {
+                  setManualPromoterCode(event.target.value);
+                }
+              }}
+              readOnly={Boolean(normalizedPromoterCode)}
               className="min-h-14 rounded-xl border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-primary-strong)]"
-              placeholder="Si venís invitado, dejalo cargado"
+              placeholder="Código opcional"
             />
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Si llegaste por un promotor o una invitación, ese código queda guardado para tu cuenta.
+              {normalizedPromoterCode
+                ? "Llegaste con un Promoter cargado. Ya queda guardado para tu cuenta."
+                : "Si no llegaste por link, podés cargar tu Promotor acá como fallback."}
             </p>
           </div>
 
@@ -349,10 +369,10 @@ export function RegisterForm({ promoterCode = null }: RegisterFormProps) {
               Se define después
             </p>
             <p className="mt-2 font-serif text-[1.8rem] uppercase tracking-[0.04em] text-[var(--color-primary)]">
-              Grupo y equipo de 11
+              Team y 11 titular
             </p>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              Primero entrás al Prode. Después armás tu grupo, tu equipo de 11 y salís a competir.
+              Primero entrás al Prode. Después armás tu Team, definís tu 11 titular y salís a competir.
             </p>
           </div>
         </div>

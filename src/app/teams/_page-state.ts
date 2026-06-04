@@ -1,4 +1,7 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createServerSupabaseClient,
+  createServiceRoleSupabaseClient,
+} from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 import {
   getGroupCompetitionSnapshot,
@@ -21,9 +24,18 @@ export type TeamsPageState = {
   currentAlias: string | null;
   currentParticipationStatus: string | null;
   screenData: TeamsScreenData;
+  inviteContext: TeamInviteContext | null;
   inviteCodePrefill: string;
   errorMessage: string | null;
   noticeMessage: string | null;
+};
+
+export type TeamInviteContext = {
+  code: string;
+  targetGroupId: string | null;
+  targetGroupName: string | null;
+  status: "missing" | "ready" | "already-in-team" | "requires-confirmation";
+  shouldAutoJoin: boolean;
 };
 
 function readSearchValue(
@@ -32,6 +44,61 @@ function readSearchValue(
 ) {
   const value = params?.[key];
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+async function resolveInviteContext(params: {
+  authStatus: "guest" | "member";
+  currentGroupId: string | null;
+  inviteCode: string;
+}): Promise<TeamInviteContext | null> {
+  if (!params.inviteCode) {
+    return null;
+  }
+
+  const service = createServiceRoleSupabaseClient();
+  const { data: targetGroup } = await service
+    .from("groups")
+    .select("id, name")
+    .eq("invite_code", params.inviteCode)
+    .maybeSingle();
+
+  if (!targetGroup) {
+    return {
+      code: params.inviteCode,
+      targetGroupId: null,
+      targetGroupName: null,
+      status: "missing",
+      shouldAutoJoin: false,
+    };
+  }
+
+  if (params.currentGroupId && params.currentGroupId === targetGroup.id) {
+    return {
+      code: params.inviteCode,
+      targetGroupId: targetGroup.id,
+      targetGroupName: targetGroup.name,
+      status: "already-in-team",
+      shouldAutoJoin: false,
+    };
+  }
+
+  if (params.currentGroupId && params.currentGroupId !== targetGroup.id) {
+    return {
+      code: params.inviteCode,
+      targetGroupId: targetGroup.id,
+      targetGroupName: targetGroup.name,
+      status: "requires-confirmation",
+      shouldAutoJoin: false,
+    };
+  }
+
+  return {
+    code: params.inviteCode,
+    targetGroupId: targetGroup.id,
+    targetGroupName: targetGroup.name,
+    status: "ready",
+    shouldAutoJoin: params.authStatus === "member",
+  };
 }
 
 export async function getTeamsPageState(searchParams?: RawSearchParams): Promise<TeamsPageState> {
@@ -54,6 +121,8 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       "No pudimos revisar tu Team ahora. Reintentá en unos minutos.";
   }
 
+  const authStatus = userId ? "member" : "guest";
+
   try {
     const snapshot = await withSupabaseTimeout(
       getGroupCompetitionSnapshot(userId),
@@ -62,18 +131,24 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
     const screenData =
       buildTeamsScreenDataFromSnapshot(snapshot) ??
       buildTeamsScreenFallbackData({
-        authStatus: userId ? "member" : "guest",
+        authStatus,
         currentAlias: snapshot.currentUserAlias,
         currentParticipationStatus: snapshot.currentParticipationStatus,
         leaderboard: snapshot.leaderboard,
       });
+    const inviteContext = await resolveInviteContext({
+      authStatus,
+      currentGroupId: snapshot.currentGroup?.groupId ?? null,
+      inviteCode: inviteCodePrefill,
+    });
 
     return {
-      authStatus: userId ? "member" : "guest",
+      authStatus,
       hasCurrentTeam: Boolean(snapshot.currentGroup),
       currentAlias: snapshot.currentUserAlias,
       currentParticipationStatus: snapshot.currentParticipationStatus,
       screenData,
+      inviteContext,
       inviteCodePrefill,
       errorMessage,
       noticeMessage,
@@ -83,13 +158,18 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       "No pudimos cargar la tabla competitiva ahora. Reintentá en unos minutos.";
 
     return {
-      authStatus: userId ? "member" : "guest",
+      authStatus,
       hasCurrentTeam: false,
       currentAlias: null,
       currentParticipationStatus: null,
       screenData: buildTeamsScreenFallbackData({
-        authStatus: userId ? "member" : "guest",
+        authStatus,
         errorState: true,
+      }),
+      inviteContext: await resolveInviteContext({
+        authStatus,
+        currentGroupId: null,
+        inviteCode: inviteCodePrefill,
       }),
       inviteCodePrefill,
       errorMessage,

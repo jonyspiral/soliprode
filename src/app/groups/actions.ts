@@ -25,14 +25,23 @@ function redirectToGroups(params: Record<string, string | null | undefined>) {
 
 function resolveGroupsReturnPath(rawValue: FormDataEntryValue | null) {
   const value = typeof rawValue === "string" ? rawValue.trim() : "";
-  return value === "/teams" ? "/teams" : "/groups";
+
+  if (!value.startsWith("/")) {
+    return "/groups";
+  }
+
+  if (value.startsWith("/teams")) {
+    return value;
+  }
+
+  return value.startsWith("/groups") ? value : "/groups";
 }
 
 function redirectToTeamSurface(
-  returnPath: "/groups" | "/teams",
+  returnPath: string,
   params: Record<string, string | null | undefined>,
 ) {
-  if (returnPath === "/groups") {
+  if (returnPath.startsWith("/groups")) {
     redirectToGroups(params);
   }
 
@@ -45,7 +54,8 @@ function redirectToTeamSurface(
   }
 
   const queryString = searchParams.toString();
-  redirect(queryString ? `/teams?${queryString}` : "/teams");
+  const basePath = returnPath.startsWith("/teams") ? returnPath.split("?")[0] : "/teams";
+  redirect(queryString ? `${basePath}?${queryString}` : basePath);
 }
 
 function slugifyGroupName(groupName: string) {
@@ -65,14 +75,14 @@ function buildInviteCode() {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
-async function ensureAuthenticatedUser(returnPath: "/groups" | "/teams") {
+async function ensureAuthenticatedUser(returnPath: string) {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?next=${returnPath}`);
+    redirect(`/login?next=${encodeURIComponent(returnPath)}`);
   }
 
   return user;
@@ -92,7 +102,7 @@ async function ensureParticipationId(profileId: string) {
 
 async function buildUniqueGroupIdentity(groupName: string) {
   const service = createServiceRoleSupabaseClient();
-  const baseSlug = slugifyGroupName(groupName) || "grupo";
+  const baseSlug = slugifyGroupName(groupName) || "team";
 
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const slug = attempt === 0 ? baseSlug : `${baseSlug}-${buildInviteCode().toLowerCase().slice(0, 4)}`;
@@ -188,6 +198,7 @@ export async function joinGroupAction(formData: FormData) {
   const returnPath = resolveGroupsReturnPath(formData.get("return_to"));
   const user = await ensureAuthenticatedUser(returnPath);
   const inviteCode = normalizeInviteCode(String(formData.get("invite_code") ?? ""));
+  const confirmReplace = String(formData.get("confirm_replace") ?? "") === "1";
 
   if (!inviteCode) {
     redirectToTeamSurface(returnPath, {
@@ -224,6 +235,29 @@ export async function joinGroupAction(formData: FormData) {
     redirectToTeamSurface(returnPath, {
       code: inviteCode,
       error: "Ese código no existe o ya no está disponible.",
+    });
+  }
+
+  const { data: participationRow } = await service
+    .from("participations")
+    .select("group_id")
+    .eq("id", participationId)
+    .maybeSingle();
+
+  const currentGroupId =
+    participationRow && typeof participationRow.group_id === "string" ? participationRow.group_id : null;
+
+  if (currentGroupId && currentGroupId === targetGroupId) {
+    redirectToTeamSurface(returnPath, {
+      code: inviteCode,
+      notice: `Ya formás parte de ${targetGroupName}.`,
+    });
+  }
+
+  if (currentGroupId && currentGroupId !== targetGroupId && !confirmReplace) {
+    redirectToTeamSurface(returnPath, {
+      code: inviteCode,
+      error: `Ya tenés un Team. Confirmá el cambio para sumarte a ${targetGroupName}.`,
     });
   }
 

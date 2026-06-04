@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { createGroupAction, joinGroupAction } from "@/app/groups/actions";
+import type { TeamInviteContext } from "@/app/teams/_page-state";
 import type { TeamsScreenData } from "@/app/teams/_screen-data";
 import type { TeamMember } from "@/app/teams/_mock";
 import { RankingIcon, SoccerBallIcon, TrophyIcon, UserIcon } from "@/components/app-icons";
+import { TeamInviteActions } from "@/app/teams/_components/team-invite-actions";
+import { TeamInviteJoinPanel } from "@/app/teams/_components/team-invite-join-panel";
 
 type TeamsScreenProps = {
   authStatus: "guest" | "member";
@@ -10,6 +13,7 @@ type TeamsScreenProps = {
   currentAlias: string | null;
   currentParticipationStatus: string | null;
   data: TeamsScreenData;
+  inviteContext: TeamInviteContext | null;
   inviteCodePrefill?: string;
   errorMessage?: string | null;
   noticeMessage?: string | null;
@@ -98,7 +102,9 @@ function TeamAccessPanel({
   authStatus,
   hasCurrentTeam,
   routeBase,
+  loginReturnPath,
   inviteCodePrefill,
+  inviteContext,
   noticeMessage,
   errorMessage,
   inviteCode,
@@ -106,7 +112,9 @@ function TeamAccessPanel({
   authStatus: "guest" | "member";
   hasCurrentTeam: boolean;
   routeBase: "/groups" | "/teams";
+  loginReturnPath: string;
   inviteCodePrefill: string;
+  inviteContext: TeamInviteContext | null;
   noticeMessage: string | null | undefined;
   errorMessage: string | null | undefined;
   inviteCode: string | null;
@@ -115,18 +123,23 @@ function TeamAccessPanel({
     return (
       <article className="teams-support-card teams-support-card-cta">
         <div className="teams-support-header">
-          <span className="teams-chip teams-chip-outline">Pase Solidario</span>
+          <span className="teams-chip teams-chip-outline">Team</span>
           <TrophyIcon className="h-5 w-5 text-[var(--color-gold)]" />
         </div>
         <h2 className="teams-support-title">Entrá para armar tu Team y salir a buscar La Gloria.</h2>
         <p className="teams-support-copy">
           El Capitán arma el Team. El DT se gana el puesto sumando puntos.
         </p>
+        {inviteContext?.status === "ready" && inviteContext.targetGroupName ? (
+          <p className="teams-support-copy">
+            Ya tenés un lugar en {inviteContext.targetGroupName}. Ingresá y te sumamos al Plantel.
+          </p>
+        ) : null}
         <div className="teams-cta-stack">
-          <Link href={`/login?next=${routeBase}`} className="teams-button-primary">
+          <Link href={`/login?next=${encodeURIComponent(loginReturnPath)}`} className="teams-button-primary">
             Ingresar
           </Link>
-          <Link href={`/register?next=${routeBase}`} className="teams-button-secondary">
+          <Link href={`/register?next=${encodeURIComponent(loginReturnPath)}`} className="teams-button-secondary">
             Crear cuenta
           </Link>
         </div>
@@ -146,22 +159,25 @@ function TeamAccessPanel({
       {noticeMessage ? <div className="teams-alert teams-alert-success">{noticeMessage}</div> : null}
       {errorMessage ? <div className="teams-alert teams-alert-error">{errorMessage}</div> : null}
 
+      {inviteContext ? (
+        <TeamInviteJoinPanel
+          authStatus={authStatus}
+          inviteContext={inviteContext}
+          returnPath={loginReturnPath}
+        />
+      ) : null}
+
       {hasCurrentTeam && inviteCode ? (
         <div className="teams-invite-box">
-          <p className="teams-kicker">Pase Solidario</p>
-          <strong>{inviteCode}</strong>
+          <h3 className="teams-invite-title">Invitá jugadores al Team</h3>
           <p className="teams-support-copy">
-            Compartí este código para sumar gente al Plantel. Entran todos. Puntúan los mejores 11.
+            Sumá gente al Plantel. Entran todos. Puntúan los mejores 11.
           </p>
-          {inviteCode ? (
-            <Link href={`${routeBase}?code=${inviteCode}`} className="teams-button-secondary">
-              Abrir link del Team
-            </Link>
-          ) : null}
+          <TeamInviteActions inviteCode={inviteCode} />
         </div>
       ) : null}
 
-      {!hasCurrentTeam ? (
+      {!hasCurrentTeam && !inviteContext?.shouldAutoJoin ? (
         <div className="teams-ops-stack">
           <form action={createGroupAction} className="teams-form">
             <input type="hidden" name="return_to" value={routeBase} />
@@ -183,7 +199,7 @@ function TeamAccessPanel({
           </form>
 
           <form action={joinGroupAction} className="teams-form">
-            <input type="hidden" name="return_to" value={routeBase} />
+            <input type="hidden" name="return_to" value={loginReturnPath} />
             <label className="teams-form-label" htmlFor="invite_code">
               Código o link de invitación
             </label>
@@ -192,7 +208,7 @@ function TeamAccessPanel({
               name="invite_code"
               defaultValue={inviteCodePrefill}
               className="teams-input"
-              placeholder="Pegá tu Pase Solidario"
+              placeholder="Pegá el Código del Team o link"
               autoCapitalize="characters"
               required
             />
@@ -212,6 +228,7 @@ export function TeamsScreen({
   currentAlias,
   currentParticipationStatus,
   data,
+  inviteContext,
   inviteCodePrefill = "",
   errorMessage,
   noticeMessage,
@@ -221,6 +238,7 @@ export function TeamsScreen({
   const participationLabel =
     currentParticipationStatus === "paid" ? "Aporte confirmado" : "Pendiente de activar";
   const hasRanking = data.ranking.length > 0;
+  const loginReturnPath = inviteContext?.code ? `/groups?code=${inviteContext.code}` : routeBase;
 
   return (
     <div className="teams-screen">
@@ -285,7 +303,9 @@ export function TeamsScreen({
             authStatus={authStatus}
             hasCurrentTeam={hasCurrentTeam}
             routeBase={routeBase}
+            loginReturnPath={loginReturnPath}
             inviteCodePrefill={inviteCodePrefill}
+            inviteContext={inviteContext}
             noticeMessage={noticeMessage}
             errorMessage={errorMessage}
             inviteCode={data.inviteCode}
@@ -416,7 +436,7 @@ export function TeamsScreen({
             ) : (
               <EmptyPanel
                 title="Plantel listo para crecer"
-                copy="Compartí el Pase Solidario para sumar más gente al Team."
+                copy="Compartí el link o el Código del Team para sumar más gente al Plantel."
               />
             )}
           </article>

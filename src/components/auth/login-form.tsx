@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   GoogleIcon,
   LockIcon,
   MailIcon,
+  UserIcon,
 } from "@/components/app-icons";
 import {
   PROMOTER_COOKIE_NAME,
@@ -45,12 +46,23 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
-  const normalizedPromoterCode = normalizePromoterCode(promoterCode);
-  const registerHref = appendPromoterQuery("/register", normalizedPromoterCode);
+  const normalizedPromoterCode = useMemo(() => normalizePromoterCode(promoterCode), [promoterCode]);
+  const [manualPromoterCode, setManualPromoterCode] = useState(() => normalizedPromoterCode ?? "");
+  const effectivePromoterCode = normalizedPromoterCode ?? normalizePromoterCode(manualPromoterCode);
+  const registerHref = useMemo(() => {
+    const basePath = appendPromoterQuery("/register", normalizedPromoterCode);
+    const searchParams = new URLSearchParams();
+
+    if (nextPath.startsWith("/")) {
+      searchParams.set("next", nextPath);
+    }
+
+    return searchParams.size > 0 ? `${basePath}${basePath.includes("?") ? "&" : "?"}${searchParams.toString()}` : basePath;
+  }, [nextPath, normalizedPromoterCode]);
 
   useEffect(() => {
-    persistPromoterCode(normalizedPromoterCode);
-  }, [normalizedPromoterCode]);
+    persistPromoterCode(effectivePromoterCode);
+  }, [effectivePromoterCode]);
 
   async function handleGoogleLogin() {
     setError(null);
@@ -58,7 +70,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
     setGooglePending(true);
 
     try {
-      persistPromoterCode(normalizedPromoterCode);
+      persistPromoterCode(effectivePromoterCode);
       const redirectTo = buildAuthCallbackUrl(nextPath);
       const hasConfiguredBaseUrl = hasConfiguredAuthBaseUrl();
       const supabase = createBrowserSupabaseClient();
@@ -111,7 +123,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
         return;
       }
 
-      persistPromoterCode(normalizedPromoterCode);
+      persistPromoterCode(effectivePromoterCode);
 
       const supabase = createBrowserSupabaseClient();
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -184,8 +196,6 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
         className="flex flex-col gap-5"
       >
         <input type="hidden" name="next" value={nextPath} />
-        <input type="hidden" name="promoter_code" value={normalizedPromoterCode ?? ""} />
-
         <div className="relative">
           <label
             htmlFor="email"
@@ -194,7 +204,7 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
             Email
           </label>
           <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-            <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+              <UserIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
             <input
               id="email"
               name="email"
@@ -224,6 +234,32 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
               autoComplete="current-password"
               className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
               placeholder="Tu contraseña"
+            />
+          </div>
+        </div>
+
+        <div className="relative">
+          <label
+            htmlFor="promoter_code"
+            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+          >
+            Promotor
+          </label>
+          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
+            <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+            <input
+              id="promoter_code"
+              name="promoter_code"
+              type="text"
+              value={normalizedPromoterCode ?? manualPromoterCode}
+              onChange={(event) => {
+                if (!normalizedPromoterCode) {
+                  setManualPromoterCode(event.target.value);
+                }
+              }}
+              readOnly={Boolean(normalizedPromoterCode)}
+              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              placeholder="Código opcional"
             />
           </div>
         </div>

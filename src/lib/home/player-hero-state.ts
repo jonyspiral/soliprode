@@ -135,7 +135,7 @@ export async function getPlayerHeroState(params: {
         detail: currentGroup
           ? currentGroup.isEligible
             ? `#${currentGroup.position} entre los Teams.`
-            : "Preview hasta completar 11 activos."
+            : "Team en formación hasta completar 11 activos."
           : predictionCountLabel,
       },
     ],
