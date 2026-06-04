@@ -8,6 +8,4 @@ lastUpdated: "2026-06-03"
 
 ## Objetivo
 
-Unificar la nomenclatura visible de SoliProde para que la app suene futbolera, social y competitiva, sin trasladar lenguaje tecnico al usuario final.
-
-## Reg
+Unificar la nomenclatura visible de SoliProde para que la app suene futbolera, social y competitiva, sin traslad
