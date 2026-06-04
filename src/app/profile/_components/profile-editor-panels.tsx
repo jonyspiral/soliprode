@@ -5,10 +5,10 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import {
-  initialProfileActionState,
   updateAccountDetailsAction,
   updateGameProfileAction,
 } from "@/app/profile/actions";
+import { initialProfileActionState } from "@/app/profile/state";
 
 type ProfileEditorPanelsProps = {
   avatarUrl: string | null;

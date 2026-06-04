@@ -6,17 +6,8 @@ import {
   normalizeGameNickname,
   normalizeWhatsapp,
 } from "@/lib/player/identity";
+import type { ProfileActionState } from "@/app/profile/state";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-export type ProfileActionState = {
-  message: string | null;
-  status: "idle" | "error" | "success";
-};
-
-export const initialProfileActionState: ProfileActionState = {
-  status: "idle",
-  message: null,
-};
 
 async function requireProfileUser() {
   const supabase = await createServerSupabaseClient();
