@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
+import { HomeIcon, MatchIcon, RankingIcon, TeamIcon, UserIcon } from "@/components/app-icons";
 import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
 import {
   mobileNavItemsAuthenticated,
@@ -37,8 +37,12 @@ function NavIcon({ href, className = "h-5 w-5" }: { href: string; className?: st
     return <MatchIcon className={className} />;
   }
 
-  if (href === "/rankings" || href === "/groups") {
+  if (href === "/rankings") {
     return <RankingIcon className={className} />;
+  }
+
+  if (href === "/groups") {
+    return <TeamIcon className={className} />;
   }
 
   return <UserIcon className={className} />;

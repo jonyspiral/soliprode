@@ -46,14 +46,7 @@ export function HomeIcon(props: IconProps) {
 }
 
 export function MatchIcon(props: IconProps) {
-  return (
-    <BaseIcon {...props}>
-      <path d="m6 19 4-7" />
-      <path d="m14 19 4-7" />
-      <path d="M9 5 5 12h5l5-7" />
-      <path d="M19 5 9 19" />
-    </BaseIcon>
-  );
+  return <SoccerBallIcon {...props} />;
 }
 
 export function RankingIcon(props: IconProps) {
@@ -62,6 +55,17 @@ export function RankingIcon(props: IconProps) {
       <path d="M5 20V9" />
       <path d="M12 20V5" />
       <path d="M19 20v-8" />
+    </BaseIcon>
+  );
+}
+
+export function TeamIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="8" cy="9" r="2.2" />
+      <circle cx="16" cy="9" r="2.2" />
+      <path d="M4.5 18c.8-2.5 2.5-3.8 4.8-3.8S13.3 15.5 14 18" />
+      <path d="M10 18c.8-2.2 2.3-3.3 4.3-3.3 2 0 3.5 1.1 4.2 3.3" />
     </BaseIcon>
   );
 }
