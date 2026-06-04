@@ -23,6 +23,31 @@ function redirectToGroups(params: Record<string, string | null | undefined>) {
   redirect(queryString ? `/groups?${queryString}` : "/groups");
 }
 
+function resolveGroupsReturnPath(rawValue: FormDataEntryValue | null) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : "";
+  return value === "/teams" ? "/teams" : "/groups";
+}
+
+function redirectToTeamSurface(
+  returnPath: "/groups" | "/teams",
+  params: Record<string, string | null | undefined>,
+) {
+  if (returnPath === "/groups") {
+    redirectToGroups(params);
+  }
+
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string" && value.trim()) {
+      searchParams.set(key, value);
+    }
+  }
+
+  const queryString = searchParams.toString();
+  redirect(queryString ? `/teams?${queryString}` : "/teams");
+}
+
 function slugifyGroupName(groupName: string) {
   return groupName
     .normalize("NFD")
@@ -40,14 +65,14 @@ function buildInviteCode() {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
-async function ensureAuthenticatedUser() {
+async function ensureAuthenticatedUser(returnPath: "/groups" | "/teams") {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/groups");
+    redirect(`/login?next=${returnPath}`);
   }
 
   return user;
@@ -88,25 +113,27 @@ async function buildUniqueGroupIdentity(groupName: string) {
 
 function revalidateGroupSurfaces() {
   revalidatePath("/groups");
+  revalidatePath("/teams");
   revalidatePath("/rankings");
   revalidatePath("/dashboard");
 }
 
 export async function createGroupAction(formData: FormData) {
-  const user = await ensureAuthenticatedUser();
+  const returnPath = resolveGroupsReturnPath(formData.get("return_to"));
+  const user = await ensureAuthenticatedUser(returnPath);
   const name = String(formData.get("group_name") ?? "").trim().replace(/\s+/g, " ");
 
   if (name.length < 3) {
-    redirectToGroups({
-      error: "El nombre del grupo tiene que tener al menos 3 caracteres.",
+    redirectToTeamSurface(returnPath, {
+      error: "El nombre del Team tiene que tener al menos 3 caracteres.",
     });
   }
 
   const participationId = await ensureParticipationId(user.id);
 
   if (!participationId) {
-    redirectToGroups({
-      error: "No pudimos encontrar tu inscripción para crear el grupo.",
+    redirectToTeamSurface(returnPath, {
+      error: "No pudimos encontrar tu inscripción para crear el Team.",
     });
   }
 
@@ -127,16 +154,16 @@ export async function createGroupAction(formData: FormData) {
     .single();
 
   if (groupInsertError || !insertedGroup) {
-    redirectToGroups({
-      error: "No pudimos crear tu grupo ahora. Intentá de nuevo.",
+    redirectToTeamSurface(returnPath, {
+      error: "No pudimos crear tu Team ahora. Intentá de nuevo.",
     });
   }
 
   const insertedGroupId = insertedGroup?.id;
 
   if (!insertedGroupId) {
-    redirectToGroups({
-      error: "No pudimos crear tu grupo ahora. Intentá de nuevo.",
+    redirectToTeamSurface(returnPath, {
+      error: "No pudimos crear tu Team ahora. Intentá de nuevo.",
     });
   }
 
@@ -146,32 +173,33 @@ export async function createGroupAction(formData: FormData) {
     .eq("id", participationId);
 
   if (participationUpdateError) {
-    redirectToGroups({
-      error: "Creamos el grupo, pero no pudimos dejarlo como tu grupo principal.",
+    redirectToTeamSurface(returnPath, {
+      error: "Creamos el Team, pero no pudimos dejarlo como tu Team principal.",
     });
   }
 
   revalidateGroupSurfaces();
-  redirectToGroups({
-    notice: "Grupo creado. Ya quedó como tu grupo principal.",
+  redirectToTeamSurface(returnPath, {
+    notice: "Team creado. Ya quedó como tu Team principal.",
   });
 }
 
 export async function joinGroupAction(formData: FormData) {
-  const user = await ensureAuthenticatedUser();
+  const returnPath = resolveGroupsReturnPath(formData.get("return_to"));
+  const user = await ensureAuthenticatedUser(returnPath);
   const inviteCode = normalizeInviteCode(String(formData.get("invite_code") ?? ""));
 
   if (!inviteCode) {
-    redirectToGroups({
-      error: "Pegá un código o link válido para unirte al grupo.",
+    redirectToTeamSurface(returnPath, {
+      error: "Pegá un código o link válido para unirte al Team.",
     });
   }
 
   const participationId = await ensureParticipationId(user.id);
 
   if (!participationId) {
-    redirectToGroups({
-      error: "No pudimos encontrar tu inscripción para sumarte al grupo.",
+    redirectToTeamSurface(returnPath, {
+      error: "No pudimos encontrar tu inscripción para sumarte al Team.",
     });
   }
 
@@ -183,17 +211,17 @@ export async function joinGroupAction(formData: FormData) {
     .maybeSingle();
 
   if (!group) {
-    redirectToGroups({
+    redirectToTeamSurface(returnPath, {
       code: inviteCode,
       error: "Ese código no existe o ya no está disponible.",
     });
   }
 
   const targetGroupId = group?.id;
-  const targetGroupName = group?.name ?? "El grupo";
+  const targetGroupName = group?.name ?? "El Team";
 
   if (!targetGroupId) {
-    redirectToGroups({
+    redirectToTeamSurface(returnPath, {
       code: inviteCode,
       error: "Ese código no existe o ya no está disponible.",
     });
@@ -205,14 +233,14 @@ export async function joinGroupAction(formData: FormData) {
     .eq("id", participationId);
 
   if (error) {
-    redirectToGroups({
+    redirectToTeamSurface(returnPath, {
       code: inviteCode,
-      error: "No pudimos sumarte al grupo ahora. Intentá de nuevo.",
+      error: "No pudimos sumarte al Team ahora. Intentá de nuevo.",
     });
   }
 
   revalidateGroupSurfaces();
-  redirectToGroups({
-    notice: `${targetGroupName} ya quedó como tu grupo principal.`,
+  redirectToTeamSurface(returnPath, {
+    notice: `${targetGroupName} ya quedó como tu Team principal.`,
   });
 }

@@ -3,17 +3,17 @@ import { TeamsScreen } from "@/app/teams/_components/teams-screen";
 import { getTeamsPageState } from "@/app/teams/_page-state";
 
 export const metadata: Metadata = {
-  title: "Groups",
+  title: "Teams",
   description:
-    "SoliProde Teams dentro de la app. Armá tu Team, mirá tu 11 titular, el Banco y el ranking competitivo.",
+    "SoliProde Teams. Armá tu Team, mirá tu 11 titular, el Banco y el ranking competitivo.",
 };
 
-type GroupsPageProps = {
+type TeamsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 };
 
-export default async function GroupsPage({ searchParams }: GroupsPageProps) {
+export default async function TeamsPage({ searchParams }: TeamsPageProps) {
   const state = await getTeamsPageState(searchParams);
 
-  return <TeamsScreen {...state} routeBase="/groups" data={state.screenData} />;
+  return <TeamsScreen {...state} routeBase="/teams" data={state.screenData} />;
 }

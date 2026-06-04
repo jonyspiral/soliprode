@@ -46,7 +46,7 @@ export type GroupLeaderboardEntry = {
   ownerProfileId: string | null;
   activeCount: number;
   totalCount: number;
-  averagePoints: number;
+  teamScore: number;
   isEligible: boolean;
   status: "preview" | "enabled";
   position: number;
@@ -193,8 +193,8 @@ export async function getGroupCompetitionSnapshot(
         return compareMembers(a, b);
       });
 
-      const totalActivePoints = activeMembers.reduce((sum, member) => sum + member.points, 0);
-      const averagePoints = activeMembers.length > 0 ? totalActivePoints / activeMembers.length : 0;
+      const starters = activeMembers.slice(0, 11);
+      const teamScore = starters.reduce((sum, member) => sum + member.points, 0);
       const isEligible = activeMembers.length >= 11;
 
       return {
@@ -205,7 +205,7 @@ export async function getGroupCompetitionSnapshot(
         ownerProfileId: group.owner_profile_id,
         activeCount: activeMembers.length,
         totalCount: members.length,
-        averagePoints,
+        teamScore,
         isEligible,
         status: (isEligible ? "enabled" : "preview") as "enabled" | "preview",
         position: 0,
@@ -215,8 +215,8 @@ export async function getGroupCompetitionSnapshot(
       };
     })
     .sort((a, b) => {
-      if (b.averagePoints !== a.averagePoints) {
-        return b.averagePoints - a.averagePoints;
+      if (b.teamScore !== a.teamScore) {
+        return b.teamScore - a.teamScore;
       }
 
       if (b.activeCount !== a.activeCount) {
@@ -251,7 +251,7 @@ export async function getGroupCompetitionSnapshot(
       ownerProfileId: entry.ownerProfileId,
       activeCount: entry.activeCount,
       totalCount: entry.totalCount,
-      averagePoints: entry.averagePoints,
+      teamScore: entry.teamScore,
       isEligible: entry.isEligible,
       status: entry.status,
       position: entry.position,

@@ -199,8 +199,8 @@ export default async function RankingsPage() {
           value={leaderboardUnlocked && userRanking?.position ? `#${userRanking.position}` : "--"}
           detail={
             leaderboardUnlocked
-              ? "Tu referencia principal dentro de la tabla oficial."
-              : "Se habilita cuando tu participación pasa a activa."
+              ? "Tu lugar actual en el ranking oficial."
+              : "Aparece cuando tu inscripción pasa a competir."
           }
         />
         <StatCard
@@ -209,16 +209,16 @@ export default async function RankingsPage() {
           detail={
             leaderboardUnlocked
               ? "Se actualizan cuando haya resultados y scoring cargado."
-              : "Tus borradores todavía no compiten por puntos."
+              : "Tus pronósticos guardados todavía no compiten por puntos."
           }
         />
         <StatCard
           label="Estado"
-          value={participationActive ? "Activa" : "Pendiente"}
+          value={participationActive ? "Compitiendo" : "Sin activar"}
           detail={
             participationActive
               ? "Ya entrás en el ranking oficial."
-              : "Activá tu participación para aparecer en la tabla oficial."
+              : "Activá tu inscripción para aparecer en la tabla oficial."
           }
         />
       </section>
@@ -231,8 +231,8 @@ export default async function RankingsPage() {
         >
           <div className="grid gap-4">
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Podés seguir cargando pronósticos gratis como borrador. Cuando actives tu
-              participación, los pronósticos futuros pasan a competir por posición y premios.
+              Podés seguir cargando pronósticos. Cuando actives tu inscripción, los próximos puntos
+              entran al ranking oficial y a la pelea por premios.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
@@ -317,26 +317,26 @@ export default async function RankingsPage() {
 
       <section className="grid gap-4 sm:grid-cols-2">
         <SurfaceCard
-          title="Tu grupo"
-          description="La competencia corta ya vive en Grupos: ahí se define tu grupo principal, el DT y la tabla interna."
+          title="Tu Team"
+          description="Teams es tu superficie corta: ahí se define tu Team principal, el Capitán, el DT y el teamScore."
         >
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Si ya activaste tu participación, podés entrar con código, armar tu equipo y seguir el promedio oficial del grupo.
+            Si ya activaste tu inscripción, podés entrar con código, armar tu Team y seguir el puntaje del Team con tus 11 mejores activos.
           </p>
           <Link
             href="/groups"
             className="mt-4 inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
           >
-            Ir a grupos
+            Ir a Teams
           </Link>
         </SurfaceCard>
 
         <SurfaceCard
           title="Premios y corte"
-          description="La tabla general y la tabla de grupos usan la misma base: solo cuentan jugadores activos/pagos."
+          description="La tabla general y la tabla de Teams usan la misma base: solo cuentan Jugadores activos con Aporte confirmado."
         >
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Los grupos con menos de 11 activos siguen visibles como preview. Recién con 11 o más quedan habilitados para competir oficialmente.
+            Los Teams con menos de 11 Jugadores activos siguen en formación. Recién con 11 o más entran en competencia oficial.
           </p>
         </SurfaceCard>
       </section>
