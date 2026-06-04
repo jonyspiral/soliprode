@@ -83,6 +83,107 @@ select {
   scrollbar-width: none;
 }
 
+.shell-status-banner {
+  border-top: 1px solid rgba(195, 198, 213, 0.8);
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-strong) 100%);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.shell-status-banner-inner {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 0.625rem;
+  overflow: hidden;
+}
+
+.shell-status-banner-track {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.shell-status-banner-marquee {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.625rem;
+  color: white;
+}
+
+.shell-status-banner-kicker {
+  display: inline-flex;
+  height: 1.35rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-gold-soft);
+  padding: 0 0.55rem;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.shell-status-banner-copy {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  color: white;
+}
+
+.shell-status-banner-cta {
+  display: inline-flex;
+  min-height: 1.85rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e7ca55;
+  border-radius: 999px;
+  background: var(--color-gold-soft);
+  padding: 0.35rem 0.8rem;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 767px) {
+  .shell-status-banner-marquee {
+    padding-right: 2rem;
+    animation: shell-status-banner-marquee 14s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-status-banner-marquee {
+    animation: none;
+  }
+}
+
+@keyframes shell-status-banner-marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  12% {
+    transform: translateX(0);
+  }
+
+  88% {
+    transform: translateX(-38%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .home-landing-shell {
   margin-left: -1rem;
   margin-right: -1rem;

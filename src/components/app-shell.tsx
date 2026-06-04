@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
 import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
-import styles from "@/components/app-shell.module.css";
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
@@ -225,19 +224,19 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
         {showPendingPaymentBanner ? (
-          <div className={`${styles.statusBanner} px-4`}>
+          <div className="shell-status-banner px-4">
             <div className="mx-auto w-full max-w-6xl md:px-2">
               <StartCheckoutCard className="block w-full text-left">
-                <div className={styles.statusBannerInner}>
-                  <div className={styles.statusBannerTrack}>
-                    <div className={styles.statusBannerMarquee}>
-                      <span className={styles.statusBannerKicker}>No activo</span>
-                      <span className={styles.statusBannerCopy}>
+                <div className="shell-status-banner-inner">
+                  <div className="shell-status-banner-track">
+                    <div className="shell-status-banner-marquee">
+                      <span className="shell-status-banner-kicker">No activo</span>
+                      <span className="shell-status-banner-copy">
                         No tenés Pase Solidario. Completá tu inscripción para competir.
                       </span>
                     </div>
                   </div>
-                  <span className={styles.statusBannerCta}>Completar</span>
+                  <span className="shell-status-banner-cta">Completar</span>
                 </div>
               </StartCheckoutCard>
             </div>
