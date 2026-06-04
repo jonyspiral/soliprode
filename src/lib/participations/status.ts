@@ -19,9 +19,9 @@ export function resolveParticipationUiState(paymentStatus: string | null | undef
       isPaid: true,
       isPendingReview: false,
       needsCompletion: false,
-      statusLabel: "Compitiendo",
-      supportText: "Tus pronósticos ya compiten en el ranking.",
-      shellBannerText: "Ya estás compitiendo",
+      statusLabel: "Jugador activo",
+      supportText: "Pase Solidario confirmado. Tus pronósticos ya compiten en el ranking.",
+      shellBannerText: "Aporte confirmado",
     };
   }
 
@@ -30,9 +30,9 @@ export function resolveParticipationUiState(paymentStatus: string | null | undef
       isPaid: false,
       isPendingReview: true,
       needsCompletion: false,
-      statusLabel: "Estamos verificando tu inscripción",
-      supportText: "Tus pronósticos quedan guardados.",
-      shellBannerText: "Estamos verificando tu inscripción",
+      statusLabel: "Registrado",
+      supportText: "Tus pronósticos quedan guardados. Cuando se confirme tu Aporte, pasás a competir.",
+      shellBannerText: "Pase Solidario en revisión",
     };
   }
 
@@ -40,8 +40,8 @@ export function resolveParticipationUiState(paymentStatus: string | null | undef
     isPaid: false,
     isPendingReview: false,
     needsCompletion: true,
-    statusLabel: "Tus pronósticos todavía no compiten",
-    supportText: "Tus pronósticos quedan guardados.",
-    shellBannerText: "Tus pronósticos todavía no compiten",
+    statusLabel: "Registrado",
+    supportText: "Debés terminar tu inscripción para competir.",
+    shellBannerText: "Completá tu Pase Solidario",
   };
 }

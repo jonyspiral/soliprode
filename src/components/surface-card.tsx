@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 type SurfaceCardProps = {
+  id?: string;
+  className?: string;
   title?: string;
   description?: string;
   children: ReactNode;
@@ -17,6 +19,8 @@ const toneClasses = {
 };
 
 export function SurfaceCard({
+  id,
+  className,
   title,
   description,
   children,
@@ -26,7 +30,10 @@ export function SurfaceCard({
   const descriptionClass = tone === "primary" ? "text-[#dfe6ff]" : "text-[var(--color-muted)]";
 
   return (
-    <section className={`min-w-0 rounded-[1.25rem] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] md:p-5 ${toneClasses[tone]}`}>
+    <section
+      id={id}
+      className={`min-w-0 rounded-[1.25rem] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] md:p-5 ${toneClasses[tone]} ${className ?? ""}`}
+    >
       {title ? (
         <div className="mb-4 md:mb-5">
           <h2 className={`break-words font-serif text-[1.6rem] font-bold uppercase leading-none md:text-[1.85rem] ${titleClass}`}>

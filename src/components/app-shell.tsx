@@ -54,15 +54,18 @@ function AvatarChip() {
 
 function BrandLogo() {
   return (
-    <span className="inline-flex items-center">
+    <span className="inline-flex items-center gap-2">
       <Image
         src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
         alt="SoliProde"
-        width={160}
-        height={44}
-        className="h-[32px] w-auto md:h-[40px]"
+        width={36}
+        height={36}
+        className="h-8 w-8 md:h-9 md:w-9"
         priority
       />
+      <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">
+        SoliProde
+      </span>
     </span>
   );
 }
@@ -176,7 +179,7 @@ export function AppShell({ children }: AppShellProps) {
     return (
       <div className="min-h-screen bg-transparent">
         <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-          <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
+          <div className="mx-auto grid h-14 w-full max-w-6xl grid-cols-[40px_1fr_40px] items-center px-4 md:px-6">
             <button
               type="button"
               onClick={() => router.push("/")}
@@ -185,7 +188,7 @@ export function AppShell({ children }: AppShellProps) {
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
-            <Link href="/" aria-label="SoliProde" className="inline-flex items-center">
+            <Link href="/" aria-label="SoliProde" className="mx-auto inline-flex items-center">
               <BrandLogo />
             </Link>
             <div className="w-10" />
@@ -202,10 +205,17 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
+        <div className="mx-auto grid h-14 w-full max-w-6xl grid-cols-[40px_1fr_auto] items-center px-4 md:px-6">
           <Link
             href={authReady && isAuthenticated ? "/dashboard" : "/"}
-            className="inline-flex items-center transition hover:opacity-80"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-[var(--color-muted)] transition hover:text-[var(--color-primary)]"
+            aria-label="Ir al inicio"
+          >
+            <HomeIcon className="h-5 w-5" />
+          </Link>
+          <Link
+            href={authReady && isAuthenticated ? "/dashboard" : "/"}
+            className="mx-auto inline-flex items-center transition hover:opacity-80"
             aria-label="SoliProde"
           >
             <BrandLogo />
@@ -230,18 +240,31 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         {showPendingPaymentBanner ? (
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
-            <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 md:px-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-                {participationUiState.shellBannerText}
-              </p>
-              {participationUiState.needsCompletion ? (
-                <Link
-                  href="/dashboard"
-                  className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-                >
-                  Completar Pase Solidario
-                </Link>
-              ) : null}
+            <div className="mx-auto w-full max-w-6xl md:px-2">
+              <Link
+                href="/dashboard#solidarity-pass"
+                className="block rounded-xl border border-[rgba(233,196,0,0.22)] bg-[rgba(255,255,255,0.72)] px-4 py-3 transition hover:border-[rgba(233,196,0,0.45)]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                      {participationUiState.isPendingReview
+                        ? "Pase Solidario en revisión"
+                        : "Completá tu Pase Solidario"}
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--color-ink)]">
+                      {participationUiState.isPendingReview
+                        ? "Tus pronósticos quedan guardados. Cuando se confirme tu Aporte, pasás a competir."
+                        : "Tus pronósticos quedan guardados. Completá tu Aporte para entrar a competir."}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                    {participationUiState.isPendingReview
+                      ? "Ver estado del Aporte"
+                      : "Completar Aporte Solidario"}
+                  </span>
+                </div>
+              </Link>
             </div>
           </div>
         ) : null}

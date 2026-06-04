@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
+import { UserStatusCard } from "@/components/participation/user-status-card";
+import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -80,33 +81,14 @@ export default async function ProfilePage() {
 
   return (
     <PageStack>
-      <SurfaceCard tone="primary" title="Perfil" description="Tu cuenta y tu estado en el juego.">
-        <div className="grid gap-4">
-          <p className="font-serif text-[2rem] font-bold uppercase text-white">
-            {profile?.public_alias ?? "Jugador"}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <StatCard label="Estado" value={stateLabel} detail={participationUiState.supportText} />
-            <StatCard label="Alias" value={profile?.public_alias ?? "Pendiente"} detail="Así aparecés en el juego." />
-          </div>
-        </div>
-      </SurfaceCard>
+      <UserStatusCard
+        alias={profile?.public_alias ?? "Jugador"}
+        statusLabel={stateLabel}
+        isPaid={participationUiState.isPaid}
+      />
 
       <SurfaceCard title="Cuenta">
         <div className="grid gap-3">
-          {!participationUiState.isPaid ? (
-            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Inscripción
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
-                {participationUiState.statusLabel}
-              </p>
-              <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
-                {participationUiState.supportText}
-              </p>
-            </div>
-          ) : null}
           <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
               Nombre
@@ -133,10 +115,10 @@ export default async function ProfilePage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
-              href="/dashboard"
+              href={participationUiState.isPaid ? "/dashboard" : "/dashboard#solidarity-pass"}
               className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-primary)]"
             >
-              Ir al panel
+              {participationUiState.isPaid ? "Ir al panel" : "Completar inscripción"}
             </Link>
             <SignOutButton className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]" />
           </div>

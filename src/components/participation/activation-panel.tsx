@@ -85,7 +85,7 @@ export function ActivationPanel({
             Ya estás compitiendo por premios
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Tus próximos pronósticos ya juegan por ranking oficial, grupo y premio.
+            Tus próximos pronósticos ya juegan por ranking oficial, Team score y premio.
           </p>
         </div>
 
@@ -102,24 +102,18 @@ export function ActivationPanel({
   if (participationUiState.isPendingReview) {
     return (
       <div className="grid gap-4">
-        <div className="rounded-[1.25rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
+        <div className="rounded-[1rem] border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
           <div className="grid gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Estado de inscripción
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+              Pase Solidario
             </p>
-            <h3 className="font-serif text-[1.9rem] font-bold uppercase leading-none text-[var(--color-ink)]">
-              Estamos verificando tu inscripción
+            <h3 className="font-serif text-[1.45rem] font-bold leading-none text-[var(--color-ink)]">
+              Pase Solidario en revisión
             </h3>
             <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos quedan guardados. Cuando el pago quede confirmado, pasan a competir.
+              Tus pronósticos quedan guardados. Cuando se confirme tu Aporte, pasás a competir.
             </p>
             <MercadoPagoBadge compact secondaryText="Seguimos esperando confirmación final" className="w-fit" />
-            <Link
-              href="/matches"
-              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-            >
-              Ver pronósticos
-            </Link>
           </div>
         </div>
       </div>
@@ -132,10 +126,10 @@ export function ActivationPanel({
         <div className="grid gap-4">
           <div className="grid gap-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Inscripción inicial
+              Pase Solidario
             </p>
-            <h3 className="font-serif text-[1.9rem] font-bold uppercase leading-none text-[var(--color-ink)]">
-              Completá tu inscripción
+            <h3 className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-ink)]">
+              Completá tu Aporte Solidario
             </h3>
           </div>
           <div className="flex items-end justify-between gap-3">

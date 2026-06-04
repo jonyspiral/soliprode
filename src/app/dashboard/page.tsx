@@ -4,12 +4,14 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
 import { ActivationPanel } from "@/components/participation/activation-panel";
+import { UserStatusCard } from "@/components/participation/user-status-card";
 import {
   InfoNotice,
   PageStack,
   StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { formatZoneLabel } from "@/lib/fixture/zone-labels";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -182,14 +184,18 @@ export default async function DashboardPage() {
       <PageStack>
         <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
 
+        <UserStatusCard
+          alias={aliasLabel}
+          statusLabel={stateLabel}
+          isPaid={false}
+          actionHref="/dashboard#solidarity-pass"
+        />
+
         <SurfaceCard
+          id="solidarity-pass"
           tone="accent"
-          title={
-            participationUiState.isPendingReview
-              ? "Estamos verificando tu inscripción"
-              : "Completá tu inscripción"
-          }
-          description={participationUiState.supportText}
+          title="Pase Solidario"
+          description="Completá tu Aporte para pasar a competir oficialmente."
         >
           <div className="grid gap-4">
             <ActivationPanel
@@ -239,13 +245,7 @@ export default async function DashboardPage() {
         <StatCard
           label="Estado"
           value={stateLabel}
-          detail={
-            participationActive
-              ? "Ya entrás a competir por premios."
-              : participationUiState.isPendingReview
-                ? "Tu inscripción todavía no figura como activa."
-                : "Completá tu inscripción para entrar al ranking."
-          }
+          detail="Aporte confirmado y ranking activo."
         />
         <StatCard label="Alias" value={aliasLabel} detail="Así aparecés en el torneo." />
       </section>
@@ -284,7 +284,7 @@ export default async function DashboardPage() {
                   >
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
                       {match.round_name}
-                      {match.group_code ? ` • Grupo ${match.group_code}` : ""}
+                      {match.group_code ? ` • ${formatZoneLabel(match.group_code)}` : ""}
                     </p>
                     <p className="mt-2 font-serif text-[1.35rem] font-bold uppercase text-[var(--color-ink)]">
                       {homeTeam?.fifa_code ?? "LOC"} vs {awayTeam?.fifa_code ?? "VIS"}
@@ -330,6 +330,13 @@ export default async function DashboardPage() {
           </SurfaceCard>
         </div>
       </section>
+
+      <UserStatusCard
+        alias={aliasLabel}
+        statusLabel={stateLabel}
+        isPaid
+        teamName={heroState.kind === "active" ? heroState.metrics[2]?.value : null}
+      />
 
       <SurfaceCard title="Cuenta">
         <div className="grid gap-3">
