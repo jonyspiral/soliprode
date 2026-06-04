@@ -37,8 +37,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   if (!authErrorMessage && authErrorCode) {
     authErrorMessage =
-      authErrorCode === "confirm_failed"
-        ? "La vuelta desde Google no salió como esperábamos. Probá de nuevo."
+      authErrorCode === "oauth_failed" || authErrorCode === "confirm_failed"
+        ? "No pudimos iniciar sesión con Google. Intentá nuevamente."
         : authErrorCode === "bootstrap_failed"
           ? "Entraste, pero no pudimos dejar tu cuenta lista todavía. Reintentá en unos minutos."
           : authErrorCode === "missing_user" || authErrorCode === "missing_code"

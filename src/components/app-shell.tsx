@@ -67,7 +67,8 @@ function BrandLogo() {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isAuthScreen = pathname === "/login" || pathname === "/register";
+  const isAuthScreen =
+    pathname === "/login" || pathname === "/register" || pathname === "/auth/callback";
   const isPublicHome = pathname === "/";
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
