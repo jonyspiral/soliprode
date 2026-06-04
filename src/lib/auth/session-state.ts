@@ -1,3 +1,4 @@
+import { getPlayerAvatar } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -7,11 +8,13 @@ export type SessionState =
       userId: null;
       isAuthenticated: false;
       isPaid: false;
+      avatarUrl: null;
     }
   | {
       userId: string;
       isAuthenticated: true;
       isPaid: boolean;
+      avatarUrl: string | null;
     };
 
 export async function getServerSessionState(): Promise<SessionState> {
@@ -26,6 +29,7 @@ export async function getServerSessionState(): Promise<SessionState> {
         userId: null,
         isAuthenticated: false,
         isPaid: false,
+        avatarUrl: null,
       };
     }
 
@@ -48,12 +52,14 @@ export async function getServerSessionState(): Promise<SessionState> {
         pickPrimaryParticipation(
           (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
         ).participation?.payment_status === "paid",
+      avatarUrl: getPlayerAvatar(null, { user_metadata: user.user_metadata }),
     };
   } catch {
     return {
       userId: null,
       isAuthenticated: false,
       isPaid: false,
+      avatarUrl: null,
     };
   }
 }
