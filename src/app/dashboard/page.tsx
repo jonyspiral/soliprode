@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
 import { ActivationPanel } from "@/components/participation/activation-panel";
@@ -47,7 +46,6 @@ function formatStartsAt(startsAt: string) {
 export default async function DashboardPage() {
   let hasAuthenticatedUser = false;
   let currentUserId: string | null = null;
-  let userEmail: string | null = null;
   let profile:
     | {
         full_name: string | null;
@@ -82,7 +80,6 @@ export default async function DashboardPage() {
 
     hasAuthenticatedUser = true;
     currentUserId = user.id;
-    userEmail = user.email ?? null;
 
     const [
       { data: profileData },
@@ -188,7 +185,6 @@ export default async function DashboardPage() {
           alias={aliasLabel}
           statusLabel={stateLabel}
           isPaid={false}
-          actionHref="/dashboard#solidarity-pass"
         />
 
         <SurfaceCard
@@ -330,49 +326,6 @@ export default async function DashboardPage() {
           </SurfaceCard>
         </div>
       </section>
-
-      <UserStatusCard
-        alias={aliasLabel}
-        statusLabel={stateLabel}
-        isPaid
-        teamName={heroState.kind === "active" ? heroState.metrics[2]?.value : null}
-      />
-
-      <SurfaceCard title="Cuenta">
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-            <div className="grid gap-3">
-              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                  Nombre
-                </span>
-                <span className="text-sm font-semibold text-[var(--color-ink)]">
-                  {profile?.full_name ?? "Pendiente"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                  Email
-                </span>
-                <span className="truncate pl-3 text-sm font-semibold text-[var(--color-ink)]">
-                  {profile?.email ?? userEmail ?? "Sin email"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                  WhatsApp
-                </span>
-                <span className="text-sm font-semibold text-[var(--color-ink)]">
-                  {profile?.whatsapp ?? "Opcional"}
-                </span>
-              </div>
-            </div>
-            <SignOutButton
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)] sm:min-w-[160px]"
-            />
-          </div>
-        </div>
-      </SurfaceCard>
     </PageStack>
   );
 }

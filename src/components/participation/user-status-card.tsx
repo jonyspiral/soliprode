@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { StartCheckoutButton } from "@/components/payments/start-checkout-trigger";
 import { SurfaceCard } from "@/components/surface-card";
 
 type UserStatusCardProps = {
@@ -6,7 +6,6 @@ type UserStatusCardProps = {
   statusLabel: string;
   isPaid: boolean;
   teamName?: string | null;
-  actionHref?: string;
 };
 
 export function UserStatusCard({
@@ -14,7 +13,6 @@ export function UserStatusCard({
   statusLabel,
   isPaid,
   teamName,
-  actionHref = "/dashboard#solidarity-pass",
 }: UserStatusCardProps) {
   return (
     <SurfaceCard
@@ -57,19 +55,18 @@ export function UserStatusCard({
 
         {isPaid ? (
           <p className="rounded-xl border border-[#8bd3a5] bg-[#eef9f1] px-4 py-3 text-sm text-[#1f6b37]">
-            Jugador activo. Ya estás compitiendo oficialmente.
+            Jugador activo. Pase Solidario confirmado.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
             <p className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-ink)]">
-              Debés terminar tu inscripción para competir.
+              No tenés Pase Solidario. Debés terminar tu inscripción para competir.
             </p>
-            <Link
-              href={actionHref}
+            <StartCheckoutButton
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
             >
-              Completar inscripción
-            </Link>
+              Completar Aporte Solidario
+            </StartCheckoutButton>
           </div>
         )}
       </div>

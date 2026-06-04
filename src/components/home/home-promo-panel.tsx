@@ -1,11 +1,13 @@
+import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
 import { PromoCountdownInline } from "@/components/home/promo-countdown-inline";
 
 type HomePromoPanelProps = {
   entryPrice: string;
+  clickable?: boolean;
 };
 
-export function HomePromoPanel({ entryPrice }: HomePromoPanelProps) {
-  return (
+export function HomePromoPanel({ entryPrice, clickable = false }: HomePromoPanelProps) {
+  const content = (
     <div className="home-landing-promo-panel">
       <div className="home-landing-promo-header">
         <p className="home-landing-promo-title">Inscribite ya!</p>
@@ -22,5 +24,15 @@ export function HomePromoPanel({ entryPrice }: HomePromoPanelProps) {
       </div>
       <p className="home-landing-promo-note">Pozo incremental: crece con cada jugador.</p>
     </div>
+  );
+
+  if (!clickable) {
+    return content;
+  }
+
+  return (
+    <StartCheckoutCard className="block text-left">
+      {content}
+    </StartCheckoutCard>
   );
 }

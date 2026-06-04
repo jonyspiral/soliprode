@@ -15,17 +15,17 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
   const heroTitle = isActive
     ? `Hola${state.alias ? `, ${state.alias}` : ""}`
     : isRegistered
-      ? "Tu cuenta ya está lista"
+      ? "Seguís a un paso de jugar"
       : "¡Jugá el Mundial y llevate todo!";
   const heroCopy = isActive
     ? "Ya estás compitiendo. Mirá tu score y cómo viene tu Team."
     : isRegistered
-      ? "Tus pronósticos quedan guardados. Completá tu inscripción para entrar a competir."
+      ? "Tus pronósticos quedan guardados. Activá tu Pase Solidario para entrar a competir."
       : "Y de paso, bancás a un grupo de universitarios a terminar su carrera.";
   const heroHighlight = isActive
     ? null
     : isRegistered
-      ? `Ya cargaste tu cuenta. ${state.predictionCountLabel}.`
+      ? state.predictionCountLabel
       : "Jugás un Prode Mundial… para ser campeón, tenés que sumar. Creá equipo con 11 amigos y competí por la Copa SoliProde.";
 
   return (
@@ -42,9 +42,7 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
         />
         <div className="home-landing-hero-overlay" />
         <div className="home-landing-hero-inner">
-          <p className="home-landing-kicker">
-            {isGuest ? "¡Ayuda y gana!" : isActive ? state.statusLabel : "Cuenta registrada"}
-          </p>
+          <p className="home-landing-kicker">{isGuest ? "¡Ayuda y gana!" : isActive ? state.statusLabel : "Registrado"}</p>
           <h1 className="home-landing-title">{heroTitle}</h1>
           <p className="home-landing-copy">{heroCopy}</p>
           {heroHighlight ? (
@@ -73,7 +71,7 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
             <div className="home-landing-status-strip">
               <div className="home-landing-status-chip">
                 <span className="home-landing-status-chip-label">Estado</span>
-                <strong>{state.statusLabel}</strong>
+                <strong>Registrado</strong>
               </div>
               <div className="home-landing-status-chip">
                 <span className="home-landing-status-chip-label">Pronósticos</span>
@@ -92,7 +90,7 @@ export function HomeHero({ entryPrice, state }: HomeHeroProps) {
               ))}
             </div>
           ) : (
-            <HomePromoPanel entryPrice={entryPrice} />
+            <HomePromoPanel entryPrice={entryPrice} clickable={isRegistered} />
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
+import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
@@ -241,30 +242,21 @@ export function AppShell({ children }: AppShellProps) {
         {showPendingPaymentBanner ? (
           <div className="border-t border-[var(--color-line)] bg-[rgba(255,225,109,0.14)] px-4 py-2">
             <div className="mx-auto w-full max-w-6xl md:px-2">
-              <Link
-                href="/dashboard#solidarity-pass"
-                className="block rounded-xl border border-[rgba(233,196,0,0.22)] bg-[rgba(255,255,255,0.72)] px-4 py-3 transition hover:border-[rgba(233,196,0,0.45)]"
-              >
+              <StartCheckoutCard className="block w-full rounded-xl border border-[rgba(233,196,0,0.22)] bg-[rgba(255,255,255,0.72)] px-4 py-3 text-left transition hover:border-[rgba(233,196,0,0.45)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                      {participationUiState.isPendingReview
-                        ? "Pase Solidario en revisión"
-                        : "Completá tu Pase Solidario"}
+                      No activo
                     </p>
                     <p className="mt-1 text-sm leading-5 text-[var(--color-ink)]">
-                      {participationUiState.isPendingReview
-                        ? "Tus pronósticos quedan guardados. Cuando se confirme tu Aporte, pasás a competir."
-                        : "Tus pronósticos quedan guardados. Completá tu Aporte para entrar a competir."}
+                      No tenés Pase Solidario. Debés terminar tu inscripción para competir.
                     </p>
                   </div>
                   <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                    {participationUiState.isPendingReview
-                      ? "Ver estado del Aporte"
-                      : "Completar Aporte Solidario"}
+                    Completar Aporte Solidario
                   </span>
                 </div>
-              </Link>
+              </StartCheckoutCard>
             </div>
           </div>
         ) : null}

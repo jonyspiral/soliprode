@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { formatPromoCountdown, PROMO_END_AT } from "@/lib/product/promo-campaign";
 
-export function PromoCountdownInline() {
+type PromoCountdownInlineProps = {
+  className?: string;
+};
+
+export function PromoCountdownInline({ className = "" }: PromoCountdownInlineProps) {
   const [remaining, setRemaining] = useState(() => formatPromoCountdown(PROMO_END_AT));
 
   useEffect(() => {
@@ -16,5 +20,5 @@ export function PromoCountdownInline() {
     };
   }, []);
 
-  return <>{remaining ?? "0h 00m 00s"}</>;
+  return <span className={className}>{remaining ?? "0h 00m 00s"}</span>;
 }
