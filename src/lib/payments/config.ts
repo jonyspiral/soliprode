@@ -1,11 +1,13 @@
+import { readConfiguredPublicSiteOrigin } from "@/lib/site-url";
+
 export function getBaseUrl() {
-  const value = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  const value = readConfiguredPublicSiteOrigin();
 
   if (!value) {
     throw new Error("Missing required environment variable: NEXT_PUBLIC_BASE_URL");
   }
 
-  return value.replace(/\/+$/, "");
+  return value;
 }
 
 export function getMercadoPagoAccessToken() {

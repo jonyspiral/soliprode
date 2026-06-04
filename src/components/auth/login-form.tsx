@@ -20,6 +20,7 @@ import {
   hasConfiguredAuthBaseUrl,
   persistAuthNextPath,
 } from "@/lib/auth/oauth";
+import { resolvePublicSiteOrigin } from "@/lib/site-url";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -101,10 +102,9 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
       console.error("Google OAuth start threw before redirect", {
         errorMessage: error instanceof Error ? error.message : String(error),
         hasConfiguredBaseUrl: hasConfiguredAuthBaseUrl(),
-        redirectTo:
-          typeof window !== "undefined" && window.location.origin
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
-            : null,
+        redirectTo: resolvePublicSiteOrigin(
+          typeof window !== "undefined" ? window.location.origin : null,
+        ),
       });
       setError("Google no está configurado todavía. Revisá Supabase Provider y URL base.");
     } finally {

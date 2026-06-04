@@ -29,6 +29,7 @@ import {
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { resolvePublicSiteOrigin } from "@/lib/site-url";
 
 type RegisterFormProps = {
   promoterCode?: string | null;
@@ -110,10 +111,9 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
       console.error("Google OAuth signup threw before redirect", {
         errorMessage: error instanceof Error ? error.message : String(error),
         hasConfiguredBaseUrl: hasConfiguredAuthBaseUrl(),
-        redirectTo:
-          typeof window !== "undefined" && window.location.origin
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
-            : null,
+        redirectTo: resolvePublicSiteOrigin(
+          typeof window !== "undefined" ? window.location.origin : null,
+        ),
       });
       setError("Google no está configurado todavía. Revisá Supabase Provider y URL base.");
     } finally {

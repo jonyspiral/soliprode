@@ -33,6 +33,12 @@ Ahí conviene validar con negocio si `Confirm email` sigue prendido. Para el MVP
 https://www.soliprode.com
 ```
 
+### Dominio canónico
+
+- `https://www.soliprode.com` debe ser el origen canónico.
+- `https://soliprode.com/*` debe redirigir con `308` a `https://www.soliprode.com/*`.
+- No mezclar apex y `www` en producción para evitar sesiones partidas entre origins.
+
 ### Redirect URLs mínimas
 
 ```text

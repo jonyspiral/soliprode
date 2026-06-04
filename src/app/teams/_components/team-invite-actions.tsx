@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { resolvePublicSiteOrigin } from "@/lib/site-url";
 
 type TeamInviteActionsProps = {
   inviteCode: string;
@@ -24,17 +25,9 @@ function buildTeamInviteMessage(teamInviteUrl: string, prizePoolLabel: string) {
 }
 
 function resolveBaseUrl() {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim() ?? "";
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/, "");
-  }
-
-  if (typeof window !== "undefined" && window.location.origin) {
-    return window.location.origin.replace(/\/+$/, "");
-  }
-
-  return "";
+  return resolvePublicSiteOrigin(
+    typeof window !== "undefined" ? window.location.origin : null,
+  ) ?? "";
 }
 
 export function TeamInviteActions({ inviteCode, prizePoolLabel }: TeamInviteActionsProps) {
