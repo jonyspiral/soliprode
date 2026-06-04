@@ -34,19 +34,17 @@ export type HomeCommunityGroupRanking = {
   activeCount: number;
 };
 
+type HomeTeamRow = {
+  fifa_code: string | null;
+  name: string;
+  country_code: string | null;
+};
+
 type HomeMatchRow = {
   group_code: string | null;
   starts_at: string;
-  home_team: {
-    fifa_code: string | null;
-    name: string;
-    country_code: string | null;
-  }[] | null;
-  away_team: {
-    fifa_code: string | null;
-    name: string;
-    country_code: string | null;
-  }[] | null;
+  home_team: HomeTeamRow | HomeTeamRow[] | null;
+  away_team: HomeTeamRow | HomeTeamRow[] | null;
 };
 
 type HomeRankingRow = {
@@ -81,6 +79,14 @@ function getMatchDateKey(startsAt: string) {
   }).format(new Date(startsAt));
 }
 
+function normalizeRelatedTeam(team: HomeMatchRow["home_team"] | HomeMatchRow["away_team"]) {
+  if (!team) {
+    return null;
+  }
+
+  return Array.isArray(team) ? (team[0] ?? null) : team;
+}
+
 async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
   try {
     const service = createServiceRoleSupabaseClient();
@@ -101,8 +107,8 @@ async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
 
     const mapped = ((data ?? []) as HomeMatchRow[])
       .map((match) => {
-        const homeTeam = match.home_team?.[0];
-        const awayTeam = match.away_team?.[0];
+        const homeTeam = normalizeRelatedTeam(match.home_team);
+        const awayTeam = normalizeRelatedTeam(match.away_team);
 
         if (!homeTeam || !awayTeam) {
           return null;
