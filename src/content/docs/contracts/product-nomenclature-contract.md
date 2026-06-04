@@ -1,11 +1,13 @@
 ---
 title: "SoliProde Product Nomenclature Contract"
-description: "Contrato obligatorio de nombres visibles, estados de usuario y roles competitivos para SoliProde."
+description: "Nombres visibles aprobados para estados, teams y roles."
 lastUpdated: "2026-06-03"
 ---
 
 # SoliProde Product Nomenclature Contract
 
-## Objetivo
+## Nombres visibles aprobados
 
-Unificar la nomenclatura visible de SoliProde para que la app suene futbolera, social y competitiva, sin traslad
+- Usuario no logueado: Visitante.
+- Usuario logueado sin aporte: Registrado.
+- Usuario logueado con aporte confirmado: Jug
