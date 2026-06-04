@@ -10,21 +10,13 @@ export const metadata: Metadata = {
     title: "Groups | SoliProde",
     description:
       "SoliProde Teams dentro de la app. Armá tu Team, mirá tu 11 titular, el Banco y el ranking competitivo.",
-    images: [
-      {
-        url: "/icon-512.png",
-        width: 512,
-        height: 512,
-        alt: "SoliProde",
-      },
-    ],
   },
   twitter: {
     card: "summary",
     title: "Groups | SoliProde",
     description:
       "SoliProde Teams dentro de la app. Armá tu Team, mirá tu 11 titular, el Banco y el ranking competitivo.",
-    images: ["/icon-512.png"],
+    images: ["/groups/opengraph-image"],
   },
 };
 

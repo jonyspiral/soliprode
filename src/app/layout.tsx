@@ -38,21 +38,13 @@ export const metadata: Metadata = {
     title: "SoliProde",
     description:
       "Prode Mundial Solidario 2026. Jugá el Mundial, competí con tu Team y ayudá a universitarios a terminar su carrera.",
-    images: [
-      {
-        url: SOLIPRODE_BRAND_ASSETS.icon512,
-        width: 512,
-        height: 512,
-        alt: "SoliProde",
-      },
-    ],
   },
   twitter: {
     card: "summary",
     title: "SoliProde",
     description:
       "Prode Mundial Solidario 2026. Jugá el Mundial, competí con tu Team y ayudá a universitarios a terminar su carrera.",
-    images: [SOLIPRODE_BRAND_ASSETS.icon512],
+    images: ["/opengraph-image"],
   },
   manifest: "/manifest.webmanifest",
   icons: {
