@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
+import { HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
 import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
 import {
   mobileNavItemsAuthenticated,
@@ -68,7 +67,6 @@ function BrandLogo() {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const isAuthScreen = pathname === "/login" || pathname === "/register";
   const isPublicHome = pathname === "/";
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
@@ -175,14 +173,9 @@ export function AppShell({ children }: AppShellProps) {
       <div className="min-h-screen bg-transparent">
         <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
           <div className="relative mx-auto flex h-14 w-full max-w-6xl items-center px-4 md:px-6">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-[var(--color-muted)] transition hover:text-[var(--color-primary)]"
-              aria-label="Volver al inicio"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-            </button>
+            <Link href="/" aria-label="SoliProde" className="inline-flex items-center justify-center">
+              <BrandLogo />
+            </Link>
             <Link
               href="/"
               aria-label="SoliProde"
@@ -192,9 +185,7 @@ export function AppShell({ children }: AppShellProps) {
                 SoliProde
               </span>
             </Link>
-            <Link href="/" aria-label="SoliProde" className="ml-auto inline-flex items-center justify-center">
-              <BrandLogo />
-            </Link>
+            <div className="ml-auto h-8 w-8" aria-hidden="true" />
           </div>
         </header>
 
@@ -211,10 +202,10 @@ export function AppShell({ children }: AppShellProps) {
         <div className="relative mx-auto flex h-14 w-full max-w-6xl items-center px-4 md:px-6">
           <Link
             href={authReady && isAuthenticated ? "/dashboard" : "/"}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-[var(--color-muted)] transition hover:text-[var(--color-primary)]"
-            aria-label="Ir al inicio"
+            className="inline-flex items-center justify-center transition hover:opacity-80"
+            aria-label="SoliProde"
           >
-            <HomeIcon className="h-5 w-5" />
+            <BrandLogo />
           </Link>
           <Link
             href={authReady && isAuthenticated ? "/dashboard" : "/"}
@@ -226,27 +217,8 @@ export function AppShell({ children }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {authReady && isAuthenticated ? (
-              <>
-                <SignOutButton
-                  label="Salir"
-                  className="inline-flex rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:hidden"
-                />
-                <SignOutButton
-                  label="Cerrar sesión"
-                  className="hidden rounded-md border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)] md:inline-flex"
-                />
-              </>
-            ) : null}
             <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil">
               <AvatarChip />
-            </Link>
-            <Link
-              href={authReady && isAuthenticated ? "/dashboard" : "/"}
-              aria-label="SoliProde"
-              className="inline-flex items-center justify-center"
-            >
-              <BrandLogo />
             </Link>
           </div>
         </div>
