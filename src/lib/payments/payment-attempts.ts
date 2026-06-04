@@ -63,7 +63,7 @@ function normalizeProviderApprovedAt(value: string | null | undefined) {
 function mapMercadoPagoStatus(status: string | null | undefined) {
   switch (status) {
     case "approved":
-      return "approved";
+      return "paid";
     case "in_process":
     case "pending":
       return "payment_pending";
@@ -226,7 +226,7 @@ async function applyAttemptAndParticipationState(
 
   const { data: participationRows, error: participationError } = await service
     .from("participations")
-    .select("id, payment_started_at, payment_submitted_at, activated_at, created_at")
+    .select("id, payment_status, payment_started_at, payment_submitted_at, activated_at, created_at")
     .eq("id", attempt.participation_id)
     .limit(1);
 
@@ -236,7 +236,7 @@ async function applyAttemptAndParticipationState(
 
   const participation = ((participationRows ?? [])[0] as Pick<
     ParticipationRow,
-    "id" | "payment_started_at" | "payment_submitted_at" | "activated_at" | "created_at"
+    "id" | "payment_status" | "payment_started_at" | "payment_submitted_at" | "activated_at" | "created_at"
   > | undefined) ?? null;
 
   await service
@@ -249,7 +249,7 @@ async function applyAttemptAndParticipationState(
     })
     .eq("id", attempt.id);
 
-  if (safeAttemptStatus === "approved") {
+  if (safeAttemptStatus === "paid") {
     const paidAt = nowIso();
     const activatedAt = nowIso();
     const eligibleFrom = resolveOnlineEligibleFrom(
@@ -295,7 +295,7 @@ async function applyAttemptAndParticipationState(
           ? "manual_review"
           : attempt.status;
 
-  if (participationStatus !== "paid") {
+  if (participationStatus !== "paid" && participation?.payment_status !== "paid") {
     await service
       .from("participations")
       .update({
@@ -310,6 +310,33 @@ async function applyAttemptAndParticipationState(
     participationStatus,
     approved: false,
   };
+}
+
+export async function syncLatestPendingPaymentAttemptForParticipation(participationId: string) {
+  const service = createServiceRoleSupabaseClient();
+  const { data, error } = await service
+    .from("payment_attempts")
+    .select(
+      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
+    )
+    .eq("participation_id", participationId)
+    .eq("provider", "mercadopago")
+    .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  const attempt = (data as PaymentAttemptRow | null) ?? null;
+
+  if (!attempt) {
+    return null;
+  }
+
+  return syncPaymentAttemptFromExternalReference(attempt.external_reference);
 }
 
 export async function syncPaymentAttemptFromExternalReference(externalReference: string) {

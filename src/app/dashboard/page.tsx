@@ -14,6 +14,7 @@ import { getPlayerDisplayName } from "@/lib/player/identity";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
+import { syncLatestPendingPaymentAttemptForParticipation } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -31,6 +32,12 @@ type UpcomingMatch = {
     name: string;
   }[] | null;
 };
+
+const SYNCABLE_PAYMENT_STATUSES = new Set([
+  "payment_started",
+  "payment_pending",
+  "manual_review",
+]);
 
 function formatStartsAt(startsAt: string) {
   return new Intl.DateTimeFormat("es-AR", {
@@ -124,6 +131,26 @@ export default async function DashboardPage() {
 
     profile = profileData;
     participation = pickPrimaryParticipation(participationRows ?? []).participation;
+
+    if (participation && SYNCABLE_PAYMENT_STATUSES.has(participation.payment_status)) {
+      try {
+        const paymentSync = await syncLatestPendingPaymentAttemptForParticipation(participation.id);
+        const syncedStatus = paymentSync?.syncResult.participationStatus;
+
+        if (syncedStatus) {
+          participation = {
+            ...participation,
+            payment_status: syncedStatus,
+          };
+        }
+      } catch (error) {
+        console.error("[payments:dashboard-sync] failed", {
+          participationId: participation.id,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     predictionCount = userPredictionCount ?? 0;
     upcomingMatches = (upcomingMatchRows ?? []) as UpcomingMatch[];
   } catch {
