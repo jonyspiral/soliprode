@@ -82,6 +82,22 @@ function buildReturnUrl(kind: "success" | "pending" | "failure", externalReferen
   return url.toString();
 }
 
+function isAttemptStillUsable(attempt: PaymentAttemptRow) {
+  if (!attempt.checkout_url) {
+    return false;
+  }
+
+  if (!["created", "payment_started", "payment_pending", "manual_review"].includes(attempt.status)) {
+    return false;
+  }
+
+  if (!attempt.expires_at) {
+    return true;
+  }
+
+  return new Date(attempt.expires_at).getTime() > Date.now();
+}
+
 export async function getParticipationForProfile(profileId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
@@ -115,6 +131,23 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
   }
 
   const service = createServiceRoleSupabaseClient();
+
+  if (["payment_started", "payment_pending", "manual_review"].includes(participation.payment_status)) {
+    const syncedAttempt = await syncPendingPaymentAttemptsForParticipation(participation.id);
+
+    if (syncedAttempt?.syncResult.approved) {
+      throw new Error("already_paid");
+    }
+
+    if (syncedAttempt?.attempt && isAttemptStillUsable(syncedAttempt.attempt)) {
+      return {
+        participation,
+        paymentAttempt: syncedAttempt.attempt,
+        checkoutUrl: syncedAttempt.attempt.checkout_url,
+      };
+    }
+  }
+
   const amount = entryConfig.initialPrice;
   const currency = entryConfig.currency;
   const externalReference = `soliprode:${participation.id}:${crypto.randomUUID()}`;
