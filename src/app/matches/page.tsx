@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PredictionBoard, type MatchBoardItem } from "@/components/matches/prediction-board";
-import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { formatZoneLabel, normalizeZoneCode, NO_ZONE_KEY } from "@/lib/fixture/zone-labels";
@@ -337,15 +336,6 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </h1>
         <p className="mt-3 max-w-[34rem] text-sm leading-6 text-[#dfe6ff]">{subcopy}</p>
       </section>
-
-      {currentUserId && !participationActive ? (
-        <div className="flex flex-col gap-2 rounded-[1.05rem] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Tus pronósticos quedan guardados. Completá tu inscripción para jugar.
-          </p>
-          <CompleteRegistrationButton className="sm:max-w-[18rem] sm:justify-items-end" />
-        </div>
-      ) : null}
 
       {dataNotice ? (
         <SurfaceCard title="Partidos" description={dataNotice}>

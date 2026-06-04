@@ -55,19 +55,14 @@ function AvatarChip() {
 
 function BrandLogo() {
   return (
-    <span className="inline-flex items-center gap-2">
-      <Image
-        src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
-        alt="SoliProde"
-        width={36}
-        height={36}
-        className="h-8 w-8 md:h-9 md:w-9"
-        priority
-      />
-      <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">
-        SoliProde
-      </span>
-    </span>
+    <Image
+      src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
+      alt="SoliProde"
+      width={36}
+      height={36}
+      className="h-8 w-8 md:h-9 md:w-9"
+      priority
+    />
   );
 }
 
@@ -84,8 +79,7 @@ export function AppShell({ children }: AppShellProps) {
   const showPendingPaymentBanner =
     authReady &&
     isAuthenticated &&
-    !participationUiState.isPaid &&
-    pathname !== "/matches";
+    !participationUiState.isPaid;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -180,7 +174,7 @@ export function AppShell({ children }: AppShellProps) {
     return (
       <div className="min-h-screen bg-transparent">
         <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-          <div className="mx-auto grid h-14 w-full max-w-6xl grid-cols-[40px_1fr_40px] items-center px-4 md:px-6">
+          <div className="relative mx-auto flex h-14 w-full max-w-6xl items-center px-4 md:px-6">
             <button
               type="button"
               onClick={() => router.push("/")}
@@ -189,10 +183,18 @@ export function AppShell({ children }: AppShellProps) {
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
-            <Link href="/" aria-label="SoliProde" className="mx-auto inline-flex items-center">
+            <Link
+              href="/"
+              aria-label="SoliProde"
+              className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center"
+            >
+              <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">
+                SoliProde
+              </span>
+            </Link>
+            <Link href="/" aria-label="SoliProde" className="ml-auto inline-flex items-center justify-center">
               <BrandLogo />
             </Link>
-            <div className="w-10" />
           </div>
         </header>
 
@@ -206,7 +208,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
-        <div className="mx-auto grid h-14 w-full max-w-6xl grid-cols-[40px_1fr_auto] items-center px-4 md:px-6">
+        <div className="relative mx-auto flex h-14 w-full max-w-6xl items-center px-4 md:px-6">
           <Link
             href={authReady && isAuthenticated ? "/dashboard" : "/"}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-[var(--color-muted)] transition hover:text-[var(--color-primary)]"
@@ -216,12 +218,14 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <Link
             href={authReady && isAuthenticated ? "/dashboard" : "/"}
-            className="mx-auto inline-flex items-center transition hover:opacity-80"
+            className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center transition hover:opacity-80"
             aria-label="SoliProde"
           >
-            <BrandLogo />
+            <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">
+              SoliProde
+            </span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             {authReady && isAuthenticated ? (
               <>
                 <SignOutButton
@@ -236,6 +240,13 @@ export function AppShell({ children }: AppShellProps) {
             ) : null}
             <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil">
               <AvatarChip />
+            </Link>
+            <Link
+              href={authReady && isAuthenticated ? "/dashboard" : "/"}
+              aria-label="SoliProde"
+              className="inline-flex items-center justify-center"
+            >
+              <BrandLogo />
             </Link>
           </div>
         </div>
