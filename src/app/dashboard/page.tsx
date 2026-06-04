@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
+import { HomeMatchList } from "@/components/home/home-match-list";
+import { HomeRankingList } from "@/components/home/home-ranking-list";
 import {
   InfoNotice,
   PageStack,
@@ -9,6 +11,7 @@ import {
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { formatZoneLabel } from "@/lib/fixture/zone-labels";
+import { getHomeCommunityFeed } from "@/lib/home/community-feed";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
 import { getPlayerDisplayName } from "@/lib/player/identity";
 import { entryConfig } from "@/lib/product/entry-config";
@@ -201,6 +204,7 @@ export default async function DashboardPage() {
     userId: currentUserId,
     isPaid: participationActive,
   });
+  const communityFeed = await getHomeCommunityFeed();
 
   if (!participationActive) {
     return (
@@ -215,6 +219,23 @@ export default async function DashboardPage() {
       <div className="home-landing-shell">
         <HomeHero entryPrice={entryConfig.initialPrice.toLocaleString("es-AR")} state={heroState} />
       </div>
+
+      <HomeRankingList
+        title="Ranking individual"
+        description="Top jugadores con puntaje oficial."
+        entries={communityFeed.rankings.individual}
+        emptyMessage="Todavía no hay ranking individual publicado."
+      />
+
+      <HomeRankingList
+        title="Ranking grupal"
+        description="Teams con mejor puntaje acumulado."
+        entries={communityFeed.rankings.groups}
+        emptyMessage="Todavía no hay ranking grupal publicado."
+        tone="group"
+      />
+
+      <HomeMatchList matches={communityFeed.matches} />
 
       <SurfaceCard title="Ya estás compitiendo" description="Seguí cargando tus pronósticos y mirá cómo viene la tabla.">
         <div className="grid gap-3 md:grid-cols-2">

@@ -1,9 +1,6 @@
-export type HomeRankingEntry = {
-  label: string;
-  points: number;
-  position: number;
-  detail?: string;
-};
+import type { HomeCommunityRankingEntry as HomeRankingEntry } from "@/lib/home/community-feed";
+
+export type { HomeRankingEntry };
 
 type HomeRankingListProps = {
   title: string;

@@ -1,19 +1,7 @@
 import { CountryFlag } from "@/components/country-flag";
+import type { HomeCommunityMatch as HomeLandingMatch } from "@/lib/home/community-feed";
 
-export type HomeLandingMatch = {
-  group: string;
-  kickoff: string;
-  home: {
-    code: string;
-    name: string;
-    countryCode: string | null;
-  };
-  away: {
-    code: string;
-    name: string;
-    countryCode: string | null;
-  };
-};
+export type { HomeLandingMatch };
 
 type HomeMatchListProps = {
   matches: HomeLandingMatch[];
