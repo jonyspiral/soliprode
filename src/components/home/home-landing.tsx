@@ -1,11 +1,14 @@
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList, type HomeLandingMatch } from "@/components/home/home-match-list";
+import { HomeRankingList, type HomeRankingEntry } from "@/components/home/home-ranking-list";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
-import { formatEntryPrice } from "@/lib/product/entry-config";
+import { getGroupCompetitionSnapshot } from "@/lib/groups/competition";
 import type { HomeHeroState } from "@/lib/home/player-hero-state";
+import { getPlayerDisplayName } from "@/lib/player/identity";
+import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getHomeDisplayMetrics } from "@/lib/product/home-display";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 const LANDING_STEPS: readonly HomeLandingStep[] = [
   {
@@ -31,22 +34,8 @@ const LANDING_STEPS: readonly HomeLandingStep[] = [
   {
     step: "Paso 5",
     title: "Activá tu cuenta",
-    description: "Finalizá el proceso de inscripción para acceder a todas las funciones de SoliProde. Hoy por solo $5.000.",
-  },
-] as const;
-
-const FALLBACK_MATCHES: readonly HomeLandingMatch[] = [
-  {
-    group: "C",
-    kickoff: "14 jun · 16:00",
-    home: { code: "ARG", name: "Argentina", countryCode: "AR" },
-    away: { code: "MEX", name: "México", countryCode: "MX" },
-  },
-  {
-    group: "C",
-    kickoff: "15 jun · 13:00",
-    home: { code: "FRA", name: "Francia", countryCode: "FR" },
-    away: { code: "BRA", name: "Brasil", countryCode: "BR" },
+    description:
+      "Finalizá el proceso de inscripción para acceder a todas las funciones de SoliProde. Hoy por solo $5.000.",
   },
 ] as const;
 
@@ -63,6 +52,18 @@ type HomeMatchRow = {
     name: string;
     country_code: string | null;
   }[] | null;
+};
+
+type HomeRankingRow = {
+  profile_id: string;
+  points: number | null;
+  position: number | null;
+};
+
+type HomeProfileRow = {
+  id: string;
+  full_name: string | null;
+  public_alias: string | null;
 };
 
 type HomeLandingProps = {
@@ -83,8 +84,8 @@ function formatLandingKickoff(startsAt: string) {
 
 async function getLandingMatches(): Promise<HomeLandingMatch[]> {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data } = await supabase
+    const service = createServiceRoleSupabaseClient();
+    const { data } = await service
       .from("matches")
       .select(
         `
@@ -97,9 +98,9 @@ async function getLandingMatches(): Promise<HomeLandingMatch[]> {
       .eq("status", "scheduled")
       .gt("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: true })
-      .limit(2);
+      .limit(3);
 
-    const mapped = ((data ?? []) as HomeMatchRow[])
+    return ((data ?? []) as HomeMatchRow[])
       .map((match) => {
         const homeTeam = match.home_team?.[0];
         const awayTeam = match.away_team?.[0];
@@ -109,7 +110,7 @@ async function getLandingMatches(): Promise<HomeLandingMatch[]> {
         }
 
         return {
-          group: match.group_code ?? "C",
+          group: match.group_code ?? "-",
           kickoff: formatLandingKickoff(match.starts_at),
           home: {
             code: homeTeam.fifa_code ?? homeTeam.name.slice(0, 3).toUpperCase(),
@@ -124,17 +125,67 @@ async function getLandingMatches(): Promise<HomeLandingMatch[]> {
         };
       })
       .filter((match): match is NonNullable<typeof match> => Boolean(match));
-
-    return mapped.length > 0 ? mapped : [...FALLBACK_MATCHES];
   } catch {
-    return [...FALLBACK_MATCHES];
+    return [];
+  }
+}
+
+async function getLandingRankings(): Promise<{
+  individual: HomeRankingEntry[];
+  groups: HomeRankingEntry[];
+}> {
+  try {
+    const service = createServiceRoleSupabaseClient();
+    const [individualResult, groupSnapshot] = await Promise.all([
+      service
+        .from("rankings_cache")
+        .select("profile_id, points, position")
+        .eq("ranking_type", "general")
+        .is("scope_id", null)
+        .not("position", "is", null)
+        .order("position", { ascending: true })
+        .limit(3),
+      getGroupCompetitionSnapshot(null),
+    ]);
+
+    const rankingRows = ((individualResult.data ?? []) as HomeRankingRow[]).filter(
+      (row): row is HomeRankingRow & { position: number } => row.position !== null,
+    );
+
+    const profileIds = [...new Set(rankingRows.map((row) => row.profile_id))];
+    const { data: profileData } =
+      profileIds.length > 0
+        ? await service.from("profiles").select("id, public_alias, full_name").in("id", profileIds)
+        : { data: [] as HomeProfileRow[] };
+
+    const profileMap = new Map(
+      ((profileData ?? []) as HomeProfileRow[]).map((profile) => [profile.id, profile]),
+    );
+
+    const individual: HomeRankingEntry[] = rankingRows.map((row) => ({
+      label: getPlayerDisplayName(profileMap.get(row.profile_id) ?? null),
+      points: row.points ?? 0,
+      position: row.position,
+    }));
+
+    const groups: HomeRankingEntry[] = groupSnapshot.leaderboard.slice(0, 3).map((entry) => ({
+      label: entry.name,
+      points: entry.teamScore,
+      position: entry.position,
+      detail: `${entry.activeCount} activos`,
+    }));
+
+    return { individual, groups };
+  } catch {
+    return { individual: [], groups: [] };
   }
 }
 
 export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
-  const [homeDisplayMetrics, landingMatches] = await Promise.all([
+  const [homeDisplayMetrics, landingMatches, landingRankings] = await Promise.all([
     getHomeDisplayMetrics(),
     getLandingMatches(),
+    getLandingRankings(),
   ]);
 
   return (
@@ -148,6 +199,21 @@ export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
       </div>
 
       <div className="home-landing-sheet">
+        <HomeRankingList
+          title="Ranking individual"
+          description="Top jugadores con puntaje oficial."
+          entries={landingRankings.individual}
+          emptyMessage="Todavía no hay ranking individual publicado."
+        />
+
+        <HomeRankingList
+          title="Ranking grupal"
+          description="Teams con mejor puntaje acumulado."
+          entries={landingRankings.groups}
+          emptyMessage="Todavía no hay ranking grupal publicado."
+          tone="group"
+        />
+
         <HomeMatchList matches={landingMatches} />
         <HomeSteps steps={LANDING_STEPS} />
       </div>
