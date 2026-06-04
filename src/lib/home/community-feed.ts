@@ -1,4 +1,5 @@
 import { getGroupCompetitionSnapshot } from "@/lib/groups/competition";
+import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
 import { getPlayerDisplayName } from "@/lib/player/identity";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
@@ -22,6 +23,7 @@ export type HomeCommunityIndividualRanking = {
   label: string;
   points: number;
   position: number;
+  avatarUrl: string | null;
 };
 
 export type HomeCommunityGroupRanking = {
@@ -170,10 +172,12 @@ async function getLandingRankings(): Promise<{
     );
 
     const profileIds = [...new Set(rankingRows.map((row) => row.profile_id))];
-    const { data: profileData } =
+    const [{ data: profileData }, avatarMap] = await Promise.all([
       profileIds.length > 0
-        ? await service.from("profiles").select("id, public_alias, full_name").in("id", profileIds)
-        : { data: [] as HomeProfileRow[] };
+        ? service.from("profiles").select("id, public_alias, full_name").in("id", profileIds)
+        : Promise.resolve({ data: [] as HomeProfileRow[] }),
+      getAuthAvatarMap(profileIds),
+    ]);
 
     const profileMap = new Map(
       ((profileData ?? []) as HomeProfileRow[]).map((profile) => [profile.id, profile]),
@@ -184,6 +188,7 @@ async function getLandingRankings(): Promise<{
       label: getPlayerDisplayName(profileMap.get(row.profile_id) ?? null),
       points: row.points ?? 0,
       position: row.position,
+      avatarUrl: avatarMap.get(row.profile_id) ?? null,
     }));
 
     const groups: HomeCommunityGroupRanking[] = groupSnapshot.leaderboard.slice(0, 3).map((entry) => ({
