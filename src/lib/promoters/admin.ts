@@ -1,4 +1,5 @@
 import { entryConfig } from "@/lib/product/entry-config";
+import { CURRENT_PRIZE_POOL_LABEL } from "@/lib/product/home-display";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
@@ -144,12 +145,25 @@ export function buildPromoterShareLink(baseUrl: string, promoterCode: string) {
 }
 
 export function buildPromoterShareMessage(baseUrl: string, promoterCode: string) {
+  return buildPromoterShareMessageWithPrizePool(baseUrl, promoterCode, CURRENT_PRIZE_POOL_LABEL);
+}
+
+export function buildPromoterShareMessageWithPrizePool(
+  baseUrl: string,
+  promoterCode: string,
+  prizePoolLabel: string,
+) {
   const link = buildPromoterShareLink(baseUrl, promoterCode);
 
   return [
-    "Estoy participando en SoliProde, un Prode solidario para ayudar a financiar una tesis universitaria.",
+    "Te invito a participar del Prode Mundial, un prode solidario para financiar nuestra tesis universitaria.",
     "",
-    "Jugás el Mundial, competís por la gloria y además das una mano.",
+    "Competís por el pozo como Jugador y también podés armar un Team con tus mejores amigos para ir por la gloria como equipo.",
+    "",
+    `El pozo acumulado ya es de ${prizePoolLabel} y sigue creciendo.`,
+    "",
+    "Participá, ganá y ayudá.",
+    "Llevá a tu grupo al campeonato.",
     "",
     "Sumate desde acá:",
     link,

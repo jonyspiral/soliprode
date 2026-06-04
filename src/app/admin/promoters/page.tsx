@@ -6,9 +6,10 @@ import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primit
 import { SurfaceCard } from "@/components/surface-card";
 import { requireAdminUser } from "@/lib/admin/access";
 import { formatEntryPrice } from "@/lib/product/entry-config";
+import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 import {
   buildPromoterShareLink,
-  buildPromoterShareMessage,
+  buildPromoterShareMessageWithPrizePool,
   getPromotersAdminSnapshot,
   normalizeWhatsappForLink,
 } from "@/lib/promoters/admin";
@@ -74,6 +75,7 @@ export default async function AdminPromotersPage({ searchParams }: PromotersPage
 
   const params = searchParams ? await searchParams : undefined;
   const baseUrl = getBaseUrl();
+  const homeDisplayMetrics = await getHomeDisplayMetrics();
   const snapshot = await getPromotersAdminSnapshot();
   const selectedPromoter =
     snapshot.promoters.find((promoter) => promoter.id === params?.view) ??
@@ -214,16 +216,28 @@ export default async function AdminPromotersPage({ searchParams }: PromotersPage
                 {buildPromoterShareLink(baseUrl, selectedPromoter.code)}
               </a>
             </p>
-            <PromoterShareActions
-              email={selectedPromoter.email}
-              mailtoHref={buildMailtoHref(
-                selectedPromoter.email,
-                buildPromoterShareMessage(baseUrl, selectedPromoter.code),
+              <PromoterShareActions
+                email={selectedPromoter.email}
+                mailtoHref={buildMailtoHref(
+                  selectedPromoter.email,
+                  buildPromoterShareMessageWithPrizePool(
+                    baseUrl,
+                    selectedPromoter.code,
+                    homeDisplayMetrics.prizePoolLabel,
+                  ),
+                )}
+              message={buildPromoterShareMessageWithPrizePool(
+                baseUrl,
+                selectedPromoter.code,
+                homeDisplayMetrics.prizePoolLabel,
               )}
-              message={buildPromoterShareMessage(baseUrl, selectedPromoter.code)}
               whatsappHref={buildWhatsappHref(
                 selectedPromoter.whatsapp,
-                buildPromoterShareMessage(baseUrl, selectedPromoter.code),
+                buildPromoterShareMessageWithPrizePool(
+                  baseUrl,
+                  selectedPromoter.code,
+                  homeDisplayMetrics.prizePoolLabel,
+                ),
               )}
             />
           </div>
@@ -241,7 +255,11 @@ export default async function AdminPromotersPage({ searchParams }: PromotersPage
         ) : (
           <div className="grid gap-4">
             {snapshot.promoters.map((promoter) => {
-              const message = buildPromoterShareMessage(baseUrl, promoter.code);
+              const message = buildPromoterShareMessageWithPrizePool(
+                baseUrl,
+                promoter.code,
+                homeDisplayMetrics.prizePoolLabel,
+              );
 
               return (
                 <div

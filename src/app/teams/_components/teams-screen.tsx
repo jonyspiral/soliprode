@@ -17,6 +17,7 @@ type TeamsScreenProps = {
   inviteCodePrefill?: string;
   errorMessage?: string | null;
   noticeMessage?: string | null;
+  prizePoolLabel: string;
   routeBase?: "/groups" | "/teams";
 };
 
@@ -106,6 +107,7 @@ function TeamAccessPanel({
   inviteCodePrefill,
   inviteContext,
   noticeMessage,
+  prizePoolLabel,
   errorMessage,
   inviteCode,
 }: {
@@ -116,6 +118,7 @@ function TeamAccessPanel({
   inviteCodePrefill: string;
   inviteContext: TeamInviteContext | null;
   noticeMessage: string | null | undefined;
+  prizePoolLabel: string;
   errorMessage: string | null | undefined;
   inviteCode: string | null;
 }) {
@@ -173,7 +176,7 @@ function TeamAccessPanel({
           <p className="teams-support-copy">
             Sumá gente al Plantel. Entran todos. Puntúan los mejores 11.
           </p>
-          <TeamInviteActions inviteCode={inviteCode} />
+          <TeamInviteActions inviteCode={inviteCode} prizePoolLabel={prizePoolLabel} />
         </div>
       ) : null}
 
@@ -232,6 +235,7 @@ export function TeamsScreen({
   inviteCodePrefill = "",
   errorMessage,
   noticeMessage,
+  prizePoolLabel,
   routeBase = "/groups",
 }: TeamsScreenProps) {
   const rosterCount = data.starters.length + data.bench.length + data.registered.length;
@@ -307,6 +311,7 @@ export function TeamsScreen({
             inviteCodePrefill={inviteCodePrefill}
             inviteContext={inviteContext}
             noticeMessage={noticeMessage}
+            prizePoolLabel={prizePoolLabel}
             errorMessage={errorMessage}
             inviteCode={data.inviteCode}
           />

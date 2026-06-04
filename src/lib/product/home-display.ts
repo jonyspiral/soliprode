@@ -4,6 +4,7 @@ import { getOptionalEnv } from "@/lib/env";
 
 export const INITIAL_PRIZE_POOL_ARS = 300000;
 export const INITIAL_PLAYERS_COUNT = 60;
+export const CURRENT_PRIZE_POOL_LABEL = formatEntryPrice(INITIAL_PRIZE_POOL_ARS);
 
 type PaidParticipationRow = {
   profile_id: string;

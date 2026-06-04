@@ -5,9 +5,10 @@ import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primit
 import { SurfaceCard } from "@/components/surface-card";
 import { requireLinkedPromoterUser } from "@/lib/admin/access";
 import { formatEntryPrice } from "@/lib/product/entry-config";
+import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 import {
   buildPromoterShareLink,
-  buildPromoterShareMessage,
+  buildPromoterShareMessageWithPrizePool,
   getPromoterSelfSnapshot,
   normalizeWhatsappForLink,
 } from "@/lib/promoters/admin";
@@ -86,7 +87,12 @@ export default async function PromotersPage() {
 
   const baseUrl = getBaseUrl();
   const { promoter, ranking } = snapshot;
-  const message = buildPromoterShareMessage(baseUrl, promoter.code);
+  const homeDisplayMetrics = await getHomeDisplayMetrics();
+  const message = buildPromoterShareMessageWithPrizePool(
+    baseUrl,
+    promoter.code,
+    homeDisplayMetrics.prizePoolLabel,
+  );
 
   return (
     <PageStack>

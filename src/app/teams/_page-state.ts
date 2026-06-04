@@ -12,6 +12,7 @@ import {
   buildTeamsScreenFallbackData,
   type TeamsScreenData,
 } from "@/app/teams/_screen-data";
+import { getHomeDisplayMetrics, CURRENT_PRIZE_POOL_LABEL } from "@/lib/product/home-display";
 
 type RawSearchParams =
   | Promise<Record<string, string | string[] | undefined> | undefined>
@@ -28,6 +29,7 @@ export type TeamsPageState = {
   inviteCodePrefill: string;
   errorMessage: string | null;
   noticeMessage: string | null;
+  prizePoolLabel: string;
 };
 
 export type TeamInviteContext = {
@@ -122,6 +124,8 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
   }
 
   const authStatus = userId ? "member" : "guest";
+  const homeDisplayMetrics = await getHomeDisplayMetrics().catch(() => null);
+  const prizePoolLabel = homeDisplayMetrics?.prizePoolLabel ?? CURRENT_PRIZE_POOL_LABEL;
 
   try {
     const snapshot = await withSupabaseTimeout(
@@ -152,6 +156,7 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       inviteCodePrefill,
       errorMessage,
       noticeMessage,
+      prizePoolLabel,
     };
   } catch {
     errorMessage ??=
@@ -174,6 +179,7 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       inviteCodePrefill,
       errorMessage,
       noticeMessage,
+      prizePoolLabel,
     };
   }
 }
