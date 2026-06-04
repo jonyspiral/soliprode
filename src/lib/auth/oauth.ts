@@ -2,6 +2,19 @@ function readConfiguredBaseUrl() {
   return process.env.NEXT_PUBLIC_BASE_URL?.trim() || null;
 }
 
+function isLocalOrigin(origin: string | null) {
+  if (!origin) {
+    return false;
+  }
+
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
 export const GOOGLE_OAUTH_ERROR_MESSAGE =
   "No pudimos iniciar sesión con Google. Intentá nuevamente.";
 
@@ -19,7 +32,11 @@ export function buildAuthCallbackUrl(nextPath = "/dashboard") {
     typeof window !== "undefined" && window.location.origin
       ? window.location.origin
       : null;
-  const baseUrl = (configuredBaseUrl ?? fallbackBaseUrl)?.replace(/\/+$/, "");
+  const preferredBaseUrl =
+    process.env.NODE_ENV !== "production" && isLocalOrigin(fallbackBaseUrl)
+      ? fallbackBaseUrl
+      : configuredBaseUrl ?? fallbackBaseUrl;
+  const baseUrl = preferredBaseUrl?.replace(/\/+$/, "");
 
   if (!baseUrl) {
     throw new Error("Missing auth callback base URL");

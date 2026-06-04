@@ -1,33 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdminUser } from "@/lib/admin/access";
 import { resolveManualEligibleFrom } from "@/lib/participations/eligibility";
 import { publishMatchResultAndScore, rebuildGeneralRankings } from "@/lib/scoring/official-rankings";
-import {
-  createServerSupabaseClient,
-  createServiceRoleSupabaseClient,
-} from "@/lib/supabase/server";
-
-async function ensureAdminAccess() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Necesitás iniciar sesión para usar el panel admin.");
-  }
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error || profile?.role !== "admin") {
-    throw new Error("Solo un admin puede ejecutar esta acción.");
-  }
-}
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 function readStrictNonNegativeInteger(rawValue: FormDataEntryValue | null) {
   if (typeof rawValue !== "string") {
@@ -50,7 +27,7 @@ function readStrictNonNegativeInteger(rawValue: FormDataEntryValue | null) {
 }
 
 export async function confirmParticipationAction(formData: FormData) {
-  await ensureAdminAccess();
+  await requireAdminUser();
 
   const participationId = String(formData.get("participation_id") ?? "").trim();
 
@@ -104,7 +81,7 @@ export async function confirmParticipationAction(formData: FormData) {
 }
 
 export async function publishMatchResultAction(formData: FormData) {
-  await ensureAdminAccess();
+  await requireAdminUser();
 
   const matchId = String(formData.get("match_id") ?? "").trim();
   const scoreHome = readStrictNonNegativeInteger(formData.get("score_home"));

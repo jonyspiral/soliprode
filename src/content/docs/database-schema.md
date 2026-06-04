@@ -1,7 +1,7 @@
 ---
 title: "Database Schema"
 description: "Esquema inicial de base de datos para SoliProde en Supabase."
-lastUpdated: "2026-06-03"
+lastUpdated: "2026-06-04"
 ---
 
 # Database Schema
@@ -38,17 +38,28 @@ Estado: esquema inicial preparado. El objetivo de esta etapa es dejar la base re
 - Objetivo: extender `teams`, `matches` y `predictions` para soportar fixture real, zonas A-L, cierre server-side de pronósticos y administración segura sin cargar datos falsos.
 - Documento específico: `src/content/docs/database/fixture-schema.md`.
 
+## Migración de contrato admin para Promoters
+
+- Archivo: `supabase/migrations/011_promoters_admin_contract.sql`
+- Objetivo: normalizar `promoters` como entidad propia de Admin, con `status`, datos de contacto y `updated_at`, sin convertir Promoter en usuario autenticado.
+
 ## Tablas
 
 ### `profiles`
 
 Perfil extendido del usuario autenticado.
 
+Contrato activo de producto:
+
+- `public_alias` es el nick de juego que se muestra en Profile, Ranking, Team y Plantel.
+- `full_name` y `email` quedan como datos administrativos de cuenta.
+- `whatsapp` sigue siendo opcional y editable como dato de contacto.
+
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | `uuid` | PK, referencia a `auth.users(id)` |
 | `full_name` | `text` | Nombre completo opcional |
-| `public_alias` | `text` | Alias público obligatorio |
+| `public_alias` | `text` | Nick de juego / alias público obligatorio |
 | `whatsapp` | `text` | Contacto opcional |
 | `email` | `text` | Copia opcional del email |
 | `role` | `text` | Default `player` |
@@ -57,16 +68,24 @@ Perfil extendido del usuario autenticado.
 
 ### `promoters`
 
-Promotores o referidores del torneo.
+Promoters internos del torneo. No son usuarios del sistema, no tienen login y viven solo dentro de Admin.
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | `uuid` | PK, `gen_random_uuid()` |
 | `code` | `text` | Único |
 | `name` | `text` | Obligatorio |
-| `profile_id` | `uuid` | FK opcional a `profiles` |
-| `active` | `boolean` | Default `true` |
+| `email` | `text` | Opcional |
+| `whatsapp` | `text` | Opcional |
+| `status` | `text` | `active` o `inactive` |
+| `notes` | `text` | Opcional, uso interno |
 | `created_at` | `timestamptz` | Default `now()` |
+| `updated_at` | `timestamptz` | Default `now()`, con trigger |
+
+Notas activas:
+
+- `profile_id` y `active` pueden seguir existiendo por compatibilidad histórica, pero ya no son el contrato operativo principal.
+- la atribución comercial y el ranking usan `participations.promoter_id` como fuente de verdad.
 
 ### `communities`
 
@@ -142,7 +161,6 @@ Cache de rankings precalculados para lectura rápida por tipo y alcance.
 ## Relaciones principales
 
 - `profiles.id -> auth.users.id`
-- `promoters.profile_id -> profiles.id`
 - `communities.owner_profile_id -> profiles.id`
 - `groups.community_id -> communities.id`
 - `groups.owner_profile_id -> profiles.id`
@@ -263,7 +281,7 @@ La vista expone únicamente:
 - `code`
 - `name`
 
-Y solo para promotores activos.
+Y solo para Promoters con `status = 'active'`.
 
 La migración correctiva posterior endurece los grants de la vista con:
 
@@ -291,6 +309,8 @@ Regla: cada usuario autenticado solo puede leer, crear o editar la fila cuyo `pr
 - Se agregan triggers de `updated_at` donde ese campo existe.
 - Se dejan checks básicos en `role`, `visibility`, `payment_status`, `match status` y scores no negativos.
 - La lectura pública limitada de promotores activos se resuelve con vista, no con RLS directa sobre columnas.
+- `Promoter` no se modela como usuario autenticado: no tiene password, login ni credenciales.
+- La fuente de verdad del ranking y la recaudación de Promoters vive en `participations.promoter_id`.
 - Los grants de la vista pública de promotores se endurecen en una migración correctiva separada para sincronizar repo y base real.
 - Los grants SQL del rol `authenticated` se corrigen en una migración dedicada para que las policies RLS ya definidas sean utilizables desde el cliente autenticado sin ir corrigiendo tabla por tabla en producción.
 

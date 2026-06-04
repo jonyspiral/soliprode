@@ -1,7 +1,7 @@
 ---
 title: "Google Auth Setup"
 description: "Configuración externa mínima para usar Google Login con Supabase Auth en SoliProde."
-lastUpdated: "2026-06-02"
+lastUpdated: "2026-06-04"
 ---
 
 # Google Auth Setup
@@ -96,7 +96,10 @@ Variables relevantes para este flujo:
 La atribución de promotor se preserva así:
 
 - si el usuario llega con `?p=CODIGO` o `?promoter=CODIGO`, el front guarda ese código antes de ir a Google;
-- al volver por `/auth/callback`, el bootstrap lo asocia a la participación si todavía no tenía promotor cargado.
+- al volver por `/auth/callback`, el bootstrap lo asocia a la participación si todavía no tenía promotor cargado;
+- en login y registro queda un input opcional compacto `Promotor` como fallback manual;
+- si ya existe atribución previa por link/cookie/sesión, el input manual no la sobrescribe;
+- si el valor manual es inválido, no rompe el flujo de alta o login.
 
 ## Checklist de validación
 

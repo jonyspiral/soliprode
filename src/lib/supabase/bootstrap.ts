@@ -46,12 +46,16 @@ async function resolvePromoterId(promoterCode: string | null) {
     const serviceRoleSupabase = createServiceRoleSupabaseClient();
     const { data } = await serviceRoleSupabase
       .from("promoters")
-      .select("id")
+      .select("id, status, active")
       .eq("code", normalizedPromoterCode)
-      .eq("active", true)
-      .maybeSingle();
+      .limit(5);
 
-    return data?.id ?? null;
+    const activePromoter = (data ?? []).find((row) => {
+      const promoter = row as { id: string; status?: string | null; active?: boolean | null };
+      return promoter.status === "active" || (promoter.status == null && promoter.active === true);
+    });
+
+    return activePromoter?.id ?? null;
   } catch {
     return null;
   }

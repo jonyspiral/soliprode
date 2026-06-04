@@ -3,8 +3,10 @@ import { confirmParticipationAction, publishMatchResultAction } from "@/app/admi
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { requireAdminUser } from "@/lib/admin/access";
+import { formatEntryPrice } from "@/lib/product/entry-config";
+import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
 import {
-  createServerSupabaseClient,
   createServiceRoleSupabaseClient,
 } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -43,27 +45,13 @@ type MatchAdminRow = {
 };
 
 export default async function AdminPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
+  try {
+    await withSupabaseTimeout(requireAdminUser(), "Supabase admin access check timed out");
+  } catch (error) {
+    if (error instanceof Error && error.message === "unauthenticated") {
+      redirect("/login?next=/admin");
+    }
 
-  if (!user) {
-    redirect("/login?next=/admin");
-  }
-
-  const ownProfileQuery = supabase
-    .from("profiles")
-    .select("role, public_alias")
-    .eq("id", user.id)
-    .maybeSingle();
-  const ownProfileResult = await withSupabaseTimeout(
-    Promise.resolve(ownProfileQuery),
-    "Supabase admin access check timed out",
-  );
-  const ownProfile = ownProfileResult.data;
-
-  if (ownProfile?.role !== "admin") {
     return (
       <PageStack>
         <PageHero
@@ -87,6 +75,7 @@ export default async function AdminPage() {
   let predictionCount = 0;
   let matchRows: MatchAdminRow[] = [];
   let adminNotice: string | null = null;
+  let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
 
   try {
     const adminSupabase = createServiceRoleSupabaseClient();
@@ -133,10 +122,12 @@ export default async function AdminPage() {
           )
           .order("starts_at", { ascending: true })
           .limit(12),
+        getPromotersAdminSnapshot(),
       ]),
       "Supabase admin query timed out",
     );
-    const [pendingResult, paidResult, pendingCountResult, predictionCountResult, matchesResult] = adminResults;
+    const [pendingResult, paidResult, pendingCountResult, predictionCountResult, matchesResult, promotersResult] =
+      adminResults;
 
     pendingRows = (((pendingResult.data ?? []) as PendingParticipationRow[])).map((row) => ({
       ...row,
@@ -146,6 +137,7 @@ export default async function AdminPage() {
     pendingCount = pendingCountResult.count ?? 0;
     predictionCount = predictionCountResult.count ?? 0;
     matchRows = (matchesResult.data ?? []) as MatchAdminRow[];
+    promotersSnapshot = promotersResult;
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -166,6 +158,60 @@ export default async function AdminPage() {
         <StatCard label="Activos" value={String(paidCount)} detail="Ya compiten oficialmente" />
         <StatCard label="Picks" value={String(predictionCount)} detail="Pronósticos cargados" />
       </section>
+
+      <SurfaceCard
+        title="Promoters"
+        description="Resumen corto de la tracción comercial. La vista completa vive en Admin / Promoters."
+      >
+        {promotersSnapshot ? (
+          <div className="grid gap-4">
+            <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatCard label="Promoters" value={String(promotersSnapshot.totals.promoterCount)} detail="Cargados en Admin" />
+              <StatCard label="Activos" value={String(promotersSnapshot.totals.activePromoterCount)} detail="Con link operativo" />
+              <StatCard label="Jugadores activos" value={String(promotersSnapshot.totals.activePlayersCount)} detail="Aportes confirmados" />
+              <StatCard label="Recaudado" value={formatEntryPrice(promotersSnapshot.totals.totalRaised)} detail="Solo participations paid" />
+            </section>
+
+            {promotersSnapshot.ranking.length > 0 ? (
+              <div className="grid gap-3">
+                {promotersSnapshot.ranking.slice(0, 3).map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-[var(--color-ink)]">
+                        #{entry.rankingPosition} {entry.name}
+                      </p>
+                      <p className="text-sm text-[var(--color-muted)]">
+                        {entry.activePlayersCount} Jugadores activos · {entry.confirmedContributionsCount} Aportes confirmados
+                      </p>
+                    </div>
+                    <p className="font-serif text-[1.4rem] uppercase text-[var(--color-primary)]">
+                      {formatEntryPrice(entry.totalRaised)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-[var(--color-muted)]">
+                Todavía no hay Promoters o participaciones atribuidas para mostrar.
+              </p>
+            )}
+
+            <a
+              href="/admin/promoters"
+              className="inline-flex w-fit items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Ir al panel de Promoters
+            </a>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            No pudimos cargar el resumen de Promoters en este momento.
+          </p>
+        )}
+      </SurfaceCard>
 
       <SurfaceCard
         title="Participaciones pendientes"
