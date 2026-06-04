@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, SoccerBallIcon, UserIcon } from "@/components/app-icons";
+import { ArrowLeftIcon, HomeIcon, MatchIcon, RankingIcon, UserIcon } from "@/components/app-icons";
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
@@ -54,20 +54,15 @@ function AvatarChip() {
 
 function BrandLogo() {
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary)] p-1.5 shadow-[0_8px_18px_rgba(0,50,125,0.18)]">
-        <Image
-          src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
-          alt=""
-          width={28}
-          height={28}
-          className="h-7 w-7"
-          priority
-        />
-      </span>
-      <span className="font-serif text-[1.55rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.8rem]">
-        SoliProde
-      </span>
+    <span className="inline-flex items-center">
+      <Image
+        src={SOLIPRODE_BRAND_ASSETS.primaryLogo}
+        alt="SoliProde"
+        width={160}
+        height={44}
+        className="h-[32px] w-auto md:h-[40px]"
+        priority
+      />
     </span>
   );
 }
@@ -190,7 +185,7 @@ export function AppShell({ children }: AppShellProps) {
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
-            <Link href="/" aria-label="SoliProde">
+            <Link href="/" aria-label="SoliProde" className="inline-flex items-center">
               <BrandLogo />
             </Link>
             <div className="w-10" />
@@ -208,10 +203,11 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-transparent">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--color-line)] bg-[color:var(--color-surface)]/96 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:px-6">
-          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="text-[var(--color-primary)] transition hover:opacity-80" aria-label="Ir al inicio">
-            <SoccerBallIcon className="h-5 w-5" />
-          </Link>
-          <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} aria-label="SoliProde">
+          <Link
+            href={authReady && isAuthenticated ? "/dashboard" : "/"}
+            className="inline-flex items-center transition hover:opacity-80"
+            aria-label="SoliProde"
+          >
             <BrandLogo />
           </Link>
           <div className="flex items-center gap-2">
