@@ -15,6 +15,13 @@ import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = { children: ReactNode };
+type ServerSessionPayload = {
+  authenticated: boolean;
+  avatarUrl: string | null;
+  isPaid: boolean;
+  paymentStatus: string | null;
+  userId: string | null;
+};
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -55,9 +62,55 @@ export function AppShell({ children }: AppShellProps) {
     const supabase = createBrowserSupabaseClient();
     let active = true;
 
-    async function syncParticipation(userId: string | null) {
+    async function syncServerSession() {
+      try {
+        const response = await fetch("/api/auth/session-status", {
+          cache: "no-store",
+        });
+
+        if (!active) {
+          return null;
+        }
+
+        if (!response.ok) {
+          const fallbackPayload: ServerSessionPayload = {
+            authenticated: false,
+            avatarUrl: null,
+            isPaid: false,
+            paymentStatus: null,
+            userId: null,
+          };
+          return fallbackPayload;
+        }
+
+        const payload = (await response.json().catch(() => null)) as ServerSessionPayload | null;
+        const normalizedPayload: ServerSessionPayload = payload ?? {
+          authenticated: false,
+          avatarUrl: null,
+          isPaid: false,
+          paymentStatus: null,
+          userId: null,
+        };
+        return normalizedPayload;
+      } catch {
+        if (!active) {
+          return null;
+        }
+
+        const fallbackPayload: ServerSessionPayload = {
+          authenticated: false,
+          avatarUrl: null,
+          isPaid: false,
+          paymentStatus: null,
+          userId: null,
+        };
+        return fallbackPayload;
+      }
+    }
+
+    async function syncParticipation(userId: string | null, fallbackPaymentStatus: string | null) {
       if (!userId) {
-        if (active) setParticipationStatus(null);
+        if (active) setParticipationStatus(fallbackPaymentStatus);
         return;
       }
       try {
@@ -69,17 +122,20 @@ export function AppShell({ children }: AppShellProps) {
           .limit(2);
         if (!active) return;
         setParticipationStatus(
-          pickPrimaryParticipation((data ?? []) as Array<{ created_at: string; payment_status: string }>).participation?.payment_status ?? null,
+          pickPrimaryParticipation((data ?? []) as Array<{ created_at: string; payment_status: string }>).participation?.payment_status ?? fallbackPaymentStatus,
         );
       } catch {
-        if (active) setParticipationStatus(null);
+        if (active) setParticipationStatus(fallbackPaymentStatus);
       }
     }
 
-    async function syncProfileIdentity(user: { id: string; user_metadata?: Record<string, unknown> } | null) {
+    async function syncProfileIdentity(
+      user: { id: string; user_metadata?: Record<string, unknown> } | null,
+      fallbackAvatarUrl: string | null,
+    ) {
       if (!user) {
         if (active) {
-          setAvatarUrl(null);
+          setAvatarUrl(fallbackAvatarUrl);
           setPlayerLabel("Perfil");
         }
         return;
@@ -99,11 +155,21 @@ export function AppShell({ children }: AppShellProps) {
 
     async function syncUser() {
       try {
+        const serverState = await syncServerSession();
         const { data: { user } } = await supabase.auth.getUser();
         if (!active) return;
-        setIsAuthenticated(Boolean(user));
-        void syncProfileIdentity(user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null);
-        void syncParticipation(user?.id ?? null);
+        const hasServerSession = Boolean(serverState?.authenticated);
+        const effectiveUserId = user?.id ?? serverState?.userId ?? null;
+        const nextIsAuthenticated = Boolean(user) || hasServerSession;
+        setIsAuthenticated(nextIsAuthenticated);
+        if (hasServerSession && serverState?.avatarUrl) {
+          setAvatarUrl(serverState.avatarUrl);
+        }
+        void syncProfileIdentity(
+          user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null,
+          serverState?.avatarUrl ?? null,
+        );
+        void syncParticipation(effectiveUserId, serverState?.paymentStatus ?? null);
       } catch {
         if (!active) return;
         setIsAuthenticated(false);
@@ -118,10 +184,24 @@ export function AppShell({ children }: AppShellProps) {
     void syncUser();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
-      setIsAuthenticated(Boolean(session?.user));
-      void syncProfileIdentity(session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null);
-      void syncParticipation(session?.user?.id ?? null);
-      setAuthReady(true);
+      void (async () => {
+        const serverState = await syncServerSession();
+        if (!active) return;
+        const nextIsAuthenticated = Boolean(session?.user) || Boolean(serverState?.authenticated);
+        setIsAuthenticated(nextIsAuthenticated);
+        if (serverState?.avatarUrl && !session?.user) {
+          setAvatarUrl(serverState.avatarUrl);
+        }
+        void syncProfileIdentity(
+          session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null,
+          serverState?.avatarUrl ?? null,
+        );
+        void syncParticipation(
+          session?.user?.id ?? serverState?.userId ?? null,
+          serverState?.paymentStatus ?? null,
+        );
+        setAuthReady(true);
+      })();
     });
     return () => {
       active = false;
@@ -130,6 +210,12 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   const mobileNavItems = authReady && isAuthenticated ? mobileNavItemsAuthenticated : isPublicHome || isAuthScreen ? mobileNavItemsLoggedOut : mobileNavItemsAuthenticated;
+  const profileHref =
+    !authReady
+      ? pathname
+      : isAuthenticated
+        ? "/profile"
+        : "/login?next=/profile&error=session_required";
 
   if (isAuthScreen) {
     return (
@@ -157,7 +243,19 @@ export function AppShell({ children }: AppShellProps) {
             <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">SoliProde</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil"><AvatarChip avatarUrl={avatarUrl} label={playerLabel} /></Link>
+            <Link
+              href={profileHref}
+              aria-label={authReady ? "Ir a perfil" : "Confirmando sesión"}
+              aria-disabled={!authReady}
+              onClick={(event) => {
+                if (!authReady) {
+                  event.preventDefault();
+                }
+              }}
+              className={!authReady ? "pointer-events-none opacity-80" : undefined}
+            >
+              <AvatarChip avatarUrl={avatarUrl} label={playerLabel} />
+            </Link>
           </div>
         </div>
         {showPendingPaymentBanner ? (

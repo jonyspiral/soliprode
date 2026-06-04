@@ -9,12 +9,14 @@ export type SessionState =
       isAuthenticated: false;
       isPaid: false;
       avatarUrl: null;
+      paymentStatus: null;
     }
   | {
       userId: string;
       isAuthenticated: true;
       isPaid: boolean;
       avatarUrl: string | null;
+      paymentStatus: string | null;
     };
 
 export async function getServerSessionState(): Promise<SessionState> {
@@ -30,6 +32,7 @@ export async function getServerSessionState(): Promise<SessionState> {
         isAuthenticated: false,
         isPaid: false,
         avatarUrl: null,
+        paymentStatus: null,
       };
     }
 
@@ -44,15 +47,16 @@ export async function getServerSessionState(): Promise<SessionState> {
       ),
       "Supabase participation state query timed out",
     );
+    const primaryParticipation = pickPrimaryParticipation(
+      (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
+    ).participation;
 
     return {
       userId: user.id,
       isAuthenticated: true,
-      isPaid:
-        pickPrimaryParticipation(
-          (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
-        ).participation?.payment_status === "paid",
+      isPaid: primaryParticipation?.payment_status === "paid",
       avatarUrl: getPlayerAvatar(null, { user_metadata: user.user_metadata }),
+      paymentStatus: primaryParticipation?.payment_status ?? null,
     };
   } catch {
     return {
@@ -60,6 +64,7 @@ export async function getServerSessionState(): Promise<SessionState> {
       isAuthenticated: false,
       isPaid: false,
       avatarUrl: null,
+      paymentStatus: null,
     };
   }
 }
