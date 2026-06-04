@@ -41,6 +41,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         ? "No pudimos iniciar sesión con Google. Intentá nuevamente."
         : authErrorCode === "bootstrap_failed"
           ? "Entraste, pero no pudimos dejar tu cuenta lista todavía. Reintentá en unos minutos."
+          : authErrorCode === "session_required"
+            ? "Necesitamos que vuelvas a iniciar sesión para abrir tu Perfil de forma segura."
           : authErrorCode === "missing_user" || authErrorCode === "missing_code"
             ? "No pudimos cerrar ese ingreso. Probá de nuevo desde acá."
             : "No pudimos completar ese ingreso. Probá de nuevo.";

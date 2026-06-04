@@ -30,6 +30,8 @@ type AppShellProps = {
   initialSession?: AppShellInitialSession;
 };
 
+type ServerSessionStatus = "unknown" | "authenticated" | "unauthenticated";
+
 function isActive(pathname: string, href: string) {
   if (href === "/") {
     return pathname === "/";
@@ -97,6 +99,9 @@ export function AppShell({ children, initialSession }: AppShellProps) {
     : null;
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [authReady, setAuthReady] = useState(Boolean(initialSession));
+  const [serverSessionStatus, setServerSessionStatus] = useState<ServerSessionStatus>(
+    initialIsAuthenticated ? "authenticated" : "unknown",
+  );
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialSession?.avatarUrl ?? null);
   const [playerLabel, setPlayerLabel] = useState("Perfil");
   const [participationStatus, setParticipationStatus] = useState<string | null>(initialParticipationStatus);
@@ -109,6 +114,33 @@ export function AppShell({ children, initialSession }: AppShellProps) {
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
     let active = true;
+
+    async function syncServerSession() {
+      try {
+        const response = await fetch("/api/auth/session-status", {
+          cache: "no-store",
+        });
+
+        if (!active) {
+          return;
+        }
+
+        if (!response.ok) {
+          setServerSessionStatus("unauthenticated");
+          return;
+        }
+
+        const payload = (await response.json().catch(() => null)) as
+          | { authenticated?: boolean }
+          | null;
+
+        setServerSessionStatus(payload?.authenticated ? "authenticated" : "unauthenticated");
+      } catch {
+        if (active) {
+          setServerSessionStatus("unauthenticated");
+        }
+      }
+    }
 
     async function syncParticipation(userId: string | null) {
       if (!userId) {
@@ -184,12 +216,14 @@ export function AppShell({ children, initialSession }: AppShellProps) {
 
         if (!user && initialIsAuthenticated) {
           setIsAuthenticated(true);
+          void syncServerSession();
           void syncProfileIdentity(null);
           void syncParticipation(initialSession?.userId ?? null);
           return;
         }
 
         setIsAuthenticated(Boolean(user));
+        void syncServerSession();
         void syncProfileIdentity(user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null);
         void syncParticipation(user?.id ?? null);
       } catch {
@@ -199,12 +233,14 @@ export function AppShell({ children, initialSession }: AppShellProps) {
 
         if (initialIsAuthenticated) {
           setIsAuthenticated(true);
+          setServerSessionStatus("authenticated");
           setAvatarUrl(initialSession?.avatarUrl ?? null);
           setParticipationStatus(initialParticipationStatus);
           return;
         }
 
         setIsAuthenticated(false);
+        setServerSessionStatus("unauthenticated");
         setAvatarUrl(null);
         setPlayerLabel("Perfil");
         setParticipationStatus(null);
@@ -226,6 +262,7 @@ export function AppShell({ children, initialSession }: AppShellProps) {
 
       const nextIsAuthenticated = Boolean(session?.user) || initialIsAuthenticated;
       setIsAuthenticated(nextIsAuthenticated);
+      void syncServerSession();
       void syncProfileIdentity(
         session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null,
       );
@@ -245,6 +282,13 @@ export function AppShell({ children, initialSession }: AppShellProps) {
       : isPublicHome || isAuthScreen
         ? mobileNavItemsLoggedOut
         : mobileNavItemsAuthenticated;
+  const profileHref =
+    authReady && serverSessionStatus === "authenticated"
+      ? "/profile"
+      : authReady && serverSessionStatus === "unauthenticated"
+        ? "/login?next=/profile&error=session_required"
+        : null;
+  const profileAriaDisabled = !authReady || serverSessionStatus === "unknown";
 
   if (isAuthScreen) {
     return (
@@ -295,7 +339,17 @@ export function AppShell({ children, initialSession }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil">
+            <Link
+              href={profileHref ?? pathname}
+              aria-label={profileAriaDisabled ? "Confirmando sesión" : "Ir a perfil"}
+              aria-disabled={profileAriaDisabled}
+              onClick={(event) => {
+                if (profileAriaDisabled) {
+                  event.preventDefault();
+                }
+              }}
+              className={profileAriaDisabled ? "pointer-events-none opacity-80" : undefined}
+            >
               <AvatarChip avatarUrl={avatarUrl} label={playerLabel} />
             </Link>
           </div>

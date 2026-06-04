@@ -121,7 +121,7 @@ export default async function ProfilePage() {
     } = await withSupabaseTimeout(supabase.auth.getUser(), "Supabase session check timed out");
 
     if (!user) {
-      redirect("/login?next=/profile");
+      redirect("/login?next=/profile&error=session_required");
     }
 
     hasAuthenticatedUser = true;
