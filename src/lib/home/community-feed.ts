@@ -70,6 +70,15 @@ function formatLandingKickoff(startsAt: string) {
     .replace(",", " ·");
 }
 
+function getMatchDateKey(startsAt: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(startsAt));
+}
+
 async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
   try {
     const service = createServiceRoleSupabaseClient();
@@ -86,9 +95,9 @@ async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
       .eq("status", "scheduled")
       .gt("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: true })
-      .limit(3);
+      .limit(24);
 
-    return ((data ?? []) as HomeMatchRow[])
+    const mapped = ((data ?? []) as HomeMatchRow[])
       .map((match) => {
         const homeTeam = match.home_team?.[0];
         const awayTeam = match.away_team?.[0];
@@ -98,6 +107,7 @@ async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
         }
 
         return {
+          startsAt: match.starts_at,
           group: match.group_code ?? "-",
           kickoff: formatLandingKickoff(match.starts_at),
           home: {
@@ -113,6 +123,25 @@ async function getLandingMatches(): Promise<HomeCommunityMatch[]> {
         };
       })
       .filter((match): match is NonNullable<typeof match> => Boolean(match));
+
+    if (mapped.length === 0) {
+      return [];
+    }
+
+    const nextDateKey = getMatchDateKey(mapped[0].startsAt);
+    const sameDayMatches = mapped.filter((match) => getMatchDateKey(match.startsAt) === nextDateKey);
+    const toPublicMatch = (match: (typeof mapped)[number]): HomeCommunityMatch => ({
+      group: match.group,
+      kickoff: match.kickoff,
+      home: match.home,
+      away: match.away,
+    });
+
+    if (sameDayMatches.length > 0) {
+      return sameDayMatches.slice(0, 4).map(toPublicMatch);
+    }
+
+    return mapped.slice(0, 4).map(toPublicMatch);
   } catch {
     return [];
   }
