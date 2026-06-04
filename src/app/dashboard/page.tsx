@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
 import { ActivationPanel } from "@/components/participation/activation-panel";
 import {
@@ -10,6 +10,7 @@ import {
   StatCard,
 } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { getPlayerHeroState } from "@/lib/home/player-hero-state";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -43,6 +44,7 @@ function formatStartsAt(startsAt: string) {
 
 export default async function DashboardPage() {
   let hasAuthenticatedUser = false;
+  let currentUserId: string | null = null;
   let userEmail: string | null = null;
   let profile:
     | {
@@ -77,6 +79,7 @@ export default async function DashboardPage() {
     }
 
     hasAuthenticatedUser = true;
+    currentUserId = user.id;
     userEmail = user.email ?? null;
 
     const [
@@ -156,22 +159,28 @@ export default async function DashboardPage() {
   const participationUiState = resolveParticipationUiState(participationStatus);
   const participationActive = participationUiState.isPaid;
   const aliasLabel = profile?.public_alias?.trim() || "jugador";
-  const mainMessage = participationActive
-    ? "Ya estás compitiendo."
-    : participationUiState.isPendingReview
-      ? "Estamos verificando tu inscripción."
-      : "Tus pronósticos todavía no compiten.";
   const stateLabel = participationUiState.statusLabel;
   const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
+
+  if (!currentUserId) {
+    return (
+      <PageStack>
+        <SurfaceCard title="Estado temporal" description="Tu sesión existe, pero falta identificar al jugador.">
+          <InfoNotice tone="error" message={fallbackMessage} />
+        </SurfaceCard>
+      </PageStack>
+    );
+  }
+
+  const heroState = await getPlayerHeroState({
+    userId: currentUserId,
+    isPaid: participationActive,
+  });
 
   if (!participationActive) {
     return (
       <PageStack>
-        <HomeLanding
-          entryPrice={entryConfig.initialPrice}
-          primaryAction={{ href: "/matches", label: "Entrá al Prode" }}
-          secondaryAction={{ href: "/profile", label: "Ya tengo cuenta" }}
-        />
+        <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
 
         <SurfaceCard
           tone="accent"
@@ -204,38 +213,9 @@ export default async function DashboardPage() {
 
   return (
     <PageStack>
-      <section className="-mx-4 -mt-2 overflow-hidden rounded-b-[2rem] bg-[#001a5c] md:-mx-6 md:rounded-[2rem]">
-        <div className="relative flex min-h-[420px] flex-col justify-end px-4 pb-8 text-left md:min-h-[34rem] md:px-8 md:pb-10">
-          <Image
-            src="/lio_copa.jpeg"
-            alt="Jugador con la copa del mundo"
-            fill
-            priority
-            className="object-cover object-[55%_18%]"
-            sizes="(max-width: 768px) 100vw, 1200px"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_44%,rgba(0,26,92,0.68)_62%,rgba(0,26,92,0.94)_82%,#001a5c_100%)]" />
-          <div className="relative z-10 flex items-end justify-between gap-4">
-            <div className="grid max-w-[18rem] gap-3 md:max-w-[32rem] md:gap-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#dfe6ff]">
-                Panel del jugador
-              </p>
-              <h1 className="font-serif text-[2.35rem] font-bold uppercase leading-[0.92] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.65)] md:text-[4rem]">
-                {`Hola, ${aliasLabel}`}
-              </h1>
-              <p className="max-w-[16rem] text-base font-semibold leading-7 text-[#ffe16d] drop-shadow-[0_1px_6px_rgba(0,0,0,0.55)] md:max-w-[28rem] md:text-[1.35rem]">
-                {mainMessage}
-              </p>
-              <p className="text-sm leading-6 text-[#dfe6ff] md:text-[1rem]">
-                {picksLabel}
-              </p>
-            </div>
-            <div className="hidden rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-white md:inline-flex">
-              {stateLabel}
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="home-landing-shell">
+        <HomeHero entryPrice={entryConfig.initialPrice.toLocaleString("es-AR")} state={heroState} />
+      </div>
 
       <SurfaceCard title="Ya estás compitiendo" description="Seguí cargando tus pronósticos y mirá cómo viene la tabla.">
         <div className="grid gap-3 md:grid-cols-2">

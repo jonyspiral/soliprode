@@ -3,6 +3,7 @@ import { HomeMatchList, type HomeLandingMatch } from "@/components/home/home-mat
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
 import { formatEntryPrice } from "@/lib/product/entry-config";
+import type { HomeHeroState } from "@/lib/home/player-hero-state";
 import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -64,15 +65,9 @@ type HomeMatchRow = {
   }[] | null;
 };
 
-export type HomeLandingAction = {
-  href: string;
-  label: string;
-};
-
 type HomeLandingProps = {
   entryPrice: number;
-  primaryAction: HomeLandingAction;
-  secondaryAction: HomeLandingAction;
+  heroState: HomeHeroState;
 };
 
 function formatLandingKickoff(startsAt: string) {
@@ -136,7 +131,7 @@ async function getLandingMatches(): Promise<HomeLandingMatch[]> {
   }
 }
 
-export async function HomeLanding({ entryPrice, primaryAction, secondaryAction }: HomeLandingProps) {
+export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
   const [homeDisplayMetrics, landingMatches] = await Promise.all([
     getHomeDisplayMetrics(),
     getLandingMatches(),
@@ -145,11 +140,7 @@ export async function HomeLanding({ entryPrice, primaryAction, secondaryAction }
   return (
     <>
       <div className="home-landing-shell">
-        <HomeHero
-          entryPrice={formatEntryPrice(entryPrice)}
-          primaryAction={primaryAction}
-          secondaryAction={secondaryAction}
-        />
+        <HomeHero entryPrice={formatEntryPrice(entryPrice)} state={heroState} />
         <HomeStats
           prizePoolLabel={homeDisplayMetrics.prizePoolLabel}
           playersLabel={homeDisplayMetrics.playersLabel}

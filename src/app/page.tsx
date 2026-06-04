@@ -5,6 +5,7 @@ import {
   readPromoterCodeFromSearchParams,
 } from "@/lib/auth/promoter-attribution";
 import { getServerSessionState } from "@/lib/auth/session-state";
+import { getPlayerHeroState, type HomeHeroState } from "@/lib/home/player-hero-state";
 import { entryConfig } from "@/lib/product/entry-config";
 
 type HomeProps = {
@@ -20,29 +21,20 @@ export default async function Home({ searchParams }: HomeProps) {
   const sessionState = await getServerSessionState();
   const loginHref = appendPromoterQuery("/login", promoterCode);
   const registerHref = appendPromoterQuery("/register", promoterCode);
-  const useStandaloneLanding = !sessionState.isPaid;
-  const primaryAction = !sessionState.isAuthenticated
-    ? { href: registerHref, label: "Entrá al Prode" }
-    : useStandaloneLanding
-      ? { href: "/dashboard", label: "Entrá al Prode" }
-      : sessionState.isPaid
-      ? { href: "/matches", label: "Cargá tus pronósticos" }
-      : { href: "/dashboard", label: "Entrá al Prode" };
-  const secondaryAction = !sessionState.isAuthenticated
-    ? { href: loginHref, label: "Ya tengo cuenta" }
-    : useStandaloneLanding
-      ? { href: "/dashboard", label: "Ya tengo cuenta" }
-      : sessionState.isPaid
-      ? { href: "/rankings", label: "Ver ranking" }
-      : { href: "/matches", label: "Ya tengo cuenta" };
+  const heroState: HomeHeroState = !sessionState.isAuthenticated
+    ? {
+        kind: "guest",
+        primaryAction: { href: registerHref, label: "Entrá al Prode" },
+        secondaryAction: { href: loginHref, label: "Ya tengo cuenta" },
+      }
+    : await getPlayerHeroState({
+        userId: sessionState.userId,
+        isPaid: sessionState.isPaid,
+      });
 
   return (
     <PageStack>
-      <HomeLanding
-        entryPrice={entryConfig.initialPrice}
-        primaryAction={primaryAction}
-        secondaryAction={secondaryAction}
-      />
+      <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
     </PageStack>
   );
 }
