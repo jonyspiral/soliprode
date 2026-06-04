@@ -3,6 +3,7 @@ import { Archivo_Narrow, Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
+import { getServerSessionState } from "@/lib/auth/session-state";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,14 +24,7 @@ export const metadata: Metadata = {
   description:
     "Prode Mundial Solidario 2026. Jugá el Mundial, competí con tu Team y ayudá a universitarios a terminar su carrera.",
   applicationName: "SoliProde",
-  keywords: [
-    "SoliProde",
-    "Prode Mundial Solidario 2026",
-    "prode",
-    "mundial",
-    "quiniela",
-    "pwa",
-  ],
+  keywords: ["SoliProde", "Prode Mundial Solidario 2026", "prode", "mundial", "quiniela", "pwa"],
   openGraph: {
     type: "website",
     url: "https://www.soliprode.com",
@@ -61,9 +55,7 @@ export const metadata: Metadata = {
       { url: SOLIPRODE_BRAND_ASSETS.icon192, sizes: "192x192", type: "image/png" },
       { url: SOLIPRODE_BRAND_ASSETS.icon512, sizes: "512x512", type: "image/png" },
     ],
-    apple: [
-      { url: SOLIPRODE_BRAND_ASSETS.appleTouchIcon, sizes: "180x180", type: "image/png" },
-    ],
+    apple: [{ url: SOLIPRODE_BRAND_ASSETS.appleTouchIcon, sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
@@ -72,18 +64,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialSession = await getServerSessionState();
+
   return (
-    <html
-      lang="es"
-      className={`${inter.variable} ${archivoNarrow.variable} h-full antialiased`}
-    >
+    <html lang="es" className={`${inter.variable} ${archivoNarrow.variable} h-full antialiased`}>
       <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-ink)]">
-        <AppShell>{children}</AppShell>
+        <AppShell initialSession={initialSession}>{children}</AppShell>
       </body>
     </html>
   );
