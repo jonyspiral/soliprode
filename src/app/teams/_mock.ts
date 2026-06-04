@@ -1,5 +1,6 @@
 export type TeamMember = {
   id: string;
+  avatarUrl?: string | null;
   name: string;
   roleLabel: string;
   points: number;
@@ -11,6 +12,7 @@ export type TeamMember = {
 };
 
 export type TeamRankingEntry = {
+  dtAvatarUrl?: string | null;
   name: string;
   points: number;
   position: number;

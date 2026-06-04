@@ -3,6 +3,8 @@ import Link from "next/link";
 import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { TeamIcon } from "@/components/app-icons";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
+import { buildProxyAvatarSrc } from "@/lib/player/avatar-src";
+import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
 import { SurfaceCard } from "@/components/surface-card";
 import { getGroupCompetitionSnapshot, type GroupLeaderboardEntry } from "@/lib/groups/competition";
 import {
@@ -33,7 +35,6 @@ type ParticipationRow = {
 };
 
 type ProfileRow = {
-  avatar_url: string | null;
   full_name: string | null;
   id: string;
   public_alias: string | null;
@@ -187,6 +188,7 @@ function buildTeamPodium(entries: GroupLeaderboardEntry[], currentGroupId: strin
     padded.push({
       activeCount: 0,
       dtAlias: null,
+      dtAvatarUrl: null,
       dtProfileId: null,
       groupId: `placeholder-${position}`,
       inviteCode: null,
@@ -252,7 +254,7 @@ function PodiumPlayerPortrait({
           ringClass,
         ].join(" ")}
       >
-        <img src={`/api/avatar?src=${encodeURIComponent(avatarUrl)}`} alt={label} className="h-full w-full object-cover" />
+        <img src={buildProxyAvatarSrc(avatarUrl)} alt={label} className="h-full w-full object-cover" />
       </div>
     );
   }
@@ -520,7 +522,7 @@ export default async function RankingsPage() {
         profileIdsToLoad.length > 0
           ? service
               .from("profiles")
-              .select("id, public_alias, full_name, avatar_url")
+              .select("id, public_alias, full_name")
               .in("id", profileIdsToLoad)
           : Promise.resolve({ data: [] }),
         groupIdsToLoad.length > 0
@@ -532,6 +534,7 @@ export default async function RankingsPage() {
 
     const profiles = (profileData ?? []) as ProfileRow[];
     const groups = (groupData ?? []) as GroupRow[];
+    const avatarMap = await getAuthAvatarMap(profileIdsToLoad);
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const groupMap = new Map(groups.map((group) => [group.id, group.name]));
 
@@ -550,8 +553,8 @@ export default async function RankingsPage() {
           const alias = row.profile_id === currentUserId ? currentUserAlias : getPlayerDisplayName(profile);
           const avatarUrl =
             row.profile_id === currentUserId
-              ? currentUserAvatarUrl ?? getPlayerAvatar(profile)
-              : getPlayerAvatar(profile);
+              ? currentUserAvatarUrl ?? avatarMap.get(row.profile_id) ?? getPlayerAvatar(profile)
+              : avatarMap.get(row.profile_id) ?? getPlayerAvatar(profile);
 
           return {
             avatarUrl,
@@ -572,8 +575,8 @@ export default async function RankingsPage() {
           return {
             avatarUrl:
               profileId === currentUserId
-                ? currentUserAvatarUrl ?? getPlayerAvatar(profile)
-                : getPlayerAvatar(profile),
+                ? currentUserAvatarUrl ?? avatarMap.get(profileId) ?? getPlayerAvatar(profile)
+                : avatarMap.get(profileId) ?? getPlayerAvatar(profile),
             isCurrentUser: profileId === currentUserId,
             points: 0,
             position: 0,
@@ -600,8 +603,8 @@ export default async function RankingsPage() {
             return {
               avatarUrl:
                 rawCurrentUserRanking.profile_id === currentUserId
-                  ? currentUserAvatarUrl ?? getPlayerAvatar(profile)
-                  : getPlayerAvatar(profile),
+                  ? currentUserAvatarUrl ?? avatarMap.get(rawCurrentUserRanking.profile_id) ?? getPlayerAvatar(profile)
+                  : avatarMap.get(rawCurrentUserRanking.profile_id) ?? getPlayerAvatar(profile),
               isCurrentUser: rawCurrentUserRanking.profile_id === currentUserId,
               points: rawCurrentUserRanking.points ?? 0,
               position: rawCurrentUserRanking.position ?? 0,

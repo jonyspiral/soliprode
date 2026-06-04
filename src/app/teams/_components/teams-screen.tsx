@@ -3,7 +3,8 @@ import { createGroupAction, joinGroupAction } from "@/app/groups/actions";
 import type { TeamInviteContext } from "@/app/teams/_page-state";
 import type { TeamsScreenData } from "@/app/teams/_screen-data";
 import type { TeamMember } from "@/app/teams/_mock";
-import { RankingIcon, SoccerBallIcon, TrophyIcon, UserIcon } from "@/components/app-icons";
+import { RankingIcon, SoccerBallIcon, TrophyIcon } from "@/components/app-icons";
+import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { TeamInviteActions } from "@/app/teams/_components/team-invite-actions";
 import { TeamInviteJoinPanel } from "@/app/teams/_components/team-invite-join-panel";
 
@@ -23,14 +24,6 @@ type TeamsScreenProps = {
 
 function formatPoints(points: number) {
   return `${points.toLocaleString("es-AR")} pts`;
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 function memberTag(member: TeamMember) {
@@ -57,31 +50,6 @@ function memberTag(member: TeamMember) {
   }
 
   return "Jugador activo";
-}
-
-function Avatar({
-  name,
-  accent,
-  size = "md",
-}: {
-  name: string;
-  accent: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const sizeClass =
-    size === "lg" ? "teams-avatar-lg" : size === "sm" ? "teams-avatar-sm" : "teams-avatar";
-
-  return (
-    <div
-      className={sizeClass}
-      style={{
-        background: `linear-gradient(135deg, ${accent} 0%, var(--color-primary-strong) 100%)`,
-      }}
-      aria-hidden="true"
-    >
-      {initials(name)}
-    </div>
-  );
 }
 
 function EmptyPanel({
@@ -269,7 +237,11 @@ export function TeamsScreen({
 
           <div className="teams-card-accent">
             <div className="teams-captain-card">
-              <Avatar name={`${data.captain.name} ${data.captain.alias}`} accent={data.captain.accent} />
+              <PlayerAvatar
+                imageUrl={data.captain.avatarUrl}
+                label={`${data.captain.name} ${data.captain.alias}`}
+                size="md"
+              />
               <div>
                 <p className="teams-kicker">Capitán</p>
                 <p className="teams-card-title">{data.captain.name}</p>
@@ -287,7 +259,7 @@ export function TeamsScreen({
         <aside className="teams-support-column">
           <article className="teams-support-card">
             <div className="teams-support-badge">
-              <Avatar name={data.dt.name} accent={data.dt.accent} size="lg" />
+              <PlayerAvatar imageUrl={data.dt.avatarUrl} label={data.dt.name} size="lg" />
               <span className="teams-chip teams-chip-gold">{data.dt.badge}</span>
             </div>
 
@@ -360,7 +332,7 @@ export function TeamsScreen({
                   <div className="teams-table-row" key={member.id}>
                     <div className="teams-rank-pill">{index + 1}</div>
                     <div className="teams-table-player">
-                      <Avatar name={member.name} accent={member.accent} size="sm" />
+                      <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="sm" />
                       <div>
                         <p className="teams-table-name">{member.name}</p>
                         <p className="teams-table-role">{member.roleLabel}</p>
@@ -397,7 +369,7 @@ export function TeamsScreen({
                 {data.bench.map((member) => (
                   <div className="teams-bench-card" key={member.id}>
                     <div className="teams-bench-head">
-                      <Avatar name={member.name} accent={member.accent} />
+                      <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="md" />
                       <div>
                         <p className="teams-table-name">{member.name}</p>
                         <p className="teams-table-role">{member.roleLabel}</p>
@@ -432,7 +404,7 @@ export function TeamsScreen({
               <div className="teams-roster-list">
                 {data.registered.map((member) => (
                   <div className="teams-roster-chip" key={member.id}>
-                    <UserIcon className="h-4 w-4" />
+                    <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="sm" />
                     <span>{member.name}</span>
                     <em>{member.note}</em>
                   </div>

@@ -13,6 +13,7 @@ export type TeamsScreenData = {
   supportCopy: string;
   currentParticipationStatus: string | null;
   captain: {
+    avatarUrl: string | null;
     name: string;
     alias: string;
     badge: string;
@@ -20,6 +21,7 @@ export type TeamsScreenData = {
     accent: string;
   };
   dt: {
+    avatarUrl: string | null;
     name: string;
     badge: string;
     detail: string;
@@ -70,6 +72,7 @@ function toStarter(member: GroupMemberSnapshot, index: number, captainProfileId:
 
   return {
     id: member.profileId,
+    avatarUrl: member.avatarUrl,
     name: member.alias,
     roleLabel: isCaptain ? "Capitán" : "Jugador activo",
     points: member.points,
@@ -84,6 +87,7 @@ function toStarter(member: GroupMemberSnapshot, index: number, captainProfileId:
 function toBench(member: GroupMemberSnapshot, index: number): TeamMember {
   return {
     id: member.profileId,
+    avatarUrl: member.avatarUrl,
     name: member.alias,
     roleLabel: "Jugador activo",
     points: member.points,
@@ -95,6 +99,7 @@ function toBench(member: GroupMemberSnapshot, index: number): TeamMember {
 function toRegistered(member: GroupMemberSnapshot, index: number): TeamMember {
   return {
     id: member.profileId,
+    avatarUrl: member.avatarUrl,
     name: member.alias,
     roleLabel: "Registrado",
     points: 0,
@@ -113,6 +118,7 @@ function toRankingEntry(entry: GroupLeaderboardEntry, currentGroupId: string | n
     name: entry.name,
     points: entry.teamScore,
     isCurrentTeam: entry.groupId === currentGroupId,
+    dtAvatarUrl: entry.dtAvatarUrl,
   };
 }
 
@@ -150,6 +156,7 @@ export function buildTeamsScreenFallbackData(
     supportCopy,
     currentParticipationStatus: options?.currentParticipationStatus ?? null,
     captain: {
+      avatarUrl: null,
       name: isGuest ? "Sin Capitán" : "Todavía sin Capitán",
       alias: isGuest ? "hasta ingresar" : "hasta crear o unirte",
       badge: "Capitán",
@@ -159,6 +166,7 @@ export function buildTeamsScreenFallbackData(
       accent: "#0c6780",
     },
     dt: {
+      avatarUrl: null,
       name: "Todavía no hay DT",
       badge: "DT del Team",
       detail: "El DT aparece cuando haya Jugadores activos sumando puntos reales.",
@@ -208,6 +216,8 @@ export function buildTeamsScreenDataFromSnapshot(
       "El Capitán arma el Team. El DT se gana el puesto sumando puntos. Los mejores 11 salen a buscar La Gloria.",
     currentParticipationStatus: snapshot.currentParticipationStatus,
     captain: {
+      avatarUrl:
+        currentGroup.members.find((member) => member.profileId === currentGroup.ownerProfileId)?.avatarUrl ?? null,
       name: captainParts.name,
       alias: captainParts.alias,
       badge: "Capitán",
@@ -215,6 +225,7 @@ export function buildTeamsScreenDataFromSnapshot(
       accent: "#0c6780",
     },
     dt: {
+      avatarUrl: dtMember?.avatarUrl ?? null,
       name: dtMember?.alias ?? "Todavía no hay DT",
       badge:
         dtMember && dtMember.profileId === currentGroup.ownerProfileId ? "Capitán · DT" : "DT del Team",

@@ -1,3 +1,4 @@
+import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -30,6 +31,7 @@ type RankingRow = {
 };
 
 export type GroupMemberSnapshot = {
+  avatarUrl: string | null;
   profileId: string;
   alias: string;
   paymentStatus: string;
@@ -53,6 +55,7 @@ export type GroupLeaderboardEntry = {
   position: number;
   dtProfileId: string | null;
   dtAlias: string | null;
+  dtAvatarUrl: string | null;
 };
 
 export type CurrentGroupSnapshot = GroupLeaderboardEntry & {
@@ -63,6 +66,7 @@ export type GroupCompetitionSnapshot = {
   currentGroup: CurrentGroupSnapshot | null;
   currentParticipationStatus: string | null;
   currentUserAlias: string | null;
+  currentUserAvatarUrl: string | null;
   leaderboard: GroupLeaderboardEntry[];
 };
 
@@ -132,6 +136,7 @@ export async function getGroupCompetitionSnapshot(
       currentGroup: null,
       currentParticipationStatus: currentParticipation?.payment_status ?? null,
       currentUserAlias: getPlayerDisplayName((currentProfileData as ProfileRow | null) ?? null),
+      currentUserAvatarUrl: null,
       leaderboard: [],
     };
   }
@@ -153,6 +158,9 @@ export async function getGroupCompetitionSnapshot(
   const groups = (groupsResult.data ?? []) as GroupRow[];
   const profiles = (profilesResult.data ?? []) as ProfileRow[];
   const rankings = (rankingsResult.data ?? []) as RankingRow[];
+  const avatarMap = await getAuthAvatarMap(
+    [...new Set([...(currentUserId ? [currentUserId] : []), ...profileIds])],
+  );
 
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
   const rankingMap = new Map(rankings.map((ranking) => [ranking.profile_id, ranking]));
@@ -166,6 +174,7 @@ export async function getGroupCompetitionSnapshot(
     const profile = profileMap.get(participation.profile_id);
     const ranking = rankingMap.get(participation.profile_id);
     const member: GroupMemberSnapshot = {
+      avatarUrl: avatarMap.get(participation.profile_id) ?? null,
       profileId: participation.profile_id,
       alias: normalizeAlias(
         getPlayerDisplayName(profile),
@@ -218,6 +227,7 @@ export async function getGroupCompetitionSnapshot(
         position: 0,
         dtProfileId: activeMembers[0]?.profileId ?? null,
         dtAlias: activeMembers[0]?.alias ?? null,
+        dtAvatarUrl: activeMembers[0]?.avatarUrl ?? null,
         members,
       };
     })
@@ -250,6 +260,7 @@ export async function getGroupCompetitionSnapshot(
     currentGroup: currentGroupEntry,
     currentParticipationStatus: currentParticipation?.payment_status ?? null,
     currentUserAlias: getPlayerDisplayName((currentProfileData as ProfileRow | null) ?? null),
+    currentUserAvatarUrl: currentUserId ? avatarMap.get(currentUserId) ?? null : null,
     leaderboard: leaderboard.map((entry) => ({
       groupId: entry.groupId,
       name: entry.name,
@@ -263,6 +274,7 @@ export async function getGroupCompetitionSnapshot(
       position: entry.position,
       dtProfileId: entry.dtProfileId,
       dtAlias: entry.dtAlias,
+      dtAvatarUrl: entry.dtAvatarUrl,
     })),
   };
 }

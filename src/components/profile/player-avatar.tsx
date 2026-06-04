@@ -1,10 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
+import { buildProxyAvatarSrc } from "@/lib/player/avatar-src";
 import { getPlayerInitials } from "@/lib/player/identity";
-
-function buildAvatarSrc(imageUrl: string) {
-  const searchParams = new URLSearchParams({ src: imageUrl });
-  return `/api/avatar?${searchParams.toString()}`;
-}
 
 type PlayerAvatarProps = {
   imageUrl?: string | null;
@@ -26,7 +22,7 @@ export function PlayerAvatar({
         className={sizeClass}
       >
         <img
-          src={buildAvatarSrc(imageUrl)}
+          src={buildProxyAvatarSrc(imageUrl)}
           alt={label}
           className="player-avatar-media"
           loading="lazy"

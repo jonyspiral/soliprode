@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { HomeIcon, MatchIcon, RankingIcon, TeamIcon, UserIcon } from "@/components/app-icons";
 import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
+import { PlayerAvatar } from "@/components/profile/player-avatar";
 import {
   mobileNavItemsAuthenticated,
   mobileNavItemsLoggedOut,
   secondaryNavItems,
 } from "@/lib/navigation";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
+import { getPlayerAvatar, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -48,11 +50,15 @@ function NavIcon({ href, className = "h-5 w-5" }: { href: string; className?: st
   return <UserIcon className={className} />;
 }
 
-function AvatarChip() {
+function AvatarChip({
+  avatarUrl,
+  label,
+}: {
+  avatarUrl: string | null;
+  label: string;
+}) {
   return (
-    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[var(--color-line)] bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)] text-[10px] font-bold text-white">
-      SP
-    </div>
+    <PlayerAvatar imageUrl={avatarUrl} label={label} size="sm" />
   );
 }
 
@@ -77,6 +83,8 @@ export function AppShell({ children }: AppShellProps) {
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [playerLabel, setPlayerLabel] = useState("Perfil");
   const [participationStatus, setParticipationStatus] = useState<string | null>(null);
   const participationUiState = resolveParticipationUiState(participationStatus);
   const showPendingPaymentBanner =
@@ -120,6 +128,36 @@ export function AppShell({ children }: AppShellProps) {
       }
     }
 
+    async function syncProfileIdentity(user: { id: string; user_metadata?: Record<string, unknown> } | null) {
+      if (!user) {
+        if (active) {
+          setAvatarUrl(null);
+          setPlayerLabel("Perfil");
+        }
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, public_alias")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!active) {
+          return;
+        }
+
+        setPlayerLabel(getPlayerDisplayName(profile ?? null, { user_metadata: user.user_metadata ?? null }));
+        setAvatarUrl(getPlayerAvatar(profile ?? null, { user_metadata: user.user_metadata ?? null }));
+      } catch {
+        if (active) {
+          setPlayerLabel(getPlayerDisplayName(null, { user_metadata: user.user_metadata ?? null }));
+          setAvatarUrl(getPlayerAvatar(null, { user_metadata: user.user_metadata ?? null }));
+        }
+      }
+    }
+
     async function syncUser() {
       try {
         const {
@@ -131,6 +169,7 @@ export function AppShell({ children }: AppShellProps) {
         }
 
         setIsAuthenticated(Boolean(user));
+        void syncProfileIdentity(user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null);
         void syncParticipation(user?.id ?? null);
       } catch {
         if (!active) {
@@ -138,6 +177,8 @@ export function AppShell({ children }: AppShellProps) {
         }
 
         setIsAuthenticated(false);
+        setAvatarUrl(null);
+        setPlayerLabel("Perfil");
         setParticipationStatus(null);
       } finally {
         if (active) {
@@ -156,6 +197,9 @@ export function AppShell({ children }: AppShellProps) {
       }
 
       setIsAuthenticated(Boolean(session?.user));
+      void syncProfileIdentity(
+        session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null,
+      );
       void syncParticipation(session?.user?.id ?? null);
       setAuthReady(true);
     });
@@ -223,7 +267,7 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <Link href={authReady && isAuthenticated ? "/profile" : "/"} aria-label="Ir a perfil">
-              <AvatarChip />
+              <AvatarChip avatarUrl={avatarUrl} label={playerLabel} />
             </Link>
           </div>
         </div>
