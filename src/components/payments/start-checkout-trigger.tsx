@@ -1,21 +1,36 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
+
+type CheckoutResponsePayload = {
+  ok: boolean;
+  alreadyPaid?: boolean;
+  checkoutUrl?: string;
+  redirectTo?: string;
+};
 
 async function requestCheckoutUrl() {
   const response = await fetch("/api/payments/mercadopago/create-preference", {
     method: "POST",
   });
-  const payload = (await response.json()) as {
-    ok: boolean;
-    checkoutUrl?: string;
-  };
+  const payload = (await response.json()) as CheckoutResponsePayload;
+
+  if (response.status === 409 && payload.alreadyPaid) {
+    return {
+      kind: "already_paid" as const,
+      redirectTo: payload.redirectTo ?? "/dashboard",
+    };
+  }
 
   if (!response.ok || !payload.ok || !payload.checkoutUrl) {
     throw new Error("checkout_unavailable");
   }
 
-  window.location.assign(payload.checkoutUrl);
+  return {
+    kind: "checkout" as const,
+    checkoutUrl: payload.checkoutUrl,
+  };
 }
 
 type StartCheckoutButtonProps = {
@@ -24,6 +39,7 @@ type StartCheckoutButtonProps = {
 };
 
 export function StartCheckoutButton({ children, className = "" }: StartCheckoutButtonProps) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
@@ -34,7 +50,14 @@ export function StartCheckoutButton({ children, className = "" }: StartCheckoutB
     setPending(true);
 
     try {
-      await requestCheckoutUrl();
+      const result = await requestCheckoutUrl();
+
+      if (result.kind === "already_paid") {
+        router.push(result.redirectTo);
+        return;
+      }
+
+      window.location.assign(result.checkoutUrl);
     } catch {
       setPending(false);
     }
@@ -53,6 +76,7 @@ type StartCheckoutCardProps = {
 };
 
 export function StartCheckoutCard({ children, className = "" }: StartCheckoutCardProps) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
@@ -63,7 +87,14 @@ export function StartCheckoutCard({ children, className = "" }: StartCheckoutCar
     setPending(true);
 
     try {
-      await requestCheckoutUrl();
+      const result = await requestCheckoutUrl();
+
+      if (result.kind === "already_paid") {
+        router.push(result.redirectTo);
+        return;
+      }
+
+      window.location.assign(result.checkoutUrl);
     } catch {
       setPending(false);
     }

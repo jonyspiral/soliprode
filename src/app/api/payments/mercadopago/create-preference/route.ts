@@ -117,7 +117,9 @@ export async function POST() {
         return NextResponse.json(
           {
             ok: false,
+            alreadyPaid: true,
             error: "Tu participación ya está paga y activa.",
+            redirectTo: "/dashboard",
           },
           { status: 409 },
         );

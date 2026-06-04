@@ -27,6 +27,7 @@ type ParticipationRow = {
 
 type PaymentAttemptRow = {
   approved_at: string | null;
+  created_at?: string;
   id: string;
   participation_id: string;
   profile_id: string;
@@ -45,6 +46,14 @@ type PaymentAttemptRow = {
 };
 
 export type PaymentAttemptLookup = PaymentAttemptRow;
+
+type PaidCheckoutGuard = {
+  blockingAttempt: PaymentAttemptRow | null;
+  paidParticipations: ParticipationRow[];
+};
+
+const PAYMENT_ATTEMPT_SELECT =
+  "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response, created_at";
 
 function nowIso() {
   return new Date().toISOString();
@@ -116,10 +125,51 @@ export async function getParticipationForProfile(profileId: string) {
   return pickPrimaryParticipation((data ?? []) as ParticipationRow[]).participation;
 }
 
+async function getPaidCheckoutGuard(profileId: string): Promise<PaidCheckoutGuard> {
+  const service = createServiceRoleSupabaseClient();
+  const [{ data: participationRows, error: participationError }, { data: attemptRows, error: attemptError }] =
+    await Promise.all([
+      service
+        .from("participations")
+        .select(
+          "id, profile_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
+        )
+        .eq("profile_id", profileId)
+        .eq("payment_status", "paid")
+        .order("created_at", { ascending: false }),
+      service
+        .from("payment_attempts")
+        .select(PAYMENT_ATTEMPT_SELECT)
+        .eq("profile_id", profileId)
+        .or("status.eq.paid,approved_at.not.is.null")
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+  if (participationError) {
+    throw participationError;
+  }
+
+  if (attemptError) {
+    throw attemptError;
+  }
+
+  return {
+    paidParticipations: (participationRows ?? []) as ParticipationRow[],
+    blockingAttempt: ((attemptRows ?? [])[0] as PaymentAttemptRow | undefined) ?? null,
+  };
+}
+
 export async function createMercadoPagoCheckoutForParticipation(input: {
   profileId: string;
   email: string | null;
 }) {
+  const paidCheckoutGuard = await getPaidCheckoutGuard(input.profileId);
+
+  if (paidCheckoutGuard.paidParticipations.length > 0 || paidCheckoutGuard.blockingAttempt) {
+    throw new Error("already_paid");
+  }
+
   const participation = await getParticipationForProfile(input.profileId);
 
   if (!participation) {
@@ -166,9 +216,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       status: "created",
       expires_at: expiresAt,
     })
-    .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
-    )
+    .select(PAYMENT_ATTEMPT_SELECT)
     .single();
 
   if (insertError || !insertedAttempt) {
@@ -210,9 +258,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       raw_provider_response: preference,
     })
     .eq("id", insertedAttempt.id)
-    .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
-    )
+    .select(PAYMENT_ATTEMPT_SELECT)
     .single();
 
   if (updateAttemptError || !updatedAttempt) {
@@ -372,9 +418,7 @@ export async function syncPendingPaymentAttemptsForParticipation(participationId
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
     .from("payment_attempts")
-    .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
-    )
+    .select(PAYMENT_ATTEMPT_SELECT)
     .eq("participation_id", participationId)
     .eq("provider", "mercadopago")
     .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
@@ -460,9 +504,7 @@ export async function getPaymentAttemptByPreferenceId(preferenceId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
     .from("payment_attempts")
-    .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
-    )
+    .select(PAYMENT_ATTEMPT_SELECT)
     .eq("provider_preference_id", preferenceId)
     .maybeSingle();
 
@@ -487,9 +529,7 @@ export async function getPaymentAttemptByExternalReference(externalReference: st
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
     .from("payment_attempts")
-    .select(
-      "id, participation_id, profile_id, provider, provider_preference_id, provider_payment_id, external_reference, amount, currency, status, checkout_url, init_point, sandbox_init_point, expires_at, approved_at, raw_provider_response",
-    )
+    .select(PAYMENT_ATTEMPT_SELECT)
     .eq("external_reference", externalReference)
     .maybeSingle();
 
