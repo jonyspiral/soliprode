@@ -13,6 +13,7 @@ import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { syncPendingPaymentAttemptsForParticipation } from "@/lib/payments/payment-attempts";
+import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -22,26 +23,61 @@ const SYNCABLE_PAYMENT_STATUSES = new Set([
   "manual_review",
 ]);
 
+type DashboardProfile = {
+  full_name: string | null;
+  public_alias: string;
+  whatsapp: string | null;
+  email: string | null;
+};
+
+type DashboardParticipation = {
+  id: string;
+  payment_status: string;
+  created_at: string;
+  payment_reference: string | null;
+  payment_submitted_at: string | null;
+};
+
+async function loadDashboardAccountData(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string,
+) {
+  const [{ data: profileData }, { data: participationRows }, { count: userPredictionCount }] =
+    await withSupabaseTimeout(
+      Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, public_alias, whatsapp, email, role")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("participations")
+          .select("id, payment_status, created_at, payment_reference, payment_submitted_at")
+          .eq("profile_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(2),
+        supabase
+          .from("predictions")
+          .select("id", { count: "exact", head: true })
+          .eq("profile_id", userId),
+      ]),
+      "Supabase dashboard query timed out",
+    );
+
+  return {
+    participation: pickPrimaryParticipation(participationRows ?? []).participation as
+      | DashboardParticipation
+      | null,
+    predictionCount: userPredictionCount ?? 0,
+    profile: (profileData as DashboardProfile | null) ?? null,
+  };
+}
+
 export default async function DashboardPage() {
   let hasAuthenticatedUser = false;
   let currentUserId: string | null = null;
-  let profile:
-    | {
-        full_name: string | null;
-        public_alias: string;
-        whatsapp: string | null;
-        email: string | null;
-      }
-    | null = null;
-  let participation:
-    | {
-        id: string;
-        payment_status: string;
-        created_at: string;
-        payment_reference: string | null;
-        payment_submitted_at: string | null;
-      }
-    | null = null;
+  let profile: DashboardProfile | null = null;
+  let participation: DashboardParticipation | null = null;
   let predictionCount = 0;
   let fallbackMessage =
     "No pudimos revisar tu sesión ahora. Reintentá en unos minutos o volvé a entrar.";
@@ -59,30 +95,21 @@ export default async function DashboardPage() {
     hasAuthenticatedUser = true;
     currentUserId = user.id;
 
-    const [{ data: profileData }, { data: participationRows }, { count: userPredictionCount }] =
-      await withSupabaseTimeout(
-        Promise.all([
-          supabase
-            .from("profiles")
-            .select("full_name, public_alias, whatsapp, email, role")
-            .eq("id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("participations")
-            .select("id, payment_status, created_at, payment_reference, payment_submitted_at")
-            .eq("profile_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(2),
-          supabase
-            .from("predictions")
-            .select("id", { count: "exact", head: true })
-            .eq("profile_id", user.id),
-        ]),
-        "Supabase dashboard query timed out",
-      );
+    let accountData = await loadDashboardAccountData(supabase, user.id);
 
-    profile = profileData;
-    participation = pickPrimaryParticipation(participationRows ?? []).participation;
+    if (!accountData.profile || !accountData.participation) {
+      const bootstrapResult = await ensureRegisteredUserRecords(user);
+
+      if (!bootstrapResult.ok) {
+        throw new Error("dashboard_bootstrap_failed");
+      }
+
+      accountData = await loadDashboardAccountData(supabase, user.id);
+    }
+
+    profile = accountData.profile;
+    participation = accountData.participation;
+    predictionCount = accountData.predictionCount;
 
     if (participation && SYNCABLE_PAYMENT_STATUSES.has(participation.payment_status)) {
       try {
@@ -103,7 +130,6 @@ export default async function DashboardPage() {
       }
     }
 
-    predictionCount = userPredictionCount ?? 0;
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =
