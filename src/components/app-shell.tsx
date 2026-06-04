@@ -216,6 +216,7 @@ export function AppShell({ children }: AppShellProps) {
       : isAuthenticated
         ? "/profile"
         : "/login?next=/profile&error=session_required";
+  const showProfileChip = authReady && isAuthenticated;
 
   if (isAuthScreen) {
     return (
@@ -242,20 +243,12 @@ export function AppShell({ children }: AppShellProps) {
           <Link href={authReady && isAuthenticated ? "/dashboard" : "/"} className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center transition hover:opacity-80" aria-label="SoliProde">
             <span className="font-serif text-[1.45rem] font-bold leading-none tracking-[-0.01em] text-[var(--color-primary)] md:text-[1.65rem]">SoliProde</span>
           </Link>
-          <div className="ml-auto flex items-center gap-2">
-            <Link
-              href={profileHref}
-              aria-label={authReady ? "Ir a perfil" : "Confirmando sesión"}
-              aria-disabled={!authReady}
-              onClick={(event) => {
-                if (!authReady) {
-                  event.preventDefault();
-                }
-              }}
-              className={!authReady ? "pointer-events-none opacity-80" : undefined}
-            >
-              <AvatarChip avatarUrl={avatarUrl} label={playerLabel} />
-            </Link>
+          <div className="ml-auto flex h-8 w-8 items-center justify-end gap-2">
+            {showProfileChip ? (
+              <Link href={profileHref} aria-label="Ir a perfil">
+                <AvatarChip avatarUrl={avatarUrl} label={playerLabel} />
+              </Link>
+            ) : null}
           </div>
         </div>
         {showPendingPaymentBanner ? (
