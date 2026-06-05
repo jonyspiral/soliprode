@@ -59,12 +59,12 @@ function formatShortPoints(points: number) {
 }
 
 function formatOrdinal(position: number) {
-  return `${position}Âº`;
+  return `${position}º`;
 }
 
 function formatPositionLabel(position: number | null, provisional: boolean) {
   if (!position) {
-    return provisional ? "1Âº prov." : "--";
+    return provisional ? "1º prov." : "--";
   }
 
   return provisional ? `${formatOrdinal(position)} prov.` : `#${position}`;
@@ -326,10 +326,10 @@ export default async function RankingsPage() {
 
     if (individualRows.length === 0 && teamRows.length === 0) {
       notice =
-        "TodavÃ­a no hay ranking calculado. Cuando entren Jugadores activos y resultados oficiales, esta pantalla va a tomar ritmo.";
+        "Todavía no hay ranking calculado. Cuando entren Jugadores activos y resultados oficiales, esta pantalla va a tomar ritmo.";
     }
   } catch {
-    notice = "No pudimos cargar el ranking oficial en este momento. ReintentÃ¡ en unos minutos.";
+    notice = "No pudimos cargar el ranking oficial en este momento. Reintentá en unos minutos.";
   }
 
   const isCurrentUserActive = participationStatus === "paid";
@@ -370,7 +370,7 @@ export default async function RankingsPage() {
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
               Individual y Teams
-              {updatedLabel ? ` Â· Actualizado ${updatedLabel}` : " Â· Ranking provisional"}
+              {updatedLabel ? ` · Actualizado ${updatedLabel}` : " · Ranking provisional"}
             </p>
           </div>
           <div className="pointer-events-none hidden h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/5 md:flex">
@@ -425,7 +425,7 @@ export default async function RankingsPage() {
                 </p>
                 <p className="mt-1 text-sm text-[var(--color-muted)]">
                   {currentGroup
-                    ? `${formatShortPoints(currentGroup.teamScore)} Â· ${currentGroup.activeCount} jugador${
+                    ? `${formatShortPoints(currentGroup.teamScore)} · ${currentGroup.activeCount} jugador${
                         currentGroup.activeCount === 1 ? "" : "es"
                       } activos`
                     : "Sumate a un Team para competir en dupla con tu Plantel."}
@@ -457,7 +457,7 @@ export default async function RankingsPage() {
 
       <section>
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-          Tu posiciÃ³n
+          Tu posición
         </h2>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[1rem] border border-[var(--color-primary)] bg-[var(--color-surface)] p-3">
@@ -470,7 +470,7 @@ export default async function RankingsPage() {
               </span>
             </div>
             <p className="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">
-              Individual Â· {getParticipationStatus(participationStatus)}
+              Individual · {getParticipationStatus(participationStatus)}
             </p>
           </div>
 
@@ -480,7 +480,7 @@ export default async function RankingsPage() {
             </p>
             {currentGroup ? (
               <p className="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">
-                Team Â· {formatShortPoints(currentGroup.teamScore)} Â· {currentGroup.activeCount} jugador
+                Team · {formatShortPoints(currentGroup.teamScore)} · {currentGroup.activeCount} jugador
                 {currentGroup.activeCount === 1 ? "" : "es"} activos
               </p>
             ) : (
