@@ -1,17 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   GoogleIcon,
   LockIcon,
   MailIcon,
-  UserIcon,
 } from "@/components/app-icons";
 import {
   PROMOTER_COOKIE_NAME,
-  appendPromoterQuery,
   normalizePromoterCode,
 } from "@/lib/auth/promoter-attribution";
 import {
@@ -62,19 +59,10 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
+  const [emailExpanded, setEmailExpanded] = useState(false);
   const normalizedPromoterCode = useMemo(() => normalizePromoterCode(promoterCode), [promoterCode]);
   const [manualPromoterCode, setManualPromoterCode] = useState(() => normalizedPromoterCode ?? "");
   const effectivePromoterCode = normalizedPromoterCode ?? normalizePromoterCode(manualPromoterCode);
-  const registerHref = useMemo(() => {
-    const basePath = appendPromoterQuery("/register", normalizedPromoterCode);
-    const searchParams = new URLSearchParams();
-
-    if (nextPath.startsWith("/")) {
-      searchParams.set("next", nextPath);
-    }
-
-    return searchParams.size > 0 ? `${basePath}${basePath.includes("?") ? "&" : "?"}${searchParams.toString()}` : basePath;
-  }, [nextPath, normalizedPromoterCode]);
 
   useEffect(() => {
     if (redirectToCanonicalHostIfNeeded()) {
@@ -191,87 +179,108 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
     }
   }
 
+  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!emailExpanded) {
+      setError(null);
+      setSuccess(null);
+      setEmailExpanded(true);
+      return;
+    }
+
+    await handleSubmit(new FormData(event.currentTarget));
+  }
+
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-3">
+    <div className="grid gap-4">
+      <div className="grid gap-2">
         <button
           type="button"
           onClick={() => void handleGoogleLogin()}
           disabled={googlePending}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-white/40 bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 text-[0.82rem] font-extrabold uppercase tracking-[0.09em] text-[var(--color-ink)] shadow-[0_8px_18px_rgba(201,169,0,0.18)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <GoogleIcon className="h-5 w-5" />
-          {googlePending ? "Abriendo Google..." : "Continuar con Google"}
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
+            <GoogleIcon className="h-4 w-4" />
+          </span>
+          {googlePending ? "Abriendo Google..." : "Entrar con Google"}
         </button>
-        <p className="text-center text-sm text-[var(--color-muted)]">
-          Es la jugada más rápida para volver al ranking.
-        </p>
       </div>
 
-      <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+      <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--color-muted)]">
         <div className="h-px flex-1 bg-[var(--color-line)]" />
-        <span>O entrá con email</span>
+        <span>o continuá con email</span>
         <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
       <form
-        action={async (formData) => {
-          await handleSubmit(formData);
+        onSubmit={(event) => {
+          void handleEmailSubmit(event);
         }}
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-4"
       >
         <input type="hidden" name="next" value={nextPath} />
-        <div className="relative">
+        <div className="grid gap-2">
           <label
             htmlFor="email"
-            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+            className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--color-primary)]"
           >
             Email
           </label>
-          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-              <UserIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+          <div className="flex items-center overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_0_3px_rgba(154,225,255,0.22)]">
+            <MailIcon className="ml-3 mr-2 h-4 w-4 text-[var(--color-muted)]" />
             <input
               id="email"
               name="email"
               type="email"
               required
               autoComplete="email"
-              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-[0.95rem] font-semibold text-[var(--color-ink)] outline-none placeholder:font-normal placeholder:text-[rgba(67,70,83,0.62)]"
               placeholder="tu@email.com"
             />
           </div>
         </div>
 
-        <div className="relative">
-          <label
-            htmlFor="password"
-            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
-          >
-            Contraseña
-          </label>
-          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-            <LockIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
-              placeholder="Tu contraseña"
-            />
+        {emailExpanded ? (
+          <div className="grid gap-2">
+            <label
+              htmlFor="password"
+              className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+            >
+              Contraseña
+            </label>
+            <div className="flex items-center overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_0_3px_rgba(154,225,255,0.22)]">
+              <LockIcon className="ml-3 mr-2 h-4 w-4 text-[var(--color-muted)]" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-[0.95rem] font-semibold text-[var(--color-ink)] outline-none placeholder:font-normal placeholder:text-[rgba(67,70,83,0.62)]"
+                placeholder="Tu contraseña"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="relative">
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary-strong)] px-5 py-3 text-[0.82rem] font-extrabold uppercase tracking-[0.09em] text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {pending ? "Entrando..." : emailExpanded ? "Entrar con email" : "Continuar"}
+        </button>
+
+        <div className="grid gap-2 rounded-xl border border-[rgba(0,50,125,0.12)] bg-[var(--color-surface-muted)] p-3">
           <label
             htmlFor="promoter_code"
-            className="absolute -top-2.5 left-3 z-10 bg-[var(--color-bg)] px-1 text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]"
+            className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--color-muted)]"
           >
             Promotor
           </label>
-          <div className="flex items-center overflow-hidden rounded-lg border-2 border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_8px_rgba(137,208,237,0.3)]">
-            <MailIcon className="ml-3 mr-2 h-5 w-5 text-[var(--color-line)]" />
+          <div className="flex items-center overflow-hidden rounded-lg border border-[rgba(195,198,213,0.85)] bg-white transition focus-within:border-[var(--color-primary)]">
             <input
               id="promoter_code"
               name="promoter_code"
@@ -283,38 +292,33 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
                 }
               }}
               readOnly={Boolean(normalizedPromoterCode)}
-              className="min-h-14 w-full border-none bg-transparent py-3 pr-4 text-base text-[var(--color-ink)] outline-none"
-              placeholder="Código opcional"
+              className="min-h-10 w-full border-none bg-transparent px-3 py-2 text-[0.9rem] font-semibold text-[var(--color-ink)] outline-none placeholder:font-normal placeholder:text-[rgba(67,70,83,0.56)]"
+              placeholder="Código / número"
             />
           </div>
+          <p className="text-xs leading-5 text-[var(--color-muted)]">
+            {normalizedPromoterCode
+              ? "Detectado por link. No hace falta volver a cargarlo."
+              : "Opcional si no llegaste por link de promotor."}
+          </p>
         </div>
 
         {error ? (
-          <p className="border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          <p className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
             {error}
           </p>
         ) : null}
 
         {success ? (
-          <p className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
             {success}
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex min-h-14 w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-5 py-3 font-serif text-[1.35rem] uppercase tracking-[0.04em] text-[#1a1c1c] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {pending ? "Entrando..." : "Entrá con email"}
-        </button>
-
-        <p className="text-center text-sm text-[var(--color-muted)]">
-          ¿Todavía no tenés cuenta?{" "}
-          <Link href={registerHref} className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline">
-            Creala acá
-          </Link>
-        </p>
+        <div className="grid gap-1 text-center text-[0.76rem] leading-5 text-[var(--color-muted)]">
+          <p>El Pase Solidario se activa después del aporte.</p>
+          <p>Al entrar aceptás el reglamento y las bases.</p>
+        </div>
       </form>
     </div>
   );
