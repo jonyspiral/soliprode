@@ -1,16 +1,11 @@
-﻿import Link from "next/link";
 import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
-import { TeamIcon } from "@/components/app-icons";
-import { PlayerAvatar } from "@/components/profile/player-avatar";
-import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
+import { RankingsScreen } from "@/components/rankings/rankings-screen";
 import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
-import { SurfaceCard } from "@/components/surface-card";
 import { getGroupCompetitionSnapshot, type GroupLeaderboardEntry } from "@/lib/groups/competition";
 import {
   getParticipationStatus,
   getPlayerAvatar,
   getPlayerDisplayName,
-  getPlayerInitials,
 } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import {
@@ -104,32 +99,6 @@ function buildPrimaryParticipationMap(rows: ParticipationRow[]) {
   }
 
   return primaryByProfile;
-}
-
-function buildTeamInitials(name: string) {
-  const cleaned = name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
-
-  return cleaned || "TM";
-}
-
-function renderBadge(label: string, tone: "blue" | "gold" = "blue") {
-  const toneClass =
-    tone === "gold"
-      ? "border-[var(--color-gold)]/60 bg-[rgba(255,225,109,0.18)] text-[var(--color-ink)]"
-      : "border-[var(--color-secondary)]/25 bg-[rgba(154,225,255,0.2)] text-[var(--color-secondary)]";
-
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${toneClass}`}
-    >
-      {label}
-    </span>
-  );
 }
 
 export default async function RankingsPage() {
@@ -353,293 +322,37 @@ export default async function RankingsPage() {
   }));
   const updatedLabel = formatUpdatedDate(updatedAt);
   const individualPositionLabel = formatPositionLabel(currentUserRanking?.position ?? null, !hasComputedResults);
-  const teamPositionLabel = currentGroup
-    ? formatPositionLabel(currentGroup.position, !hasComputedResults)
-    : "Sin Team";
+  const teamPositionDetail = currentGroup
+    ? `${formatPositionLabel(currentGroup.position, !hasComputedResults)} · ${formatShortPoints(
+        currentGroup.teamScore,
+      )} · ${currentGroup.activeCount} jugador${currentGroup.activeCount === 1 ? "" : "es"} activos`
+    : "Sin Team · Sumate para competir";
 
   return (
     <PageStack>
-      <section className="overflow-hidden rounded-[1.25rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-5 text-white shadow-[0_16px_32px_rgba(0,50,125,0.18)]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span className="inline-flex items-center rounded-sm bg-[var(--color-gold)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]">
-              Oficial
-            </span>
-            <h1 className="mt-3 font-serif text-[2.15rem] font-bold uppercase leading-none tracking-[-0.03em]">
-              Rankings oficiales
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-[#dfe6ff]">
-              Individual y Teams
-              {updatedLabel ? ` · Actualizado ${updatedLabel}` : " · Ranking provisional"}
-            </p>
-          </div>
-          <div className="pointer-events-none hidden h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/5 md:flex">
-            <div className="grid grid-cols-3 items-end gap-1.5 opacity-80">
-              <span className="h-7 w-3 rounded-sm bg-white/15" />
-              <span className="h-12 w-3 rounded-sm bg-white/20" />
-              <span className="h-9 w-3 rounded-sm bg-white/15" />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {notice ? <InfoNotice message={notice} tone="info" /> : null}
-
-      {!isCurrentUserActive ? (
-        <InfoNotice
-          message="Los jugadores pendientes quedan afuera hasta activar su Pase Solidario."
-          tone="error"
-        />
-      ) : null}
-
-      <section className="grid grid-cols-2 gap-3">
-        <SurfaceCard className="rounded-[1rem] p-0 shadow-sm">
-          <div className="flex items-start justify-between gap-3 p-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Individual
-              </p>
-              <p className="mt-2 font-serif text-[2rem] font-bold leading-none text-[var(--color-primary)]">
-                {individualPositionLabel}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
-                {formatShortPoints(currentUserRanking?.points ?? 0)}
-              </p>
-              <div className="mt-3">{renderBadge(getParticipationStatus(participationStatus))}</div>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-[var(--color-primary)]">
-              <span className="text-sm font-bold">#</span>
-            </div>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="rounded-[1rem] p-0 shadow-sm">
-          <div className="flex h-full flex-col justify-between p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                  Team
-                </p>
-                <p className="mt-2 font-serif text-[1.55rem] font-bold leading-none text-[var(--color-primary)]">
-                  {currentGroup?.name ?? "Sin Team"}
-                </p>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">
-                  {currentGroup
-                    ? `${formatShortPoints(currentGroup.teamScore)} · ${currentGroup.activeCount} jugador${
-                        currentGroup.activeCount === 1 ? "" : "es"
-                      } activos`
-                    : "Sumate a un Team para competir en dupla con tu Plantel."}
-                </p>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-[var(--color-primary)]">
-                <TeamIcon className="h-4 w-4" />
-              </div>
-            </div>
-            {currentGroup ? (
-              <div className="mt-3">{renderBadge("Tu Team")}</div>
-            ) : (
-              <Link
-                href="/groups"
-                className="mt-3 inline-flex items-center justify-center rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-2 text-sm font-bold text-white"
-              >
-                Crear o sumarme
-              </Link>
-            )}
-          </div>
-        </SurfaceCard>
-      </section>
-
-      <RankingPodiumBlocks
+      <RankingsScreen
         hasComputedResults={hasComputedResults}
-        individual={individualPodium}
-        teams={teamPodium}
+        individualPodium={individualPodium}
+        individualPositionLabel={individualPositionLabel}
+        individualRows={individualRows}
+        individualStatusLabel={getParticipationStatus(participationStatus)}
+        individualUserPoints={formatShortPoints(currentUserRanking?.points ?? 0)}
+        isCurrentUserActive={isCurrentUserActive}
+        teamCtaHref="/groups"
+        teamPodium={teamPodium}
+        teamPositionDetail={teamPositionDetail}
+        teamPositionLabel={currentGroup?.name ?? "Sin Team"}
+        teamRows={teamRows.map((entry) => ({
+          activeCount: entry.activeCount,
+          isCurrentTeam: currentGroup?.groupId === entry.groupId,
+          name: entry.name,
+          points: entry.teamScore,
+          position: entry.position,
+          teamId: entry.groupId,
+        }))}
+        updatedLabel={updatedLabel}
       />
-
-      <section>
-        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-          Tu posición
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-[1rem] border border-[var(--color-primary)] bg-[var(--color-surface)] p-3">
-            <div className="flex items-center gap-2">
-              <span className="font-serif text-[1.6rem] font-bold leading-none text-[var(--color-primary)]">
-                {individualPositionLabel}
-              </span>
-              <span className="text-sm font-semibold text-[var(--color-ink)]">
-                {formatShortPoints(currentUserRanking?.points ?? 0)}
-              </span>
-            </div>
-            <p className="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">
-              Individual · {getParticipationStatus(participationStatus)}
-            </p>
-          </div>
-
-          <div className="rounded-[1rem] border border-dashed border-[var(--color-line)] bg-[var(--color-surface)] p-3">
-            <p className="font-serif text-[1.35rem] font-bold leading-none text-[var(--color-primary)]">
-              {teamPositionLabel}
-            </p>
-            {currentGroup ? (
-              <p className="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">
-                Team · {formatShortPoints(currentGroup.teamScore)} · {currentGroup.activeCount} jugador
-                {currentGroup.activeCount === 1 ? "" : "es"} activos
-              </p>
-            ) : (
-              <>
-                <p className="mt-2 text-[11px] leading-5 text-[var(--color-muted)]">Sin Team</p>
-                <Link
-                  href="/groups"
-                  className="mt-2 inline-flex items-center justify-center rounded-md border border-[var(--color-primary)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-primary)]"
-                >
-                  Crear o sumarme
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <SurfaceCard title="Ranking Individual" description="Top 10 jugadores">
-        <div className="overflow-hidden rounded-[1rem] border border-[var(--color-line)]">
-          <div className="grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center bg-[var(--color-primary)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-            <span>Pos</span>
-            <span>Jugador</span>
-            <span className="text-right">Pts</span>
-          </div>
-
-          {individualRows.length > 0 ? (
-            <div className="max-h-[28rem] overflow-y-auto">
-              {individualRows.slice(0, 10).map((row) => (
-                <div
-                  key={row.profileId}
-                  className={[
-                    "grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center gap-2 border-t border-[var(--color-line)] px-3 py-2.5",
-                    row.isCurrentUser ? "bg-[rgba(154,225,255,0.18)]" : "bg-[var(--color-surface)]",
-                  ].join(" ")}
-                >
-                  <span className="text-base font-bold text-[var(--color-primary)]">{row.position}</span>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <PlayerAvatar imageUrl={row.avatarUrl} label={row.userLabel} size="sm" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                          {row.userLabel}
-                        </p>
-                        {row.isCurrentUser ? renderBadge("Vos") : null}
-                      </div>
-                      <p className="truncate text-[11px] text-[var(--color-muted)]">
-                        {row.teamName ?? "Sin Team"}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-right text-base font-bold text-[var(--color-ink)]">{row.points}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-0">
-              {Array.from({ length: 10 }, (_, index) => (
-                <div
-                  key={`individual-placeholder-${index + 1}`}
-                  className="grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center gap-2 border-t border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5"
-                >
-                  <span className="text-base font-bold text-[var(--color-primary)]">{index + 1}</span>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <PlayerAvatar label={`Jugador ${index + 1}`} size="sm" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                        Esperando jugadores
-                      </p>
-                      <p className="truncate text-[11px] text-[var(--color-muted)]">Sin Team</p>
-                    </div>
-                  </div>
-                  <span className="text-right text-base font-bold text-[var(--color-ink)]">0</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard title="Ranking de Teams" description="Top 10 Teams">
-        <div className="overflow-hidden rounded-[1rem] border border-[var(--color-line)]">
-          <div className="grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center bg-[#0c6780] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-            <span>Pos</span>
-            <span>Team / Jugadores</span>
-            <span className="text-right">Pts</span>
-          </div>
-
-          {teamRows.length > 0 ? (
-            <div className="max-h-[28rem] overflow-y-auto">
-              {teamRows.map((entry) => {
-                const isCurrentTeam = currentGroup?.groupId === entry.groupId;
-
-                return (
-                  <div
-                    key={entry.groupId}
-                    className={[
-                      "grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center gap-2 border-t border-[var(--color-line)] px-3 py-2.5",
-                      isCurrentTeam ? "bg-[rgba(255,225,109,0.12)]" : "bg-[var(--color-surface)]",
-                    ].join(" ")}
-                  >
-                    <span className="text-base font-bold text-[var(--color-primary)]">{entry.position}</span>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div
-                        className={[
-                          "teams-avatar-sm shrink-0",
-                          isCurrentTeam
-                            ? "bg-[linear-gradient(135deg,#ffe16d_0%,#c9a900_100%)] text-[var(--color-ink)]"
-                            : "bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)]",
-                        ].join(" ")}
-                      >
-                        {buildTeamInitials(entry.name)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                            {entry.name}
-                          </p>
-                          {isCurrentTeam ? renderBadge("Tu Team", "gold") : null}
-                        </div>
-                        <p className="truncate text-[11px] text-[var(--color-muted)]">
-                          {entry.activeCount} Jugadores activos
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-right text-base font-bold text-[var(--color-ink)]">
-                      {entry.teamScore}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid gap-0">
-              {Array.from({ length: 10 }, (_, index) => (
-                <div
-                  key={`team-placeholder-${index + 1}`}
-                  className="grid grid-cols-[3rem_minmax(0,1fr)_4.5rem] items-center gap-2 border-t border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2.5"
-                >
-                  <span className="text-base font-bold text-[var(--color-primary)]">{index + 1}</span>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="teams-avatar-sm bg-[linear-gradient(135deg,#9ae1ff_0%,#0047ab_100%)]">
-                      {getPlayerInitials(`Team ${index + 1}`)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                        Esperando Teams
-                      </p>
-                      <p className="truncate text-[11px] text-[var(--color-muted)]">0 Jugadores activos</p>
-                    </div>
-                  </div>
-                  <span className="text-right text-base font-bold text-[var(--color-ink)]">0</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </SurfaceCard>
     </PageStack>
   );
 }
-
-

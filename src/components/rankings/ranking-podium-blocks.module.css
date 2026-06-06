@@ -2,6 +2,30 @@
   overflow: hidden;
 }
 
+.surfaceCardCompact {
+  padding-top: 0.85rem !important;
+}
+
+.compactHeader {
+  display: grid;
+  gap: 0.18rem;
+  margin-bottom: 0.7rem;
+}
+
+.compactKicker {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.compactCopy {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
 .blocksGrid {
   display: grid;
   gap: 1rem;
@@ -16,7 +40,7 @@
     radial-gradient(circle at top right, rgba(154, 225, 255, 0.14), transparent 28%),
     linear-gradient(180deg, #f8fbff 0%, #eff4fa 100%);
   box-shadow: 0 12px 28px rgba(0, 50, 125, 0.08);
-  padding: 0.95rem;
+  padding: 0.8rem;
 }
 
 .block::before {
@@ -39,7 +63,7 @@
 .blockHeader {
   position: relative;
   z-index: 1;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.65rem;
 }
 
 .blockTitle {
@@ -67,7 +91,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
-  gap: 0.5rem;
+  gap: 0.42rem;
 }
 
 .entryColumn {
@@ -83,7 +107,7 @@
   width: 100%;
   border-radius: 1.05rem;
   border: 1px solid var(--color-line);
-  padding: 0.7rem 0.55rem 0.65rem;
+  padding: 0.55rem 0.45rem 0.5rem;
   text-align: center;
   box-shadow: 0 12px 26px rgba(0, 50, 125, 0.1);
 }
@@ -104,14 +128,14 @@
 
 .portraitSize,
 .crestSize {
-  width: 4.1rem;
-  height: 4.1rem;
+  width: 3.55rem;
+  height: 3.55rem;
 }
 
 .portraitSizeDominant,
 .crestSizeDominant {
-  width: 5.15rem;
-  height: 5.15rem;
+  width: 4.45rem;
+  height: 4.45rem;
 }
 
 .portraitShell,
@@ -295,15 +319,15 @@
 .entryPositionWrap {
   display: flex;
   justify-content: center;
-  margin-top: 0.55rem;
+  margin-top: 0.42rem;
 }
 
 .entryPositionChip {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.34rem 0.62rem;
-  font-size: 0.62rem;
+  padding: 0.26rem 0.5rem;
+  font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -320,8 +344,8 @@
 }
 
 .entryTitle {
-  margin-top: 0.55rem;
-  min-height: 2.15rem;
+  margin-top: 0.42rem;
+  min-height: 1.8rem;
   font-family: var(--font-archivo-narrow), sans-serif;
   text-transform: uppercase;
   line-height: 1.03;
@@ -332,20 +356,20 @@
 }
 
 .entryTitleDominant {
-  font-size: 1.08rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: var(--color-primary);
 }
 
 .entryTitleRegular {
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .entryMeta {
-  margin-top: 0.2rem;
-  font-size: 0.69rem;
+  margin-top: 0.18rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -356,8 +380,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 1.35rem;
-  margin-top: 0.45rem;
+  min-height: 1rem;
+  margin-top: 0.32rem;
 }
 
 .badge {

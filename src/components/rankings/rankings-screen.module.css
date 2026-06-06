@@ -1,0 +1,350 @@
+.screenStack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.header {
+  border: 1px solid var(--color-line);
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at top right, rgba(154, 225, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 100%);
+  padding: 0.9rem 1rem;
+  box-shadow: 0 10px 24px rgba(0, 50, 125, 0.06);
+}
+
+.headerCopy {
+  min-width: 0;
+}
+
+.headerTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.worldCupChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(255, 225, 109, 0.2);
+  color: var(--color-ink);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headerTitle {
+  margin-top: 0.35rem;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.headerSubtitle {
+  margin-top: 0.28rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+.tabsShell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.22rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.95rem;
+  background: var(--color-surface-muted);
+}
+
+.tabButton {
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 0.72rem;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.tabButtonActive {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: 0 6px 16px rgba(0, 50, 125, 0.08);
+}
+
+.positionCard {
+  padding: 0 !important;
+}
+
+.positionCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem 0;
+}
+
+.positionKicker {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.positionTitle {
+  margin-top: 0.28rem;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.02;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.positionMetrics {
+  padding: 0.55rem 1rem 0;
+}
+
+.positionValue {
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.positionMeta {
+  margin-top: 0.22rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.positionCopy {
+  margin-top: 0.45rem;
+  padding: 0 1rem 1rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.positionActions {
+  display: grid;
+  gap: 0.55rem;
+  padding-bottom: 1rem;
+}
+
+.positionPrimaryCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 1rem;
+  min-height: 2.7rem;
+  border-radius: 0.8rem;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.listCard {
+  padding: 0 !important;
+}
+
+.listHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem 0.7rem;
+}
+
+.listKicker {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.listTitle {
+  margin-top: 0.26rem;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.24rem;
+  font-weight: 700;
+  line-height: 1.02;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.listShell {
+  overflow: hidden;
+  border-top: 1px solid var(--color-line);
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3.55rem;
+  padding: 0.72rem 1rem;
+  border-top: 1px solid rgba(195, 198, 213, 0.55);
+  background: var(--color-surface);
+}
+
+.listRow:first-child {
+  border-top: 0;
+}
+
+.listRowCurrent {
+  background: rgba(154, 225, 255, 0.16);
+}
+
+.listRowCurrentTeam {
+  background: rgba(255, 225, 109, 0.12);
+}
+
+.listPosition {
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.listIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.listIdentityCopy {
+  min-width: 0;
+}
+
+.listNameLine {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.listName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.listMeta {
+  margin-top: 0.08rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.listPoints {
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.teamAvatar {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(195, 198, 213, 0.9);
+  border-radius: 0.78rem;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, #1d6edd 0%, #0f4f9f 58%, #0c6780 100%);
+  box-shadow: 0 8px 20px rgba(0, 50, 125, 0.15);
+  color: white;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.teamAvatarCurrent {
+  border-color: rgba(233, 196, 0, 0.65);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, #ffe16d 0%, #d4b100 100%);
+  color: var(--color-ink);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.14rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeBlue {
+  border-color: rgba(12, 103, 128, 0.25);
+  background: rgba(154, 225, 255, 0.2);
+  color: var(--color-secondary);
+}
+
+.badgeGold {
+  border-color: rgba(233, 196, 0, 0.6);
+  background: rgba(255, 225, 109, 0.18);
+  color: var(--color-ink);
+}
+
+@media (max-width: 389px) {
+  .screenStack {
+    gap: 0.75rem;
+  }
+
+  .header,
+  .listHeader,
+  .positionCardHeader,
+  .positionMetrics,
+  .positionCopy,
+  .listRow {
+    padding-inline: 0.85rem;
+  }
+
+  .listRow {
+    grid-template-columns: 1.8rem minmax(0, 1fr) auto;
+    gap: 0.55rem;
+  }
+
+  .listPoints {
+    font-size: 1.12rem;
+  }
+}

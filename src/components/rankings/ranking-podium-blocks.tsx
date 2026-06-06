@@ -24,6 +24,7 @@ export type TeamPodiumItem = {
 };
 
 type RankingPodiumBlocksProps = {
+  activeTab?: "individual" | "teams";
   hasComputedResults: boolean;
   individual: IndividualPodiumItem[];
   teams: TeamPodiumItem[];
@@ -254,24 +255,24 @@ function PodiumEntryCard({
   );
 }
 
-export function RankingPodiumBlocks({ hasComputedResults, individual, teams }: RankingPodiumBlocksProps) {
+export function RankingPodiumBlocks({
+  activeTab,
+  hasComputedResults,
+  individual,
+  teams,
+}: RankingPodiumBlocksProps) {
   const individualPodium = normalizeIndividual(individual);
   const teamPodium = normalizeTeams(teams);
   const description = hasComputedResults
     ? "Así viene la pelea ahora mismo."
     : "Todavía no hay partidos computados. Todos arrancan desde cero.";
-
-  return (
-    <SurfaceCard title="Podios provisionales" description={description} className={styles.surfaceCard}>
-      <div className={styles.blocksGrid}>
+  const renderBlock = (tab: "individual" | "teams") => {
+    if (tab === "individual") {
+      return (
         <div className={styles.block}>
           <div className={styles.blockHeader}>
-            <h2 className={styles.blockTitle}>
-              Individual
-            </h2>
-            <p className={styles.blockCopy}>
-              Así arranca la pelea individual mientras se cargan los primeros resultados.
-            </p>
+            <h2 className={styles.blockTitle}>Individual</h2>
+            <p className={styles.blockCopy}>Top 3 provisional del ranking individual.</p>
           </div>
           <div className={styles.podiumGrid}>
             {[individualPodium[1], individualPodium[0], individualPodium[2]].map((entry) => (
@@ -288,32 +289,51 @@ export function RankingPodiumBlocks({ hasComputedResults, individual, teams }: R
             ))}
           </div>
         </div>
+      );
+    }
 
-        <div className={`${styles.block} ${styles.blockTeams}`}>
-          <div className={styles.blockHeader}>
-            <h2 className={`${styles.blockTitle} ${styles.blockTitleTeams}`}>
-              Teams
-            </h2>
-            <p className={styles.blockCopy}>
-              El ranking de Teams arranca con Planteles completos o con dummies de competencia.
-            </p>
-          </div>
-          <div className={styles.podiumGrid}>
-            {[teamPodium[1], teamPodium[0], teamPodium[2]].map((entry) => (
-              <PodiumEntryCard
-                key={entry.key}
-                activeCount={entry.activeCount}
-                dominant={entry.position === 1}
-                isCurrent={entry.isCurrent}
-                label={entry.name}
-                points={entry.points}
-                position={entry.position}
-                team
-                variant={entry.variant}
-              />
-            ))}
-          </div>
+    return (
+      <div className={`${styles.block} ${styles.blockTeams}`}>
+        <div className={styles.blockHeader}>
+          <h2 className={`${styles.blockTitle} ${styles.blockTitleTeams}`}>Teams</h2>
+          <p className={styles.blockCopy}>Top 3 provisional de la tabla social.</p>
         </div>
+        <div className={styles.podiumGrid}>
+          {[teamPodium[1], teamPodium[0], teamPodium[2]].map((entry) => (
+            <PodiumEntryCard
+              key={entry.key}
+              activeCount={entry.activeCount}
+              dominant={entry.position === 1}
+              isCurrent={entry.isCurrent}
+              label={entry.name}
+              points={entry.points}
+              position={entry.position}
+              team
+              variant={entry.variant}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  if (activeTab) {
+    return (
+      <SurfaceCard className={`${styles.surfaceCard} ${styles.surfaceCardCompact}`}>
+        <div className={styles.compactHeader}>
+          <p className={styles.compactKicker}>Podio provisional</p>
+          <p className={styles.compactCopy}>{description}</p>
+        </div>
+        {renderBlock(activeTab)}
+      </SurfaceCard>
+    );
+  }
+
+  return (
+    <SurfaceCard title="Podios provisionales" description={description} className={styles.surfaceCard}>
+      <div className={styles.blocksGrid}>
+        {renderBlock("individual")}
+        {renderBlock("teams")}
       </div>
     </SurfaceCard>
   );
