@@ -101,6 +101,38 @@ function buildPrimaryParticipationMap(rows: ParticipationRow[]) {
   return primaryByProfile;
 }
 
+function dedupeRankingRows(rows: RankingRow[]) {
+  const bestByProfile = new Map<string, RankingRow>();
+
+  for (const row of rows) {
+    const current = bestByProfile.get(row.profile_id);
+
+    if (!current) {
+      bestByProfile.set(row.profile_id, row);
+      continue;
+    }
+
+    const currentPosition = current.position ?? Number.MAX_SAFE_INTEGER;
+    const nextPosition = row.position ?? Number.MAX_SAFE_INTEGER;
+
+    if (nextPosition < currentPosition || (nextPosition === currentPosition && row.points > current.points)) {
+      bestByProfile.set(row.profile_id, row);
+    }
+  }
+
+  return [...bestByProfile.values()]
+    .sort((a, b) => {
+      const positionDelta = (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER);
+
+      if (positionDelta !== 0) {
+        return positionDelta;
+      }
+
+      return b.points - a.points;
+    })
+    .slice(0, 10);
+}
+
 export default async function RankingsPage() {
   const supabase = await createServerSupabaseClient();
   const service = createServiceRoleSupabaseClient();
@@ -130,7 +162,7 @@ export default async function RankingsPage() {
       .is("scope_id", null)
       .not("position", "is", null)
       .order("position", { ascending: true })
-      .limit(10);
+      .limit(20);
 
     const currentUserRankingQuery = currentUserId
       ? service
@@ -161,13 +193,15 @@ export default async function RankingsPage() {
       "Supabase rankings query timed out",
     );
 
-    const topRankings = (topRankingData ?? []) as RankingRow[];
+    const topRankings = dedupeRankingRows((topRankingData ?? []) as RankingRow[]);
     const rawCurrentUserRanking = (currentUserRankingData as RankingRow | null) ?? null;
     const participations = (participationData ?? []) as ParticipationRow[];
     const primaryParticipations = buildPrimaryParticipationMap(participations);
-    const activeProfileIds = [...primaryParticipations.values()]
-      .filter((row) => row.payment_status === "paid")
-      .map((row) => row.profile_id);
+    const activeProfileIds = [...new Set(
+      [...primaryParticipations.values()]
+        .filter((row) => row.payment_status === "paid")
+        .map((row) => row.profile_id),
+    )];
 
     participationStatus = groupSnapshot.currentParticipationStatus ?? null;
     teamRows = groupSnapshot.leaderboard.slice(0, 10);
@@ -240,7 +274,8 @@ export default async function RankingsPage() {
             teamName: participation?.group_id ? groupMap.get(participation.group_id) ?? null : null,
             userLabel: alias,
           };
-        });
+        })
+        .slice(0, 10);
     } else {
       individualRows = activeProfileIds
         .map((profileId) => {
