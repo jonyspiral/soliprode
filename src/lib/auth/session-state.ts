@@ -36,27 +36,34 @@ export async function getServerSessionState(): Promise<SessionState> {
       };
     }
 
-    const { data: participationRows } = await withSupabaseTimeout(
-      Promise.resolve(
-        supabase
-          .from("participations")
-          .select("payment_status, created_at")
-          .eq("profile_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(2),
-      ),
-      "Supabase participation state query timed out",
-    );
-    const primaryParticipation = pickPrimaryParticipation(
-      (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
-    ).participation;
+    let paymentStatus = "pending";
+
+    try {
+      const { data: participationRows } = await withSupabaseTimeout(
+        Promise.resolve(
+          supabase
+            .from("participations")
+            .select("payment_status, created_at")
+            .eq("profile_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(2),
+        ),
+        "Supabase participation state query timed out",
+      );
+      const primaryParticipation = pickPrimaryParticipation(
+        (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
+      ).participation;
+      paymentStatus = primaryParticipation?.payment_status ?? "pending";
+    } catch {
+      paymentStatus = "pending";
+    }
 
     return {
       userId: user.id,
       isAuthenticated: true,
-      isPaid: primaryParticipation?.payment_status === "paid",
+      isPaid: paymentStatus === "paid",
       avatarUrl: getPlayerAvatar(null, { user_metadata: user.user_metadata }),
-      paymentStatus: primaryParticipation?.payment_status ?? null,
+      paymentStatus,
     };
   } catch {
     return {
