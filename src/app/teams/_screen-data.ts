@@ -6,6 +6,13 @@ import type {
 import type { TeamMember, TeamRankingEntry } from "@/app/teams/_mock";
 
 export type TeamsScreenData = {
+  canEditAvatar?: boolean;
+  currentAvatarChoice?: string;
+  groupAvatarSeed?: string | null;
+  groupAvatarUrl?: string | null;
+  groupAvatarVariant?: string | null;
+  groupFallbackAvatarUrl?: string | null;
+  groupId?: string | null;
   teamName: string;
   teamScore: number;
   statusLabel: string;
@@ -13,7 +20,10 @@ export type TeamsScreenData = {
   supportCopy: string;
   currentParticipationStatus: string | null;
   captain: {
+    avatarSeed: string | null;
     avatarUrl: string | null;
+    avatarVariant: string | null;
+    fallbackAvatarUrl: string | null;
     name: string;
     alias: string;
     badge: string;
@@ -21,7 +31,10 @@ export type TeamsScreenData = {
     accent: string;
   };
   dt: {
+    avatarSeed: string | null;
     avatarUrl: string | null;
+    avatarVariant: string | null;
+    fallbackAvatarUrl: string | null;
     name: string;
     badge: string;
     detail: string;
@@ -72,7 +85,10 @@ function toStarter(member: GroupMemberSnapshot, index: number, captainProfileId:
 
   return {
     id: member.profileId,
+    avatarSeed: member.avatarSeed,
     avatarUrl: member.avatarUrl,
+    avatarVariant: member.avatarVariant,
+    fallbackAvatarUrl: member.fallbackAvatarUrl,
     name: member.alias,
     roleLabel: isCaptain ? "Capitán" : "Jugador activo",
     points: member.points,
@@ -87,7 +103,10 @@ function toStarter(member: GroupMemberSnapshot, index: number, captainProfileId:
 function toBench(member: GroupMemberSnapshot, index: number): TeamMember {
   return {
     id: member.profileId,
+    avatarSeed: member.avatarSeed,
     avatarUrl: member.avatarUrl,
+    avatarVariant: member.avatarVariant,
+    fallbackAvatarUrl: member.fallbackAvatarUrl,
     name: member.alias,
     roleLabel: "Jugador activo",
     points: member.points,
@@ -99,7 +118,10 @@ function toBench(member: GroupMemberSnapshot, index: number): TeamMember {
 function toRegistered(member: GroupMemberSnapshot, index: number): TeamMember {
   return {
     id: member.profileId,
+    avatarSeed: member.avatarSeed,
     avatarUrl: member.avatarUrl,
+    avatarVariant: member.avatarVariant,
+    fallbackAvatarUrl: member.fallbackAvatarUrl,
     name: member.alias,
     roleLabel: "Registrado",
     points: 0,
@@ -114,6 +136,10 @@ function toRegistered(member: GroupMemberSnapshot, index: number): TeamMember {
 
 function toRankingEntry(entry: GroupLeaderboardEntry, currentGroupId: string | null): TeamRankingEntry {
   return {
+    avatarSeed: entry.avatarSeed,
+    avatarUrl: entry.avatarUrl,
+    avatarVariant: entry.avatarVariant,
+    fallbackAvatarUrl: entry.fallbackAvatarUrl,
     position: entry.position,
     name: entry.name,
     points: entry.teamScore,
@@ -155,8 +181,13 @@ export function buildTeamsScreenFallbackData(
     headline,
     supportCopy,
     currentParticipationStatus: options?.currentParticipationStatus ?? null,
+    canEditAvatar: false,
+    currentAvatarChoice: "auto",
     captain: {
+      avatarSeed: null,
       avatarUrl: null,
+      avatarVariant: null,
+      fallbackAvatarUrl: null,
       name: isGuest ? "Sin Capitán" : "Todavía sin Capitán",
       alias: isGuest ? "hasta ingresar" : "hasta crear o unirte",
       badge: "Capitán",
@@ -166,7 +197,10 @@ export function buildTeamsScreenFallbackData(
       accent: "#0c6780",
     },
     dt: {
+      avatarSeed: null,
       avatarUrl: null,
+      avatarVariant: null,
+      fallbackAvatarUrl: null,
       name: "Todavía no hay DT",
       badge: "DT del Team",
       detail: "El DT aparece cuando haya Jugadores activos sumando puntos reales.",
@@ -174,6 +208,11 @@ export function buildTeamsScreenFallbackData(
       accent: "#e9c400",
     },
     contributionLabel: "Aporte confirmado",
+    groupAvatarSeed: null,
+    groupAvatarUrl: null,
+    groupAvatarVariant: null,
+    groupFallbackAvatarUrl: null,
+    groupId: null,
     inviteCode: null,
     starters: [],
     bench: [],
@@ -208,6 +247,10 @@ export function buildTeamsScreenDataFromSnapshot(
   const ranking = snapshot.leaderboard.map((entry) => toRankingEntry(entry, currentGroup.groupId));
 
   return {
+    canEditAvatar: currentGroup.members.some(
+      (member) => member.isCurrentUser && member.profileId === currentGroup.ownerProfileId,
+    ),
+    currentAvatarChoice: currentGroup.avatarChoice?.trim() ? currentGroup.avatarChoice : "auto",
     teamName: currentGroup.name,
     teamScore,
     statusLabel: currentGroup.activeCount >= 11 ? "En competencia" : "Team en formación",
@@ -215,9 +258,20 @@ export function buildTeamsScreenDataFromSnapshot(
     supportCopy:
       "El Capitán arma el Team. El DT se gana el puesto sumando puntos. Los mejores 11 salen a buscar La Gloria.",
     currentParticipationStatus: snapshot.currentParticipationStatus,
+    groupAvatarSeed: currentGroup.avatarSeed,
+    groupAvatarUrl: currentGroup.avatarUrl,
+    groupAvatarVariant: currentGroup.avatarVariant,
+    groupFallbackAvatarUrl: currentGroup.fallbackAvatarUrl,
+    groupId: currentGroup.groupId,
     captain: {
+      avatarSeed:
+        currentGroup.members.find((member) => member.profileId === currentGroup.ownerProfileId)?.avatarSeed ?? null,
       avatarUrl:
         currentGroup.members.find((member) => member.profileId === currentGroup.ownerProfileId)?.avatarUrl ?? null,
+      avatarVariant:
+        currentGroup.members.find((member) => member.profileId === currentGroup.ownerProfileId)?.avatarVariant ?? null,
+      fallbackAvatarUrl:
+        currentGroup.members.find((member) => member.profileId === currentGroup.ownerProfileId)?.fallbackAvatarUrl ?? null,
       name: captainParts.name,
       alias: captainParts.alias,
       badge: "Capitán",
@@ -225,7 +279,10 @@ export function buildTeamsScreenDataFromSnapshot(
       accent: "#0c6780",
     },
     dt: {
+      avatarSeed: dtMember?.avatarSeed ?? null,
       avatarUrl: dtMember?.avatarUrl ?? null,
+      avatarVariant: dtMember?.avatarVariant ?? null,
+      fallbackAvatarUrl: dtMember?.fallbackAvatarUrl ?? null,
       name: dtMember?.alias ?? "Todavía no hay DT",
       badge:
         dtMember && dtMember.profileId === currentGroup.ownerProfileId ? "Capitán · DT" : "DT del Team",

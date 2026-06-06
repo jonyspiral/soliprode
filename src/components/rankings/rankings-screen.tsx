@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { GroupAvatar } from "@/components/groups/group-avatar";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { RankingPodiumBlocks, type IndividualPodiumItem, type TeamPodiumItem } from "@/components/rankings/ranking-podium-blocks";
 import { SurfaceCard } from "@/components/surface-card";
 import styles from "@/components/rankings/rankings-screen.module.css";
 
 type IndividualRankingRow = {
+  avatarSeed: string;
   avatarUrl: string | null;
+  avatarVariant: string | null;
+  fallbackAvatarUrl: string | null;
   isCurrentUser: boolean;
   points: number;
   position: number;
@@ -19,6 +23,10 @@ type IndividualRankingRow = {
 
 type TeamRankingRow = {
   activeCount: number;
+  avatarSeed: string;
+  avatarUrl: string | null;
+  avatarVariant: string | null;
+  fallbackAvatarUrl: string | null;
   isCurrentTeam: boolean;
   name: string;
   points: number;
@@ -48,17 +56,6 @@ function renderBadge(label: string, tone: "blue" | "gold" = "blue") {
   const toneClass = tone === "gold" ? styles.badgeGold : styles.badgeBlue;
 
   return <span className={`${styles.badge} ${toneClass}`}>{label}</span>;
-}
-
-function buildTeamInitials(name: string) {
-  const cleaned = name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
-
-  return cleaned || "TM";
 }
 
 function RankingHeader({ updatedLabel }: { updatedLabel: string | null }) {
@@ -204,7 +201,14 @@ function IndividualList({ rows }: { rows: IndividualRankingRow[] }) {
             <div key={row.profileId} className={`${styles.listRow} ${row.isCurrentUser ? styles.listRowCurrent : ""}`}>
               <span className={styles.listPosition}>{row.position}</span>
               <div className={styles.listIdentity}>
-                <PlayerAvatar imageUrl={row.avatarUrl} label={row.userLabel} size="sm" />
+                <PlayerAvatar
+                  fallbackImageUrl={row.fallbackAvatarUrl}
+                  imageUrl={row.avatarUrl}
+                  label={row.userLabel}
+                  seed={row.avatarSeed}
+                  size="sm"
+                  variant={row.avatarVariant}
+                />
                 <div className={styles.listIdentityCopy}>
                   <div className={styles.listNameLine}>
                     <p className={styles.listName}>{row.userLabel}</p>
@@ -221,7 +225,7 @@ function IndividualList({ rows }: { rows: IndividualRankingRow[] }) {
             <div key={`individual-placeholder-${index + 1}`} className={styles.listRow}>
               <span className={styles.listPosition}>{index + 1}</span>
               <div className={styles.listIdentity}>
-                <PlayerAvatar label={`Jugador ${index + 1}`} size="sm" />
+                <PlayerAvatar label={`Jugador ${index + 1}`} seed={`placeholder-player-${index + 1}`} size="sm" />
                 <div className={styles.listIdentityCopy}>
                   <p className={styles.listName}>Esperando jugadores</p>
                   <p className={styles.listMeta}>Sin Team</p>
@@ -254,9 +258,14 @@ function TeamsList({ rows }: { rows: TeamRankingRow[] }) {
             <div key={row.teamId} className={`${styles.listRow} ${row.isCurrentTeam ? styles.listRowCurrentTeam : ""}`}>
               <span className={styles.listPosition}>{row.position}</span>
               <div className={styles.listIdentity}>
-                <div className={`${styles.teamAvatar} ${row.isCurrentTeam ? styles.teamAvatarCurrent : ""}`}>
-                  {buildTeamInitials(row.name)}
-                </div>
+                <GroupAvatar
+                  fallbackImageUrl={row.fallbackAvatarUrl}
+                  imageUrl={row.avatarUrl}
+                  label={row.name}
+                  seed={row.avatarSeed}
+                  size="sm"
+                  variant={row.avatarVariant}
+                />
                 <div className={styles.listIdentityCopy}>
                   <div className={styles.listNameLine}>
                     <p className={styles.listName}>{row.name}</p>
@@ -273,7 +282,7 @@ function TeamsList({ rows }: { rows: TeamRankingRow[] }) {
             <div key={`team-placeholder-${index + 1}`} className={styles.listRow}>
               <span className={styles.listPosition}>{index + 1}</span>
               <div className={styles.listIdentity}>
-                <div className={styles.teamAvatar}>TM</div>
+                <GroupAvatar label={`Team ${index + 1}`} seed={`placeholder-team-${index + 1}`} size="sm" />
                 <div className={styles.listIdentityCopy}>
                   <p className={styles.listName}>Esperando Teams</p>
                   <p className={styles.listMeta}>0 jugadores activos</p>

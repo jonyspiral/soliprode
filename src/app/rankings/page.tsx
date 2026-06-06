@@ -4,7 +4,7 @@ import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
 import { getGroupCompetitionSnapshot, type GroupLeaderboardEntry } from "@/lib/groups/competition";
 import {
   getParticipationStatus,
-  getPlayerAvatar,
+  getPlayerAvatarModel,
   getPlayerDisplayName,
 } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -29,18 +29,27 @@ type ParticipationRow = {
 };
 
 type ProfileRow = {
+  avatar_seed: string | null;
+  avatar_url: string | null;
+  avatar_variant: string | null;
   full_name: string | null;
   id: string;
   public_alias: string | null;
 };
 
 type GroupRow = {
+  avatar_seed: string | null;
+  avatar_url: string | null;
+  avatar_variant: string | null;
   id: string;
   name: string;
 };
 
 type IndividualLeaderboardEntry = {
+  avatarSeed: string;
   avatarUrl: string | null;
+  avatarVariant: string | null;
+  fallbackAvatarUrl: string | null;
   isCurrentUser: boolean;
   points: number;
   position: number;
@@ -107,7 +116,6 @@ export default async function RankingsPage() {
 
   let currentUserId: string | null = null;
   let currentUserAlias = "Jugador";
-  let currentUserAvatarUrl: string | null = null;
   let individualRows: IndividualLeaderboardEntry[] = [];
   let teamRows: GroupLeaderboardEntry[] = [];
   let currentUserRanking: IndividualLeaderboardEntry | null = null;
@@ -197,11 +205,14 @@ export default async function RankingsPage() {
         profileIdsToLoad.length > 0
           ? service
               .from("profiles")
-              .select("id, public_alias, full_name")
+              .select("id, public_alias, full_name, avatar_url, avatar_seed, avatar_variant")
               .in("id", profileIdsToLoad)
           : Promise.resolve({ data: [] }),
         groupIdsToLoad.length > 0
-          ? service.from("groups").select("id, name").in("id", groupIdsToLoad)
+          ? service
+              .from("groups")
+              .select("id, name, avatar_url, avatar_seed, avatar_variant")
+              .in("id", groupIdsToLoad)
           : Promise.resolve({ data: [] }),
       ]),
       "Supabase ranking profile query timed out",
@@ -211,11 +222,10 @@ export default async function RankingsPage() {
     const groups = (groupData ?? []) as GroupRow[];
     const avatarMap = await getAuthAvatarMap(profileIdsToLoad);
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
-    const groupMap = new Map(groups.map((group) => [group.id, group.name]));
+    const groupMap = new Map(groups.map((group) => [group.id, group]));
 
     const currentProfile = currentUserId ? profileMap.get(currentUserId) ?? null : null;
     currentUserAlias = getPlayerDisplayName(currentProfile, user ? { user_metadata: user.user_metadata } : null);
-    currentUserAvatarUrl = getPlayerAvatar(currentProfile, user ? { user_metadata: user.user_metadata } : null);
 
     updatedAt = topRankings[0]?.updated_at ?? rawCurrentUserRanking?.updated_at ?? null;
 
@@ -226,18 +236,23 @@ export default async function RankingsPage() {
           const profile = profileMap.get(row.profile_id) ?? null;
           const participation = primaryParticipations.get(row.profile_id) ?? null;
           const alias = row.profile_id === currentUserId ? currentUserAlias : getPlayerDisplayName(profile);
-          const avatarUrl =
-            row.profile_id === currentUserId
-              ? currentUserAvatarUrl ?? avatarMap.get(row.profile_id) ?? getPlayerAvatar(profile)
-              : avatarMap.get(row.profile_id) ?? getPlayerAvatar(profile);
+          const avatarModel = getPlayerAvatarModel(profile, {
+            id: row.profile_id,
+            user_metadata: {
+              avatar_url: avatarMap.get(row.profile_id) ?? null,
+            },
+          });
 
           return {
-            avatarUrl,
+            avatarSeed: avatarModel.avatarSeed,
+            avatarUrl: avatarModel.avatarUrl,
+            avatarVariant: avatarModel.avatarVariant,
+            fallbackAvatarUrl: avatarModel.fallbackAvatarUrl,
             isCurrentUser: row.profile_id === currentUserId,
             points: row.points ?? 0,
             position: row.position ?? 0,
             profileId: row.profile_id,
-            teamName: participation?.group_id ? groupMap.get(participation.group_id) ?? null : null,
+            teamName: participation?.group_id ? groupMap.get(participation.group_id)?.name ?? null : null,
             userLabel: alias,
           };
         });
@@ -246,17 +261,23 @@ export default async function RankingsPage() {
         .map((profileId) => {
           const profile = profileMap.get(profileId) ?? null;
           const participation = primaryParticipations.get(profileId) ?? null;
+          const avatarModel = getPlayerAvatarModel(profile, {
+            id: profileId,
+            user_metadata: {
+              avatar_url: avatarMap.get(profileId) ?? null,
+            },
+          });
 
           return {
-            avatarUrl:
-              profileId === currentUserId
-                ? currentUserAvatarUrl ?? avatarMap.get(profileId) ?? getPlayerAvatar(profile)
-                : avatarMap.get(profileId) ?? getPlayerAvatar(profile),
+            avatarSeed: avatarModel.avatarSeed,
+            avatarUrl: avatarModel.avatarUrl,
+            avatarVariant: avatarModel.avatarVariant,
+            fallbackAvatarUrl: avatarModel.fallbackAvatarUrl,
             isCurrentUser: profileId === currentUserId,
             points: 0,
             position: 0,
             profileId,
-            teamName: participation?.group_id ? groupMap.get(participation.group_id) ?? null : null,
+            teamName: participation?.group_id ? groupMap.get(participation.group_id)?.name ?? null : null,
             userLabel: profileId === currentUserId ? currentUserAlias : getPlayerDisplayName(profile),
           };
         })
@@ -274,17 +295,23 @@ export default async function RankingsPage() {
         ? (() => {
             const profile = profileMap.get(rawCurrentUserRanking.profile_id) ?? null;
             const participation = primaryParticipations.get(rawCurrentUserRanking.profile_id) ?? null;
+            const avatarModel = getPlayerAvatarModel(profile, {
+              id: rawCurrentUserRanking.profile_id,
+              user_metadata: {
+                avatar_url: avatarMap.get(rawCurrentUserRanking.profile_id) ?? null,
+              },
+            });
 
             return {
-              avatarUrl:
-                rawCurrentUserRanking.profile_id === currentUserId
-                  ? currentUserAvatarUrl ?? avatarMap.get(rawCurrentUserRanking.profile_id) ?? getPlayerAvatar(profile)
-                  : avatarMap.get(rawCurrentUserRanking.profile_id) ?? getPlayerAvatar(profile),
+              avatarSeed: avatarModel.avatarSeed,
+              avatarUrl: avatarModel.avatarUrl,
+              avatarVariant: avatarModel.avatarVariant,
+              fallbackAvatarUrl: avatarModel.fallbackAvatarUrl,
               isCurrentUser: rawCurrentUserRanking.profile_id === currentUserId,
               points: rawCurrentUserRanking.points ?? 0,
               position: rawCurrentUserRanking.position ?? 0,
               profileId: rawCurrentUserRanking.profile_id,
-              teamName: participation?.group_id ? groupMap.get(participation.group_id) ?? null : null,
+              teamName: participation?.group_id ? groupMap.get(participation.group_id)?.name ?? null : null,
               userLabel:
                 rawCurrentUserRanking.profile_id === currentUserId
                   ? currentUserAlias
@@ -309,10 +336,17 @@ export default async function RankingsPage() {
     label: row.userLabel,
     points: row.points,
     position: row.position,
+    avatarSeed: row.avatarSeed,
     avatarUrl: row.avatarUrl,
+    avatarVariant: row.avatarVariant,
+    fallbackAvatarUrl: row.fallbackAvatarUrl,
     isCurrent: row.isCurrentUser,
   }));
   const teamPodium = teamRows.slice(0, 3).map((entry) => ({
+    avatarSeed: entry.avatarSeed,
+    avatarUrl: entry.avatarUrl,
+    avatarVariant: entry.avatarVariant,
+    fallbackAvatarUrl: entry.fallbackAvatarUrl,
     key: entry.groupId,
     name: entry.name,
     points: entry.teamScore,
@@ -345,6 +379,10 @@ export default async function RankingsPage() {
         teamPositionLabel={currentGroup?.name ?? "Sin Team"}
         teamRows={teamRows.map((entry) => ({
           activeCount: entry.activeCount,
+          avatarSeed: entry.avatarSeed,
+          avatarUrl: entry.avatarUrl,
+          avatarVariant: entry.avatarVariant,
+          fallbackAvatarUrl: entry.fallbackAvatarUrl,
           isCurrentTeam: currentGroup?.groupId === entry.groupId,
           name: entry.name,
           points: entry.teamScore,

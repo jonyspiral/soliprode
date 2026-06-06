@@ -1,22 +1,32 @@
 "use client";
 
 import { useActionState } from "react";
+import { AvatarPicker } from "@/components/avatar/avatar-picker";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import {
+  updatePlayerAvatarAction,
   updateAccountDetailsAction,
   updateGameProfileAction,
 } from "@/app/profile/actions";
 import { initialProfileActionState } from "@/app/profile/state";
+import {
+  buildPresetAvatarReference,
+  getAvatarVariantOptions,
+} from "@/lib/avatar/identity";
 
 type ProfileEditorPanelsProps = {
+  avatarSeed: string;
   avatarUrl: string | null;
+  avatarVariant: string | null;
+  currentAvatarChoice: string;
   email: string | null;
   fullName: string | null;
-  hasAvatarImage: boolean;
+  hasGoogleAvatar: boolean;
   publicLabel: string;
   publicNickname: string;
+  userId: string | null;
   whatsapp: string | null;
 };
 
@@ -75,12 +85,16 @@ function ReadonlyField({
 }
 
 export function ProfileEditorPanels({
+  avatarSeed,
   avatarUrl,
+  avatarVariant,
+  currentAvatarChoice,
   email,
   fullName,
-  hasAvatarImage,
+  hasGoogleAvatar,
   publicLabel,
   publicNickname,
+  userId,
   whatsapp,
 }: ProfileEditorPanelsProps) {
   const [gameState, gameAction, gamePending] = useActionState(
@@ -91,6 +105,18 @@ export function ProfileEditorPanels({
     updateAccountDetailsAction,
     initialProfileActionState,
   );
+  const playerAvatarOptions = getAvatarVariantOptions("player").map((variant) => ({
+    caption: variant === "stadium" ? "Estadio" : variant === "captain" ? "Capitan" : variant === "wing" ? "Banda" : variant === "goal" ? "Gol" : variant === "tribune" ? "Tribuna" : "Prode",
+    kind: "player" as const,
+    label: publicLabel,
+    seed: avatarSeed,
+    value: buildPresetAvatarReference({
+      kind: "player",
+      seed: userId ?? avatarSeed,
+      variant,
+    }),
+    variant,
+  }));
 
   return (
     <>
@@ -98,24 +124,50 @@ export function ProfileEditorPanels({
         title="Perfil de juego"
         description="Este es el nombre y la imagen que empujan tu identidad pública en Ranking, Team y Plantel."
       >
-        <form action={gameAction} className="profile-form">
+        <div className="profile-form">
           <div className="profile-avatar-panel">
-            <PlayerAvatar imageUrl={avatarUrl} label={publicLabel} size="md" />
+            <PlayerAvatar
+              imageUrl={avatarUrl}
+              label={publicLabel}
+              seed={avatarSeed}
+              size="md"
+              variant={avatarVariant}
+            />
             <div className="profile-avatar-panel-copy">
-              <p className="profile-field-label">Avatar</p>
+              <p className="profile-field-label">Tu avatar</p>
               <p className="profile-avatar-value">
-                {hasAvatarImage ? "Foto de Google" : "Iniciales del jugador"}
+                {currentAvatarChoice !== "auto"
+                  ? "Preset elegido dentro de SoliProde"
+                  : hasGoogleAvatar
+                    ? "Foto de Google como fallback"
+                    : "Avatar generado del jugador"}
               </p>
               <p className="profile-avatar-copy">
-                {hasAvatarImage
-                  ? "Usamos tu foto del login actual."
-                  : "Cuando no hay foto disponible, mostramos tus iniciales."}
+                Si no elegis uno propio, usamos Google cuando esta disponible y despues el avatar del juego.
               </p>
             </div>
           </div>
 
+          <AvatarPicker
+            action={updatePlayerAvatarAction}
+            automaticOption={{
+              caption: hasGoogleAvatar ? "Automatico con Google" : "Automatico del juego",
+              kind: "player",
+              label: publicLabel,
+              seed: avatarSeed,
+              value: "auto",
+              variant: avatarVariant,
+            }}
+            currentValue={currentAvatarChoice}
+            description="Elegi un avatar compacto para que se vea bien en mobile, ranking y Team."
+            options={playerAvatarOptions}
+            triggerLabel="Cambiar avatar"
+          />
+        </div>
+
+        <form action={gameAction} className="profile-form">
           <label className="profile-field">
-            <span className="profile-field-label">Nick de juego</span>
+            <span className="profile-field-label">Tu nick de juego</span>
             <input
               name="game_nickname"
               type="text"

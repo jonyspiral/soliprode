@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { AvatarFallback } from "@/components/avatar/avatar-fallback";
 import { buildProxyAvatarSrc } from "@/lib/player/avatar-src";
 
-type PlayerAvatarProps = {
+type GroupAvatarProps = {
   fallbackImageUrl?: string | null;
   imageUrl?: string | null;
   label: string;
@@ -14,20 +14,20 @@ type PlayerAvatarProps = {
   variant?: string | null;
 };
 
-export function PlayerAvatar({
+export function GroupAvatar({
   fallbackImageUrl = null,
   imageUrl = null,
   label,
   seed = null,
   size = "md",
   variant = null,
-}: PlayerAvatarProps) {
+}: GroupAvatarProps) {
   const [failureState, setFailureState] = useState({
     failedCount: 0,
     signature: "",
   });
   const sizeClass =
-    size === "lg" ? "player-avatar-lg" : size === "sm" ? "player-avatar-sm" : "player-avatar";
+    size === "lg" ? "group-avatar-lg" : size === "sm" ? "group-avatar-sm" : "group-avatar";
   const imageCandidates = useMemo(
     () =>
       [...new Set([imageUrl, fallbackImageUrl].filter((value): value is string => Boolean(value)))].map(
@@ -60,5 +60,5 @@ export function PlayerAvatar({
     );
   }
 
-  return <AvatarFallback className={sizeClass} kind="player" label={label} seed={seed} variant={variant} />;
+  return <AvatarFallback className={sizeClass} kind="group" label={label} seed={seed} variant={variant} />;
 }

@@ -1,6 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildPresetAvatarReference,
+  buildStableAvatarSeed,
+  normalizeAvatarVariant,
+  parsePresetAvatarReference,
+} from "@/lib/avatar/identity";
 import { isPublicAliasTaken } from "@/lib/player/public-alias-registry";
 import {
   GAME_NICKNAME_MAX_LENGTH,
@@ -89,6 +95,70 @@ export async function updateGameProfileAction(
         error instanceof Error
           ? error.message
           : "No pudimos guardar tu perfil de juego ahora.",
+    };
+  }
+}
+
+export async function updatePlayerAvatarAction(
+  _prevState: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  try {
+    const { supabase, user } = await requireProfileUser();
+    const avatarChoice = String(formData.get("avatar_choice") ?? "").trim();
+
+    let avatarUrl: string | null = null;
+    let avatarVariant: string | null = null;
+    let avatarSeed = buildStableAvatarSeed(user.id, "player");
+
+    if (avatarChoice && avatarChoice !== "auto") {
+      const presetReference = parsePresetAvatarReference(avatarChoice);
+
+      if (!presetReference || presetReference.kind !== "player") {
+        return {
+          status: "error",
+          message: "Ese avatar no es valido para jugador.",
+        };
+      }
+
+      avatarVariant = normalizeAvatarVariant("player", presetReference.variant);
+      avatarSeed = buildStableAvatarSeed(presetReference.seed, user.id, "player");
+      avatarUrl = buildPresetAvatarReference({
+        kind: "player",
+        seed: avatarSeed,
+        variant: avatarVariant ?? presetReference.variant,
+      });
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        avatar_seed: avatarSeed,
+        avatar_url: avatarUrl,
+        avatar_variant: avatarVariant,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      return {
+        status: "error",
+        message: "No pudimos guardar tu avatar ahora.",
+      };
+    }
+
+    revalidateProfileSurfaces();
+
+    return {
+      status: "success",
+      message: avatarUrl
+        ? "Tu avatar de jugador quedo actualizado."
+        : "Volviste al avatar automatico del juego.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error ? error.message : "No pudimos guardar tu avatar ahora.",
     };
   }
 }

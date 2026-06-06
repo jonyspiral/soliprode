@@ -1,6 +1,9 @@
 export type TeamMember = {
   id: string;
+  avatarSeed?: string | null;
   avatarUrl?: string | null;
+  avatarVariant?: string | null;
+  fallbackAvatarUrl?: string | null;
   name: string;
   roleLabel: string;
   points: number;
@@ -12,6 +15,10 @@ export type TeamMember = {
 };
 
 export type TeamRankingEntry = {
+  avatarSeed?: string | null;
+  avatarUrl?: string | null;
+  avatarVariant?: string | null;
+  fallbackAvatarUrl?: string | null;
   dtAvatarUrl?: string | null;
   name: string;
   points: number;

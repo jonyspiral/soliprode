@@ -1,6 +1,7 @@
 import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
+import { getGroupAvatarModel } from "@/lib/groups/identity";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
-import { getPlayerDisplayName } from "@/lib/player/identity";
+import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 
 type ParticipationRow = {
@@ -11,6 +12,9 @@ type ParticipationRow = {
 };
 
 type GroupRow = {
+  avatar_seed: string | null;
+  avatar_url: string | null;
+  avatar_variant: string | null;
   id: string;
   name: string;
   slug: string;
@@ -19,6 +23,9 @@ type GroupRow = {
 };
 
 type ProfileRow = {
+  avatar_seed: string | null;
+  avatar_url: string | null;
+  avatar_variant: string | null;
   id: string;
   full_name: string | null;
   public_alias: string | null;
@@ -31,7 +38,10 @@ type RankingRow = {
 };
 
 export type GroupMemberSnapshot = {
+  avatarSeed: string;
   avatarUrl: string | null;
+  avatarVariant: string | null;
+  fallbackAvatarUrl: string | null;
   profileId: string;
   alias: string;
   paymentStatus: string;
@@ -43,7 +53,12 @@ export type GroupMemberSnapshot = {
 };
 
 export type GroupLeaderboardEntry = {
+  avatarChoice: string | null;
   groupId: string;
+  avatarSeed: string;
+  avatarUrl: string | null;
+  avatarVariant: string | null;
+  fallbackAvatarUrl: string | null;
   name: string;
   slug: string;
   inviteCode: string | null;
@@ -107,7 +122,7 @@ export async function getGroupCompetitionSnapshot(
   const currentProfileQuery = currentUserId
     ? service
         .from("profiles")
-        .select("id, public_alias, full_name")
+        .select("id, public_alias, full_name, avatar_url, avatar_seed, avatar_variant")
         .eq("id", currentUserId)
         .maybeSingle()
     : Promise.resolve({ data: null, error: null });
@@ -145,8 +160,14 @@ export async function getGroupCompetitionSnapshot(
   const profileIds = [...new Set(groupedParticipations.map((row) => row.profile_id))];
 
   const [groupsResult, profilesResult, rankingsResult] = await Promise.all([
-    service.from("groups").select("id, name, slug, invite_code, owner_profile_id").in("id", groupIds),
-    service.from("profiles").select("id, public_alias, full_name").in("id", profileIds),
+    service
+      .from("groups")
+      .select("id, name, slug, invite_code, owner_profile_id, avatar_url, avatar_seed, avatar_variant")
+      .in("id", groupIds),
+    service
+      .from("profiles")
+      .select("id, public_alias, full_name, avatar_url, avatar_seed, avatar_variant")
+      .in("id", profileIds),
     service
       .from("rankings_cache")
       .select("profile_id, points, position")
@@ -173,8 +194,17 @@ export async function getGroupCompetitionSnapshot(
 
     const profile = profileMap.get(participation.profile_id);
     const ranking = rankingMap.get(participation.profile_id);
+    const playerAvatar = getPlayerAvatarModel(profile ?? null, {
+      id: participation.profile_id,
+      user_metadata: {
+        avatar_url: avatarMap.get(participation.profile_id) ?? null,
+      },
+    });
     const member: GroupMemberSnapshot = {
-      avatarUrl: avatarMap.get(participation.profile_id) ?? null,
+      avatarSeed: playerAvatar.avatarSeed,
+      avatarUrl: playerAvatar.avatarUrl,
+      avatarVariant: playerAvatar.avatarVariant,
+      fallbackAvatarUrl: playerAvatar.fallbackAvatarUrl,
       profileId: participation.profile_id,
       alias: normalizeAlias(
         getPlayerDisplayName(profile),
@@ -213,9 +243,15 @@ export async function getGroupCompetitionSnapshot(
       const starters = activeMembers.slice(0, 11);
       const teamScore = starters.reduce((sum, member) => sum + member.points, 0);
       const isEligible = activeMembers.length >= 11;
+      const groupAvatar = getGroupAvatarModel(group);
 
       return {
+        avatarChoice: group.avatar_url,
         groupId: group.id,
+        avatarSeed: groupAvatar.avatarSeed,
+        avatarUrl: groupAvatar.avatarUrl,
+        avatarVariant: groupAvatar.avatarVariant,
+        fallbackAvatarUrl: groupAvatar.fallbackAvatarUrl,
         name: group.name,
         slug: group.slug,
         inviteCode: group.invite_code,
@@ -260,9 +296,21 @@ export async function getGroupCompetitionSnapshot(
     currentGroup: currentGroupEntry,
     currentParticipationStatus: currentParticipation?.payment_status ?? null,
     currentUserAlias: getPlayerDisplayName((currentProfileData as ProfileRow | null) ?? null),
-    currentUserAvatarUrl: currentUserId ? avatarMap.get(currentUserId) ?? null : null,
+    currentUserAvatarUrl: currentUserId
+      ? getPlayerAvatarModel((currentProfileData as ProfileRow | null) ?? null, {
+          id: currentUserId,
+          user_metadata: {
+            avatar_url: avatarMap.get(currentUserId) ?? null,
+          },
+        }).avatarUrl
+      : null,
     leaderboard: leaderboard.map((entry) => ({
+      avatarChoice: entry.avatarChoice,
       groupId: entry.groupId,
+      avatarSeed: entry.avatarSeed,
+      avatarUrl: entry.avatarUrl,
+      avatarVariant: entry.avatarVariant,
+      fallbackAvatarUrl: entry.fallbackAvatarUrl,
       name: entry.name,
       slug: entry.slug,
       inviteCode: entry.inviteCode,

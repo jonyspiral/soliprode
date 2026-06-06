@@ -1,5 +1,17 @@
+import {
+  buildAvatarCandidateUrls,
+  buildGeneratedAvatarDataUrl,
+  buildStableAvatarSeed,
+  getAvatarFallbackVariant,
+  getPlayerInitials,
+  resolveStoredAvatarUrl,
+} from "@/lib/avatar/identity";
+
 type PlayerIdentityProfile = {
+  id?: string | null;
   avatar_url?: string | null;
+  avatar_seed?: string | null;
+  avatar_variant?: string | null;
   full_name?: string | null;
   game_nickname?: string | null;
   name?: string | null;
@@ -9,6 +21,7 @@ type PlayerIdentityProfile = {
 };
 
 type PlayerIdentityUser = {
+  id?: string | null;
   user_metadata?: {
     avatar_url?: string | null;
     full_name?: string | null;
@@ -18,6 +31,8 @@ type PlayerIdentityUser = {
     user_name?: string | null;
   } | null;
 };
+
+export { getPlayerInitials };
 
 export const GAME_NICKNAME_MIN_LENGTH = 3;
 export const GAME_NICKNAME_MAX_LENGTH = 24;
@@ -68,24 +83,54 @@ export function getPlayerAvatar(
   profile?: PlayerIdentityProfile | null,
   user?: PlayerIdentityUser | null,
 ) {
-  const metadata = user?.user_metadata;
-
-  return firstNonEmpty(profile?.avatar_url, metadata?.avatar_url, metadata?.picture);
+  return getPlayerAvatarModel(profile, user).avatarUrl;
 }
 
-export function getPlayerInitials(label: string | null | undefined) {
-  if (!label || !label.trim()) {
-    return "J";
-  }
+export function getPlayerAvatarModel(
+  profile?: PlayerIdentityProfile | null,
+  user?: PlayerIdentityUser | null,
+) {
+  const metadata = user?.user_metadata;
+  const label = getPlayerDisplayName(profile, user);
+  const avatarSeed = buildStableAvatarSeed(
+    profile?.avatar_seed,
+    user?.id,
+    profile?.id,
+    profile?.public_alias,
+    profile?.full_name,
+    metadata?.preferred_username,
+    metadata?.full_name,
+    label,
+  );
+  const avatarVariant = getAvatarFallbackVariant("player", avatarSeed, profile?.avatar_variant);
+  const storedAvatarUrl = resolveStoredAvatarUrl({
+    kind: "player",
+    avatarUrl: profile?.avatar_url,
+    label,
+    seed: avatarSeed,
+    variant: avatarVariant,
+  });
+  const googleAvatarUrl = firstNonEmpty(metadata?.avatar_url, metadata?.picture);
+  const generatedAvatarUrl = buildGeneratedAvatarDataUrl({
+    kind: "player",
+    label,
+    seed: avatarSeed,
+    variant: avatarVariant,
+  });
+  const imageCandidates = buildAvatarCandidateUrls([
+    storedAvatarUrl,
+    googleAvatarUrl,
+    generatedAvatarUrl,
+  ]);
 
-  const initials = label
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
-  return initials || "J";
+  return {
+    avatarSeed,
+    avatarVariant,
+    avatarUrl: imageCandidates[0] ?? null,
+    fallbackAvatarUrl: imageCandidates[1] ?? null,
+    googleAvatarUrl,
+    hasCustomAvatar: Boolean(profile?.avatar_url?.trim()),
+  };
 }
 
 export function getParticipationStatus(paymentStatus: string | null | undefined) {

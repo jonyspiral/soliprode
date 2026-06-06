@@ -7,6 +7,7 @@ import { RankingIcon, SoccerBallIcon, TrophyIcon } from "@/components/app-icons"
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { TeamInviteActions } from "@/app/teams/_components/team-invite-actions";
 import { TeamInviteJoinPanel } from "@/app/teams/_components/team-invite-join-panel";
+import { GroupAvatarPanel } from "@/app/teams/_components/group-avatar-panel";
 
 type TeamsScreenProps = {
   authStatus: "guest" | "member";
@@ -218,7 +219,19 @@ export function TeamsScreen({
         <article className="teams-score-card">
           <div className="teams-score-copy">
             <span className="teams-chip teams-chip-secondary">{data.statusLabel}</span>
-            <h1 className="teams-score-title">{data.teamName}</h1>
+            <div className="teams-score-title-row">
+              <GroupAvatarPanel
+                canEdit={Boolean(data.canEditAvatar && data.groupId)}
+                currentAvatarChoice={data.currentAvatarChoice ?? "auto"}
+                fallbackAvatarUrl={data.groupFallbackAvatarUrl ?? null}
+                groupId={data.groupId ?? ""}
+                label={data.teamName}
+                seed={data.groupAvatarSeed ?? data.teamName}
+                url={data.groupAvatarUrl ?? null}
+                variant={data.groupAvatarVariant ?? null}
+              />
+              <h1 className="teams-score-title">{data.teamName}</h1>
+            </div>
             <p className="teams-score-subtitle">{data.headline}</p>
             <p className="teams-score-note">{data.supportCopy}</p>
             {currentAlias ? (
@@ -238,9 +251,12 @@ export function TeamsScreen({
           <div className="teams-card-accent">
             <div className="teams-captain-card">
               <PlayerAvatar
+                fallbackImageUrl={data.captain.fallbackAvatarUrl}
                 imageUrl={data.captain.avatarUrl}
                 label={`${data.captain.name} ${data.captain.alias}`}
+                seed={data.captain.avatarSeed}
                 size="md"
+                variant={data.captain.avatarVariant}
               />
               <div>
                 <p className="teams-kicker">Capitán</p>
@@ -259,7 +275,14 @@ export function TeamsScreen({
         <aside className="teams-support-column">
           <article className="teams-support-card">
             <div className="teams-support-badge">
-              <PlayerAvatar imageUrl={data.dt.avatarUrl} label={data.dt.name} size="lg" />
+              <PlayerAvatar
+                fallbackImageUrl={data.dt.fallbackAvatarUrl}
+                imageUrl={data.dt.avatarUrl}
+                label={data.dt.name}
+                seed={data.dt.avatarSeed}
+                size="lg"
+                variant={data.dt.avatarVariant}
+              />
               <span className="teams-chip teams-chip-gold">{data.dt.badge}</span>
             </div>
 
@@ -332,7 +355,14 @@ export function TeamsScreen({
                   <div className="teams-table-row" key={member.id}>
                     <div className="teams-rank-pill">{index + 1}</div>
                     <div className="teams-table-player">
-                      <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="sm" />
+                      <PlayerAvatar
+                        fallbackImageUrl={member.fallbackAvatarUrl}
+                        imageUrl={member.avatarUrl}
+                        label={member.name}
+                        seed={member.avatarSeed}
+                        size="sm"
+                        variant={member.avatarVariant}
+                      />
                       <div>
                         <p className="teams-table-name">{member.name}</p>
                         <p className="teams-table-role">{member.roleLabel}</p>
@@ -369,7 +399,14 @@ export function TeamsScreen({
                 {data.bench.map((member) => (
                   <div className="teams-bench-card" key={member.id}>
                     <div className="teams-bench-head">
-                      <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="md" />
+                      <PlayerAvatar
+                        fallbackImageUrl={member.fallbackAvatarUrl}
+                        imageUrl={member.avatarUrl}
+                        label={member.name}
+                        seed={member.avatarSeed}
+                        size="md"
+                        variant={member.avatarVariant}
+                      />
                       <div>
                         <p className="teams-table-name">{member.name}</p>
                         <p className="teams-table-role">{member.roleLabel}</p>
@@ -404,7 +441,14 @@ export function TeamsScreen({
               <div className="teams-roster-list">
                 {data.registered.map((member) => (
                   <div className="teams-roster-chip" key={member.id}>
-                    <PlayerAvatar imageUrl={member.avatarUrl} label={member.name} size="sm" />
+                    <PlayerAvatar
+                      fallbackImageUrl={member.fallbackAvatarUrl}
+                      imageUrl={member.avatarUrl}
+                      label={member.name}
+                      seed={member.avatarSeed}
+                      size="sm"
+                      variant={member.avatarVariant}
+                    />
                     <span>{member.name}</span>
                     <em>{member.note}</em>
                   </div>

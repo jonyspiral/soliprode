@@ -10,7 +10,7 @@ import {
   getAccountDisplayName,
   getPassStatus,
   getParticipationStatus,
-  getPlayerAvatar,
+  getPlayerAvatarModel,
   getPlayerDisplayName,
 } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -18,8 +18,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 type ProfileRow = {
+  avatar_seed: string | null;
+  avatar_url: string | null;
+  avatar_variant: string | null;
   email: string | null;
   full_name: string | null;
+  id: string;
   public_alias: string | null;
   whatsapp: string | null;
 };
@@ -133,7 +137,7 @@ export default async function ProfilePage() {
       Promise.all([
         supabase
           .from("profiles")
-          .select("full_name, public_alias, whatsapp, email")
+          .select("id, full_name, public_alias, whatsapp, email, avatar_url, avatar_seed, avatar_variant")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -187,7 +191,10 @@ export default async function ProfilePage() {
 
   const publicLabel = getPlayerDisplayName(profile ?? null, { user_metadata: userMetadata });
   const accountName = getAccountDisplayName(profile ?? null, { user_metadata: userMetadata });
-  const avatarUrl = getPlayerAvatar(profile ?? null, { user_metadata: userMetadata });
+  const avatarModel = getPlayerAvatarModel(profile ?? null, {
+    id: currentUserId,
+    user_metadata: userMetadata,
+  });
   const statusLabel = getParticipationStatus(participationStatus);
   const passLabel = getPassStatus(participationStatus);
   const teamLabel = currentTeam?.name ?? "Todavía sin Team";
@@ -232,7 +239,14 @@ export default async function ProfilePage() {
             <p className="profile-hero-helper">{primaryAction.helper}</p>
           </div>
 
-          <PlayerAvatar imageUrl={avatarUrl} label={publicLabel} size="lg" />
+          <PlayerAvatar
+            imageUrl={avatarModel.avatarUrl}
+            fallbackImageUrl={avatarModel.fallbackAvatarUrl}
+            label={publicLabel}
+            seed={avatarModel.avatarSeed}
+            size="lg"
+            variant={avatarModel.avatarVariant}
+          />
         </div>
 
         <div className="profile-hero-actions">
@@ -296,12 +310,16 @@ export default async function ProfilePage() {
       </SurfaceCard>
 
       <ProfileEditorPanels
-        avatarUrl={avatarUrl}
+        avatarSeed={avatarModel.avatarSeed}
+        avatarUrl={avatarModel.avatarUrl}
+        avatarVariant={avatarModel.avatarVariant}
+        currentAvatarChoice={profile?.avatar_url?.trim() ? profile.avatar_url : "auto"}
         email={profile?.email ?? userEmail}
         fullName={accountName}
-        hasAvatarImage={Boolean(avatarUrl)}
+        hasGoogleAvatar={Boolean(avatarModel.googleAvatarUrl)}
         publicLabel={publicLabel}
-        publicNickname={publicLabel}
+        publicNickname={profile?.public_alias ?? publicLabel}
+        userId={currentUserId}
         whatsapp={profile?.whatsapp ?? null}
       />
     </PageStack>

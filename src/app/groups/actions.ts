@@ -3,6 +3,12 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  buildPresetAvatarReference,
+  buildStableAvatarSeed,
+  normalizeAvatarVariant,
+  parsePresetAvatarReference,
+} from "@/lib/avatar/identity";
 import { normalizeInviteCode } from "@/lib/groups/competition";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import {
@@ -126,6 +132,94 @@ function revalidateGroupSurfaces() {
   revalidatePath("/teams");
   revalidatePath("/rankings");
   revalidatePath("/dashboard");
+}
+
+export async function updateGroupAvatarAction(
+  _prevState: { message: string | null; status: "idle" | "error" | "success" },
+  formData: FormData,
+) {
+  try {
+    const user = await ensureAuthenticatedUser("/groups");
+    const groupId = String(formData.get("group_id") ?? "").trim();
+    const avatarChoice = String(formData.get("avatar_choice") ?? "").trim();
+
+    if (!groupId) {
+      return {
+        status: "error" as const,
+        message: "No encontramos el Team para cambiarle el escudo.",
+      };
+    }
+
+    const service = createServiceRoleSupabaseClient();
+    const { data: group } = await service
+      .from("groups")
+      .select("id, owner_profile_id")
+      .eq("id", groupId)
+      .maybeSingle();
+
+    if (!group || group.owner_profile_id !== user.id) {
+      return {
+        status: "error" as const,
+        message: "Solo el Capitan puede cambiar el escudo del Team.",
+      };
+    }
+
+    let avatarUrl: string | null = null;
+    let avatarVariant: string | null = null;
+    let avatarSeed = buildStableAvatarSeed(groupId, "group");
+
+    if (avatarChoice && avatarChoice !== "auto") {
+      const presetReference = parsePresetAvatarReference(avatarChoice);
+
+      if (!presetReference || presetReference.kind !== "group") {
+        return {
+          status: "error" as const,
+          message: "Ese escudo no es valido para Team.",
+        };
+      }
+
+      avatarVariant = normalizeAvatarVariant("group", presetReference.variant);
+      avatarSeed = buildStableAvatarSeed(presetReference.seed, groupId, "group");
+      avatarUrl = buildPresetAvatarReference({
+        kind: "group",
+        seed: avatarSeed,
+        variant: avatarVariant ?? presetReference.variant,
+      });
+    }
+
+    const { error } = await service
+      .from("groups")
+      .update({
+        avatar_seed: avatarSeed,
+        avatar_url: avatarUrl,
+        avatar_variant: avatarVariant,
+      })
+      .eq("id", groupId);
+
+    if (error) {
+      return {
+        status: "error" as const,
+        message: "No pudimos guardar el escudo del Team ahora.",
+      };
+    }
+
+    revalidateGroupSurfaces();
+
+    return {
+      status: "success" as const,
+      message: avatarUrl
+        ? "El escudo del Team quedo actualizado."
+        : "El Team volvio al escudo automatico.",
+    };
+  } catch (error) {
+    return {
+      status: "error" as const,
+      message:
+        error instanceof Error
+          ? error.message
+          : "No pudimos guardar el escudo del Team ahora.",
+    };
+  }
 }
 
 export async function createGroupAction(formData: FormData) {

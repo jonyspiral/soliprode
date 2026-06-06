@@ -1,25 +1,32 @@
-/* eslint-disable @next/next/no-img-element */
-import { buildProxyAvatarSrc } from "@/lib/player/avatar-src";
+import { GroupAvatar } from "@/components/groups/group-avatar";
+import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import styles from "@/components/rankings/ranking-podium-blocks.module.css";
 
 export type IndividualPodiumItem = {
+  avatarSeed?: string | null;
+  avatarUrl?: string | null;
+  avatarVariant?: string | null;
+  fallbackAvatarUrl?: string | null;
+  isCurrent?: boolean;
   key: string;
   label: string;
   points: number;
   position: number;
-  avatarUrl?: string | null;
-  isCurrent?: boolean;
   variant?: "real" | "dummy";
 };
 
 export type TeamPodiumItem = {
+  activeCount?: number;
+  avatarSeed?: string | null;
+  avatarUrl?: string | null;
+  avatarVariant?: string | null;
+  fallbackAvatarUrl?: string | null;
+  isCurrent?: boolean;
   key: string;
   name: string;
   points: number;
   position: number;
-  activeCount?: number;
-  isCurrent?: boolean;
   variant?: "real" | "dummy";
 };
 
@@ -37,30 +44,10 @@ function formatShortPoints(points: number) {
   return `${points.toLocaleString("es-AR")} pts`;
 }
 
-function buildTeamInitials(name: string) {
-  const cleaned = name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
-
-  return cleaned || "TM";
-}
-
 function renderBadge(label: string, tone: "blue" | "gold" = "blue") {
-  const toneClass =
-    tone === "gold"
-      ? styles.badgeGold
-      : styles.badgeBlue;
+  const toneClass = tone === "gold" ? styles.badgeGold : styles.badgeBlue;
 
-  return (
-    <span
-      className={`${styles.badge} ${toneClass}`}
-    >
-      {label}
-    </span>
-  );
+  return <span className={`${styles.badge} ${toneClass}`}>{label}</span>;
 }
 
 function normalizeIndividual(items: IndividualPodiumItem[]) {
@@ -70,13 +57,16 @@ function normalizeIndividual(items: IndividualPodiumItem[]) {
   while (filled.length < 3) {
     const position = filled.length + 1;
     filled.push({
+      avatarSeed: `placeholder-player-${position}`,
+      avatarUrl: null,
+      avatarVariant: null,
+      fallbackAvatarUrl: null,
+      isCurrent: false,
       key: `placeholder-individual-${position}`,
       label: PODIUM_PLAYER_DUMMIES[position - 1] ?? `Jugador ${position}`,
       points: 0,
       position,
       variant: "dummy",
-      isCurrent: false,
-      avatarUrl: null,
     });
   }
 
@@ -93,13 +83,17 @@ function normalizeTeams(items: TeamPodiumItem[]) {
   while (filled.length < 3) {
     const position = filled.length + 1;
     filled.push({
+      activeCount: 0,
+      avatarSeed: `placeholder-team-${position}`,
+      avatarUrl: null,
+      avatarVariant: null,
+      fallbackAvatarUrl: null,
+      isCurrent: false,
       key: `placeholder-team-${position}`,
       name: PODIUM_TEAM_DUMMIES[position - 1] ?? `Team ${position}`,
       points: 0,
       position,
-      activeCount: 0,
       variant: "dummy",
-      isCurrent: false,
     });
   }
 
@@ -110,94 +104,30 @@ function normalizeTeams(items: TeamPodiumItem[]) {
   }));
 }
 
-function PodiumPlayerPortrait({
-  avatarUrl,
-  dominant,
-  label,
-  variant,
-}: {
-  avatarUrl?: string | null;
-  dominant: boolean;
-  label: string;
-  variant: "real" | "dummy";
-}) {
-  const shellClass = dominant ? styles.portraitShellDominant : styles.portraitShell;
-  const sizeClass = dominant ? styles.portraitSizeDominant : styles.portraitSize;
-
-  if (avatarUrl && variant === "real") {
-    return (
-      <div
-        className={`${styles.playerPortrait} ${shellClass} ${sizeClass}`}
-      >
-        <img src={buildProxyAvatarSrc(avatarUrl)} alt={label} className={styles.playerPortraitImage} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      aria-hidden="true"
-      className={`${styles.playerPortrait} ${styles.playerPortraitFallback} ${shellClass} ${sizeClass}`}
-    >
-      <span className={styles.playerPortraitShade} />
-      <span className={styles.playerPortraitHead} />
-      <span className={styles.playerPortraitBody} />
-      <span className={styles.playerPortraitJersey} />
-      <span className={styles.playerPortraitGlow} />
-    </div>
-  );
-}
-
-function PodiumTeamCrest({
-  dominant,
-  label,
-  variant,
-}: {
-  dominant: boolean;
-  label: string;
-  variant: "real" | "dummy";
-}) {
-  const shellClass = dominant ? styles.crestShellDominant : styles.crestShell;
-  const sizeClass = dominant ? styles.crestSizeDominant : styles.crestSize;
-  const innerClass = variant === "dummy" ? styles.crestInnerDummy : styles.crestInnerReal;
-
-  return (
-    <div
-      className={`${styles.teamCrestShell} ${shellClass} ${sizeClass}`}
-    >
-      <div className={`${styles.teamCrestInner} ${innerClass}`}>
-        <span className={styles.teamCrestTopBand} />
-        <span className={styles.teamCrestBottomGlow} />
-        <div className={styles.teamCrestContent}>
-          <span className={styles.teamCrestStar} />
-          <span className={styles.teamCrestText}>{buildTeamInitials(label)}</span>
-          <span className={styles.teamCrestBall} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function PodiumEntryCard({
   activeCount,
+  avatarSeed,
   avatarUrl,
+  avatarVariant,
+  fallbackAvatarUrl,
   dominant = false,
   isCurrent = false,
   label,
   points,
   position,
   team = false,
-  variant,
 }: {
   activeCount?: number;
+  avatarSeed?: string | null;
   avatarUrl?: string | null;
+  avatarVariant?: string | null;
+  fallbackAvatarUrl?: string | null;
   dominant?: boolean;
   isCurrent?: boolean;
   label: string;
   points: number;
   position: number;
   team?: boolean;
-  variant: "real" | "dummy";
 }) {
   const baseHeightClass =
     dominant ? styles.podiumBaseTall : position === 2 ? styles.podiumBaseMid : styles.podiumBaseShort;
@@ -211,14 +141,26 @@ function PodiumEntryCard({
 
   return (
     <div className={styles.entryColumn}>
-      <div
-        className={`${styles.entryCard} ${shellClass}`}
-      >
+      <div className={`${styles.entryCard} ${shellClass}`}>
         <div className={styles.entryMedia}>
           {team ? (
-            <PodiumTeamCrest dominant={dominant} label={label} variant={variant} />
+            <GroupAvatar
+              fallbackImageUrl={fallbackAvatarUrl}
+              imageUrl={avatarUrl}
+              label={label}
+              seed={avatarSeed ?? label}
+              size={dominant ? "lg" : "md"}
+              variant={avatarVariant}
+            />
           ) : (
-            <PodiumPlayerPortrait avatarUrl={avatarUrl} dominant={dominant} label={label} variant={variant} />
+            <PlayerAvatar
+              fallbackImageUrl={fallbackAvatarUrl}
+              imageUrl={avatarUrl}
+              label={label}
+              seed={avatarSeed ?? label}
+              size={dominant ? "lg" : "md"}
+              variant={avatarVariant}
+            />
           )}
         </div>
         <div className={styles.entryPositionWrap}>
@@ -241,9 +183,7 @@ function PodiumEntryCard({
           <div className={styles.entryBadgeSlot} />
         )}
       </div>
-      <div
-        className={`${styles.podiumBase} ${baseHeightClass} ${baseToneClass}`}
-      >
+      <div className={`${styles.podiumBase} ${baseHeightClass} ${baseToneClass}`}>
         <div>
           <p className={styles.podiumBaseNumber}>{position}</p>
           <p className={styles.podiumBaseLabel}>
@@ -266,6 +206,7 @@ export function RankingPodiumBlocks({
   const description = hasComputedResults
     ? "Así viene la pelea ahora mismo."
     : "Todavía no hay partidos computados. Todos arrancan desde cero.";
+
   const renderBlock = (tab: "individual" | "teams") => {
     if (tab === "individual") {
       return (
@@ -278,13 +219,15 @@ export function RankingPodiumBlocks({
             {[individualPodium[1], individualPodium[0], individualPodium[2]].map((entry) => (
               <PodiumEntryCard
                 key={entry.key}
+                avatarSeed={entry.avatarSeed}
                 avatarUrl={entry.avatarUrl}
+                avatarVariant={entry.avatarVariant}
                 dominant={entry.position === 1}
+                fallbackAvatarUrl={entry.fallbackAvatarUrl}
                 isCurrent={entry.isCurrent}
                 label={entry.label}
                 points={entry.points}
                 position={entry.position}
-                variant={entry.variant}
               />
             ))}
           </div>
@@ -303,13 +246,16 @@ export function RankingPodiumBlocks({
             <PodiumEntryCard
               key={entry.key}
               activeCount={entry.activeCount}
+              avatarSeed={entry.avatarSeed}
+              avatarUrl={entry.avatarUrl}
+              avatarVariant={entry.avatarVariant}
               dominant={entry.position === 1}
+              fallbackAvatarUrl={entry.fallbackAvatarUrl}
               isCurrent={entry.isCurrent}
               label={entry.name}
               points={entry.points}
               position={entry.position}
               team
-              variant={entry.variant}
             />
           ))}
         </div>
