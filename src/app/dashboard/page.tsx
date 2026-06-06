@@ -1,11 +1,13 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeLanding } from "@/components/home/home-landing";
 import { HomeMatchList } from "@/components/home/home-match-list";
+import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { ActivationPanel } from "@/components/participation/activation-panel";
 import { getHomeCommunityFeed } from "@/lib/home/community-feed";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
 import { getPlayerDisplayName } from "@/lib/player/identity";
@@ -36,6 +38,9 @@ type DashboardParticipation = {
   created_at: string;
   payment_reference: string | null;
   payment_submitted_at: string | null;
+  rules_accepted_at: string | null;
+  rules_version: string | null;
+  is_adult_confirmed: boolean | null;
 };
 
 type DashboardPageProps = {
@@ -58,7 +63,7 @@ async function loadDashboardAccountData(
           .maybeSingle(),
         supabase
           .from("participations")
-          .select("id, payment_status, created_at, payment_reference, payment_submitted_at")
+          .select("id, payment_status, created_at, payment_reference, payment_submitted_at, rules_accepted_at, rules_version, is_adult_confirmed")
           .eq("profile_id", userId)
           .order("created_at", { ascending: false })
           .limit(2),
@@ -142,7 +147,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         });
       }
     }
-
   } catch {
     if (hasAuthenticatedUser) {
       fallbackMessage =
@@ -201,6 +205,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     return (
       <PageStack>
         <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
+        <section id="activar-pase">
+          <ActivationPanel
+            participationId={participation?.id ?? null}
+            participationStatus={participationStatus}
+            draftCount={predictionCount}
+            initialPaymentReference={participation?.payment_reference ?? null}
+            initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
+            initialRulesAcceptedAt={participation?.rules_accepted_at ?? null}
+            initialRulesVersion={participation?.rules_version ?? null}
+            initialIsAdultConfirmed={Boolean(participation?.is_adult_confirmed)}
+          />
+        </section>
       </PageStack>
     );
   }
@@ -221,6 +237,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           label: entry.label,
           points: entry.points,
           position: entry.position,
+          avatarUrl: entry.avatarUrl,
         }))}
         teams={communityFeed.rankings.groups.map((entry) => ({
           key: entry.key,
@@ -249,6 +266,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </Link>
         </div>
       </SurfaceCard>
+
+      <RulesHomeCard href="/reglamento" />
 
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Tus pronósticos" value={String(predictionCount)} detail={picksLabel} />

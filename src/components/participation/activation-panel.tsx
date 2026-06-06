@@ -5,6 +5,7 @@ import Link from "next/link";
 import { EntryCountdown } from "@/components/payments/entry-countdown";
 import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
+import { SOLIPRODE_RULES_VERSION } from "@/lib/rules";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -15,6 +16,9 @@ type ActivationPanelProps = {
   draftCount: number;
   initialPaymentReference: string | null;
   initialPaymentSubmittedAt: string | null;
+  initialRulesAcceptedAt: string | null;
+  initialRulesVersion: string | null;
+  initialIsAdultConfirmed: boolean;
 };
 
 export function ActivationPanel({
@@ -23,15 +27,60 @@ export function ActivationPanel({
   draftCount,
   initialPaymentReference,
   initialPaymentSubmittedAt,
+  initialRulesAcceptedAt,
+  initialRulesVersion,
+  initialIsAdultConfirmed,
 }: ActivationPanelProps) {
   const [showFallback, setShowFallback] = useState(false);
   const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
   const [paymentSubmittedAt, setPaymentSubmittedAt] = useState(initialPaymentSubmittedAt);
+  const [acceptedRules, setAcceptedRules] = useState(
+    Boolean(initialIsAdultConfirmed && initialRulesAcceptedAt && initialRulesVersion === SOLIPRODE_RULES_VERSION),
+  );
   const [savingReference, setSavingReference] = useState(false);
+  const [savingAcceptance, setSavingAcceptance] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const priceLabel = useMemo(() => formatEntryPrice(entryConfig.initialPrice), []);
   const participationUiState = resolveParticipationUiState(participationStatus);
+
+  async function persistRulesAcceptance() {
+    if (!participationId) {
+      setFeedback("No encontramos tu participación todavía. Reintentá en unos minutos.");
+      return false;
+    }
+
+    if (!acceptedRules) {
+      setFeedback("Para continuar, tenés que declarar mayoría de edad y aceptar el reglamento.");
+      return false;
+    }
+
+    setSavingAcceptance(true);
+    setFeedback(null);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from("participations")
+        .update({
+          rules_accepted_at: new Date().toISOString(),
+          rules_version: SOLIPRODE_RULES_VERSION,
+          is_adult_confirmed: true,
+        })
+        .eq("id", participationId);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch {
+      setFeedback("No pudimos guardar la aceptación del reglamento ahora. Intentá de nuevo.");
+      return false;
+    } finally {
+      setSavingAcceptance(false);
+    }
+  }
 
   async function saveReference() {
     if (!participationId) {
@@ -142,8 +191,36 @@ export function ActivationPanel({
             {participationUiState.statusLabel}
           </p>
           <EntryCountdown className="bg-white/70" />
+          <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={acceptedRules}
+                onChange={(event) => setAcceptedRules(event.target.checked)}
+                className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
+              />
+              <span className="text-sm leading-6 text-[var(--color-ink)]">
+                Declaro que soy mayor de 18 años y acepto el reglamento de SoliProde.
+              </span>
+            </label>
+            <Link
+              href="/reglamento"
+              className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
+            >
+              Ver reglamento
+            </Link>
+          </div>
           <div className="grid gap-3">
-            <CompleteRegistrationButton />
+            <CompleteRegistrationButton
+              disabled={savingAcceptance}
+              helperText={!acceptedRules ? "Aceptá el reglamento para habilitar la activación del Pase." : null}
+              onBeforeStart={() => persistRulesAcceptance()}
+            />
+            {feedback ? (
+              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+                {feedback}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -185,11 +262,6 @@ export function ActivationPanel({
                 className="min-h-12 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none"
               />
             </label>
-            {feedback ? (
-              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
-                {feedback}
-              </p>
-            ) : null}
             <button
               type="button"
               onClick={() => void saveReference()}

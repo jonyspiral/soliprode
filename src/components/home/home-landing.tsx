@@ -1,10 +1,11 @@
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList } from "@/components/home/home-match-list";
-import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
+import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
-import type { HomeHeroState } from "@/lib/home/player-hero-state";
+import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
 import { getHomeCommunityFeed } from "@/lib/home/community-feed";
+import type { HomeHeroState } from "@/lib/home/player-hero-state";
 import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 
@@ -40,9 +41,10 @@ const LANDING_STEPS: readonly HomeLandingStep[] = [
 type HomeLandingProps = {
   entryPrice: number;
   heroState: HomeHeroState;
+  rulesHref?: string;
 };
 
-export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
+export async function HomeLanding({ entryPrice, heroState, rulesHref = "/reglamento" }: HomeLandingProps) {
   const [homeDisplayMetrics, communityFeed] = await Promise.all([
     getHomeDisplayMetrics(),
     getHomeCommunityFeed(),
@@ -82,6 +84,7 @@ export async function HomeLanding({ entryPrice, heroState }: HomeLandingProps) {
 
         <HomeMatchList matches={communityFeed.matches} />
         <HomeSteps steps={LANDING_STEPS} />
+        <RulesHomeCard href={rulesHref} className="mt-3" />
       </div>
     </>
   );

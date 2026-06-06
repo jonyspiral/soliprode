@@ -7,11 +7,17 @@ import { formatEntryCountdown } from "@/lib/product/entry-config";
 type CompleteRegistrationButtonProps = {
   className?: string;
   compact?: boolean;
+  disabled?: boolean;
+  helperText?: string | null;
+  onBeforeStart?: () => Promise<boolean> | boolean;
 };
 
 export function CompleteRegistrationButton({
   className = "",
   compact = false,
+  disabled = false,
+  helperText = null,
+  onBeforeStart,
 }: CompleteRegistrationButtonProps) {
   const [countdown, setCountdown] = useState(() => formatEntryCountdown());
 
@@ -26,6 +32,8 @@ export function CompleteRegistrationButton({
   return (
     <div className={["grid gap-1.5", className].join(" ")}>
       <StartCheckoutButton
+        disabled={disabled}
+        onBeforeStart={onBeforeStart}
         className={[
           "inline-flex items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-70",
           compact
@@ -35,6 +43,7 @@ export function CompleteRegistrationButton({
       >
         Completar Aporte Solidario
       </StartCheckoutButton>
+      {helperText ? <p className="text-[11px] leading-5 text-[var(--color-muted)]">{helperText}</p> : null}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-[var(--color-muted)]">
         <span>{`Precio promocional · ${countdown}`}</span>
         <span>con Mercado Pago</span>

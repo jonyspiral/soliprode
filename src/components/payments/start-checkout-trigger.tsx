@@ -10,7 +10,7 @@ type CheckoutResponsePayload = {
   redirectTo?: string;
 };
 
-async function requestCheckoutUrl() {
+export async function requestCheckoutUrl() {
   const response = await fetch("/api/payments/mercadopago/create-preference", {
     method: "POST",
   });
@@ -36,20 +36,36 @@ async function requestCheckoutUrl() {
 type StartCheckoutButtonProps = {
   children: ReactNode;
   className?: string;
+  disabled?: boolean;
+  onBeforeStart?: () => Promise<boolean> | boolean;
 };
 
-export function StartCheckoutButton({ children, className = "" }: StartCheckoutButtonProps) {
+export function StartCheckoutButton({
+  children,
+  className = "",
+  disabled = false,
+  onBeforeStart,
+}: StartCheckoutButtonProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
-    if (pending) {
+    if (pending || disabled) {
       return;
     }
 
     setPending(true);
 
     try {
+      if (onBeforeStart) {
+        const canContinue = await onBeforeStart();
+
+        if (!canContinue) {
+          setPending(false);
+          return;
+        }
+      }
+
       const result = await requestCheckoutUrl();
 
       if (result.kind === "already_paid") {
@@ -64,7 +80,12 @@ export function StartCheckoutButton({ children, className = "" }: StartCheckoutB
   }
 
   return (
-    <button type="button" onClick={() => void handleClick()} className={className} disabled={pending}>
+    <button
+      type="button"
+      onClick={() => void handleClick()}
+      className={className}
+      disabled={pending || disabled}
+    >
       {children}
     </button>
   );
