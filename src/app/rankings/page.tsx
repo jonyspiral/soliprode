@@ -544,7 +544,7 @@ export default async function RankingsPage() {
                 >
                   <span className="text-base font-bold text-[var(--color-primary)]">{index + 1}</span>
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="player-avatar-sm">--</div>
+                    <PlayerAvatar label={`Jugador ${index + 1}`} size="sm" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
                         Esperando jugadores

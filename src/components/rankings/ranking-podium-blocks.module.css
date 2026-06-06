@@ -1,0 +1,469 @@
+.surfaceCard {
+  overflow: hidden;
+}
+
+.blocksGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.block {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at top right, rgba(154, 225, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #eff4fa 100%);
+  box-shadow: 0 12px 28px rgba(0, 50, 125, 0.08);
+  padding: 0.95rem;
+}
+
+.block::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 50, 125, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 50, 125, 0.022) 1px, transparent 1px);
+  background-size: 18px 18px;
+  pointer-events: none;
+}
+
+.blockTeams {
+  background:
+    radial-gradient(circle at top right, rgba(12, 103, 128, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #edf4f6 100%);
+}
+
+.blockHeader {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0.8rem;
+}
+
+.blockTitle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.blockTitleTeams {
+  color: var(--color-secondary);
+}
+
+.blockCopy {
+  margin-top: 0.28rem;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+.podiumGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.entryColumn {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: end;
+}
+
+.entryCard {
+  width: 100%;
+  border-radius: 1.05rem;
+  border: 1px solid var(--color-line);
+  padding: 0.7rem 0.55rem 0.65rem;
+  text-align: center;
+  box-shadow: 0 12px 26px rgba(0, 50, 125, 0.1);
+}
+
+.entryShell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(238, 242, 248, 0.94) 100%);
+}
+
+.entryShellDominant {
+  border-color: rgba(233, 196, 0, 0.42);
+  background: linear-gradient(180deg, rgba(255, 225, 109, 0.18) 0%, rgba(255, 255, 255, 0.98) 48%, rgba(255, 225, 109, 0.08) 100%);
+}
+
+.entryMedia {
+  display: flex;
+  justify-content: center;
+}
+
+.portraitSize,
+.crestSize {
+  width: 4.1rem;
+  height: 4.1rem;
+}
+
+.portraitSizeDominant,
+.crestSizeDominant {
+  width: 5.15rem;
+  height: 5.15rem;
+}
+
+.portraitShell,
+.crestShell {
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 24px rgba(0, 50, 125, 0.18);
+}
+
+.portraitShellDominant,
+.crestShellDominant {
+  border: 3px solid var(--color-gold);
+  box-shadow: 0 12px 30px rgba(201, 169, 0, 0.3);
+}
+
+.playerPortrait {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-secondary-soft) 0%, var(--color-primary) 100%);
+}
+
+.playerPortraitImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.playerPortraitFallback {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.32), transparent 32%),
+    linear-gradient(180deg, #0e5dc1 0%, #05357d 65%, #04285e 100%);
+}
+
+.playerPortraitShade,
+.playerPortraitHead,
+.playerPortraitBody,
+.playerPortraitJersey,
+.playerPortraitGlow {
+  position: absolute;
+  display: block;
+}
+
+.playerPortraitShade {
+  inset-inline: 0;
+  bottom: 0;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(8, 36, 82, 0) 0%, rgba(8, 36, 82, 0.42) 35%, rgba(8, 36, 82, 0.9) 100%);
+}
+
+.playerPortraitHead {
+  top: 22%;
+  left: 50%;
+  width: 28%;
+  height: 28%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #f6f8ff;
+}
+
+.playerPortraitBody {
+  top: 44%;
+  left: 50%;
+  width: 56%;
+  height: 34%;
+  transform: translateX(-50%);
+  border-radius: 999px 999px 40% 40%;
+  background: #f6f8ff;
+}
+
+.playerPortraitJersey {
+  top: 55%;
+  left: 50%;
+  width: 74%;
+  height: 15%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(90deg, var(--color-gold-soft) 0%, var(--color-secondary-soft) 100%);
+  opacity: 0.8;
+}
+
+.playerPortraitGlow {
+  inset-inline: 18%;
+  bottom: 14%;
+  height: 8%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  filter: blur(2px);
+}
+
+.teamCrestShell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 3px;
+  border-radius: 1.45rem;
+  background: rgba(255, 255, 255, 0.82);
+  clip-path: polygon(50% 0%, 89% 11%, 100% 42%, 84% 100%, 16% 100%, 0% 42%, 11% 11%);
+}
+
+.teamCrestInner {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+  color: white;
+  clip-path: polygon(50% 0%, 89% 11%, 100% 42%, 84% 100%, 16% 100%, 0% 42%, 11% 11%);
+}
+
+.crestInnerDummy {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.34), transparent 34%),
+    linear-gradient(180deg, #1355ad 0%, #0c6780 55%, #08345d 100%);
+}
+
+.crestInnerReal {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.24), transparent 32%),
+    linear-gradient(180deg, #1c6fda 0%, #0f4d9c 55%, #0c6780 100%);
+}
+
+.teamCrestTopBand,
+.teamCrestBottomGlow {
+  position: absolute;
+  display: block;
+}
+
+.teamCrestTopBand {
+  inset-inline: 14%;
+  top: 16%;
+  height: 20%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.teamCrestBottomGlow {
+  inset-inline: 20%;
+  bottom: 14%;
+  height: 12%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(2px);
+}
+
+.teamCrestContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+}
+
+.teamCrestStar {
+  width: 2rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 225, 109, 0.95);
+}
+
+.teamCrestText {
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.teamCrestBall {
+  width: 1.25rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.entryPositionWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.55rem;
+}
+
+.entryPositionChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.entryPositionChipGold {
+  background: rgba(233, 196, 0, 0.22);
+  color: var(--color-ink);
+}
+
+.entryPositionChipNeutral {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+
+.entryTitle {
+  margin-top: 0.55rem;
+  min-height: 2.15rem;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  text-transform: uppercase;
+  line-height: 1.03;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.entryTitleDominant {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.entryTitleRegular {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.entryMeta {
+  margin-top: 0.2rem;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.entryBadgeSlot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 1.35rem;
+  margin-top: 0.45rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.14rem 0.48rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeBlue {
+  border-color: rgba(12, 103, 128, 0.25);
+  background: rgba(154, 225, 255, 0.2);
+  color: var(--color-secondary);
+}
+
+.badgeGold {
+  border-color: rgba(233, 196, 0, 0.6);
+  background: rgba(255, 225, 109, 0.18);
+  color: var(--color-ink);
+}
+
+.podiumBase {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem 1rem 0 0;
+  margin-top: 0.45rem;
+  padding-inline: 0.4rem;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.podiumBaseTall {
+  min-height: 5rem;
+}
+
+.podiumBaseMid {
+  min-height: 4.1rem;
+}
+
+.podiumBaseShort {
+  min-height: 3.7rem;
+}
+
+.podiumBaseGold {
+  background: linear-gradient(180deg, var(--color-gold-soft) 0%, #d4b100 100%);
+  color: var(--color-ink);
+}
+
+.podiumBaseSilver {
+  background: linear-gradient(180deg, #e6ebf5 0%, #c5cedf 100%);
+  color: var(--color-primary);
+}
+
+.podiumBaseBronze {
+  background: linear-gradient(180deg, #e4dac0 0%, #c9b78b 100%);
+  color: var(--color-primary);
+}
+
+.podiumBaseNumber {
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.podiumBaseLabel {
+  margin-top: 0.14rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 389px) {
+  .block {
+    padding: 0.82rem;
+  }
+
+  .podiumGrid {
+    gap: 0.4rem;
+  }
+
+  .portraitSize,
+  .crestSize {
+    width: 3.7rem;
+    height: 3.7rem;
+  }
+
+  .portraitSizeDominant,
+  .crestSizeDominant {
+    width: 4.65rem;
+    height: 4.65rem;
+  }
+
+  .entryTitleDominant {
+    font-size: 1rem;
+  }
+
+  .entryTitleRegular {
+    font-size: 0.86rem;
+  }
+}

@@ -944,20 +944,23 @@ select {
 .player-avatar,
 .player-avatar-sm,
 .player-avatar-lg {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(195, 198, 213, 0.9);
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffe16d 0%, #ffbf36 100%);
+  background: linear-gradient(135deg, var(--color-secondary-soft) 0%, var(--color-primary) 100%);
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  font-weight: 900;
+  font-weight: 800;
+  line-height: 1;
   text-transform: uppercase;
-  color: var(--color-ink);
-  box-shadow: 0 10px 24px rgba(0, 50, 125, 0.18);
+  color: white;
+  box-shadow: 0 8px 20px rgba(0, 50, 125, 0.16);
 }
 
 .player-avatar-media {
@@ -968,21 +971,21 @@ select {
 }
 
 .player-avatar {
-  width: 4rem;
-  height: 4rem;
-  font-size: 1.125rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 0.82rem;
 }
 
 .player-avatar-sm {
-  width: 2.75rem;
-  height: 2.75rem;
-  font-size: 0.875rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.72rem;
 }
 
 .player-avatar-lg {
-  width: 6rem;
-  height: 6rem;
-  font-size: 1.5rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1rem;
 }
 
 @media (min-width: 768px) {
