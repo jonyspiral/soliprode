@@ -11,6 +11,10 @@ import {
   logOAuthDevError,
 } from "@/lib/auth/oauth";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
+import {
+  getCanonicalProductionUrl,
+  isLegacyProductionHostname,
+} from "@/lib/site-url";
 
 type CallbackStatus = "loading" | "error";
 type AuthCallbackScreenProps = {
@@ -21,6 +25,15 @@ type AuthCallbackScreenProps = {
 
 function clearPromoterCookie() {
   document.cookie = `${PROMOTER_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function redirectToCanonicalHostIfNeeded() {
+  if (typeof window === "undefined" || !isLegacyProductionHostname(window.location.hostname)) {
+    return false;
+  }
+
+  window.location.replace(getCanonicalProductionUrl(`${window.location.pathname}${window.location.search}`));
+  return true;
 }
 
 export function AuthCallbackScreen({
@@ -41,6 +54,10 @@ export function AuthCallbackScreen({
     let cancelled = false;
 
     async function completeOAuth() {
+      if (redirectToCanonicalHostIfNeeded()) {
+        return;
+      }
+
       if (!code) {
         setStatus("error");
         window.setTimeout(() => {

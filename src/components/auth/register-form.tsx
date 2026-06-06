@@ -29,7 +29,11 @@ import {
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { resolvePublicSiteOrigin } from "@/lib/site-url";
+import {
+  getCanonicalProductionUrl,
+  isLegacyProductionHostname,
+  resolvePublicSiteOrigin,
+} from "@/lib/site-url";
 
 type RegisterFormProps = {
   promoterCode?: string | null;
@@ -47,6 +51,15 @@ function persistPromoterCode(promoterCode: string | null) {
   }
 
   document.cookie = `${PROMOTER_COOKIE_NAME}=${encodeURIComponent(promoterCode)}; Path=/; Max-Age=2592000; SameSite=Lax`;
+}
+
+function redirectToCanonicalHostIfNeeded() {
+  if (typeof window === "undefined" || !isLegacyProductionHostname(window.location.hostname)) {
+    return false;
+  }
+
+  window.location.replace(getCanonicalProductionUrl(`${window.location.pathname}${window.location.search}`));
+  return true;
 }
 
 export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: RegisterFormProps) {
@@ -73,6 +86,10 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
   }, [nextPath, normalizedPromoterCode]);
 
   useEffect(() => {
+    if (redirectToCanonicalHostIfNeeded()) {
+      return;
+    }
+
     persistPromoterCode(effectivePromoterCode);
   }, [effectivePromoterCode]);
 
@@ -82,6 +99,10 @@ export function RegisterForm({ promoterCode = null, nextPath = "/dashboard" }: R
     setGooglePending(true);
 
     try {
+      if (redirectToCanonicalHostIfNeeded()) {
+        return;
+      }
+
       persistPromoterCode(effectivePromoterCode);
       persistAuthNextPath(nextPath);
       const redirectTo = buildAuthCallbackUrl(nextPath);

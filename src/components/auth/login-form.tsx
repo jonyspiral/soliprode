@@ -20,7 +20,11 @@ import {
   hasConfiguredAuthBaseUrl,
   persistAuthNextPath,
 } from "@/lib/auth/oauth";
-import { resolvePublicSiteOrigin } from "@/lib/site-url";
+import {
+  getCanonicalProductionUrl,
+  isLegacyProductionHostname,
+  resolvePublicSiteOrigin,
+} from "@/lib/site-url";
 import { mapAuthError } from "@/lib/supabase/auth";
 import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -41,6 +45,15 @@ function persistPromoterCode(promoterCode: string | null) {
   }
 
   document.cookie = `${PROMOTER_COOKIE_NAME}=${encodeURIComponent(promoterCode)}; Path=/; Max-Age=2592000; SameSite=Lax`;
+}
+
+function redirectToCanonicalHostIfNeeded() {
+  if (typeof window === "undefined" || !isLegacyProductionHostname(window.location.hostname)) {
+    return false;
+  }
+
+  window.location.replace(getCanonicalProductionUrl(`${window.location.pathname}${window.location.search}`));
+  return true;
 }
 
 export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
@@ -64,6 +77,10 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
   }, [nextPath, normalizedPromoterCode]);
 
   useEffect(() => {
+    if (redirectToCanonicalHostIfNeeded()) {
+      return;
+    }
+
     persistPromoterCode(effectivePromoterCode);
   }, [effectivePromoterCode]);
 
@@ -73,6 +90,10 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
     setGooglePending(true);
 
     try {
+      if (redirectToCanonicalHostIfNeeded()) {
+        return;
+      }
+
       persistPromoterCode(effectivePromoterCode);
       persistAuthNextPath(nextPath);
       const redirectTo = buildAuthCallbackUrl(nextPath);

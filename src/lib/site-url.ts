@@ -60,3 +60,11 @@ export function resolvePublicSiteOrigin(currentOrigin?: string | null) {
 export function getCanonicalProductionOrigin() {
   return CANONICAL_PRODUCTION_ORIGIN;
 }
+
+export function getCanonicalProductionUrl(pathAndSearch: string) {
+  return `${CANONICAL_PRODUCTION_ORIGIN}${pathAndSearch.startsWith("/") ? pathAndSearch : `/${pathAndSearch}`}`;
+}
+
+export function isLegacyProductionHostname(hostname: string | null | undefined) {
+  return Boolean(hostname && LEGACY_PRODUCTION_HOSTS.has(normalizeHostname(hostname)));
+}
