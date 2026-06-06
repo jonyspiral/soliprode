@@ -161,7 +161,9 @@ export function AppShell({ children }: AppShellProps) {
         const hasServerSession = Boolean(serverState?.authenticated);
         const effectiveUserId = user?.id ?? serverState?.userId ?? null;
         const nextIsAuthenticated = Boolean(user) || hasServerSession;
+        const fallbackPaymentStatus = serverState?.paymentStatus ?? (nextIsAuthenticated ? "pending" : null);
         setIsAuthenticated(nextIsAuthenticated);
+        setParticipationStatus(fallbackPaymentStatus);
         if (hasServerSession && serverState?.avatarUrl) {
           setAvatarUrl(serverState.avatarUrl);
         }
@@ -169,7 +171,7 @@ export function AppShell({ children }: AppShellProps) {
           user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null,
           serverState?.avatarUrl ?? null,
         );
-        void syncParticipation(effectiveUserId, serverState?.paymentStatus ?? null);
+        void syncParticipation(effectiveUserId, fallbackPaymentStatus);
       } catch {
         if (!active) return;
         setIsAuthenticated(false);
@@ -188,7 +190,9 @@ export function AppShell({ children }: AppShellProps) {
         const serverState = await syncServerSession();
         if (!active) return;
         const nextIsAuthenticated = Boolean(session?.user) || Boolean(serverState?.authenticated);
+        const fallbackPaymentStatus = serverState?.paymentStatus ?? (nextIsAuthenticated ? "pending" : null);
         setIsAuthenticated(nextIsAuthenticated);
+        setParticipationStatus(fallbackPaymentStatus);
         if (serverState?.avatarUrl && !session?.user) {
           setAvatarUrl(serverState.avatarUrl);
         }
@@ -198,7 +202,7 @@ export function AppShell({ children }: AppShellProps) {
         );
         void syncParticipation(
           session?.user?.id ?? serverState?.userId ?? null,
-          serverState?.paymentStatus ?? null,
+          fallbackPaymentStatus,
         );
         setAuthReady(true);
       })();
