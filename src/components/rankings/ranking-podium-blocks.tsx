@@ -104,6 +104,13 @@ function normalizeTeams(items: TeamPodiumItem[]) {
   }));
 }
 
+function buildPodiumSlots<T>(items: T[]) {
+  return [
+    { entry: items[1], visualPosition: 2, dominant: false },
+    { entry: items[0], visualPosition: 1, dominant: true },
+    { entry: items[2], visualPosition: 3, dominant: false },
+  ].filter((slot): slot is { entry: T; visualPosition: 1 | 2 | 3; dominant: boolean } => Boolean(slot.entry));
+}
 function PodiumEntryCard({
   activeCount,
   avatarSeed,
@@ -216,18 +223,18 @@ export function RankingPodiumBlocks({
             <p className={styles.blockCopy}>Top 3 provisional del ranking individual.</p>
           </div>
           <div className={styles.podiumGrid}>
-            {[individualPodium[1], individualPodium[0], individualPodium[2]].map((entry) => (
+            {buildPodiumSlots(individualPodium).map(({ entry, visualPosition, dominant }) => (
               <PodiumEntryCard
                 key={entry.key}
                 avatarSeed={entry.avatarSeed}
                 avatarUrl={entry.avatarUrl}
                 avatarVariant={entry.avatarVariant}
-                dominant={entry.position === 1}
                 fallbackAvatarUrl={entry.fallbackAvatarUrl}
+                dominant={dominant}
                 isCurrent={entry.isCurrent}
                 label={entry.label}
                 points={entry.points}
-                position={entry.position}
+                position={visualPosition}
               />
             ))}
           </div>
@@ -242,19 +249,19 @@ export function RankingPodiumBlocks({
           <p className={styles.blockCopy}>Top 3 provisional de la tabla social.</p>
         </div>
         <div className={styles.podiumGrid}>
-          {[teamPodium[1], teamPodium[0], teamPodium[2]].map((entry) => (
+          {buildPodiumSlots(teamPodium).map(({ entry, visualPosition, dominant }) => (
             <PodiumEntryCard
               key={entry.key}
               activeCount={entry.activeCount}
               avatarSeed={entry.avatarSeed}
               avatarUrl={entry.avatarUrl}
               avatarVariant={entry.avatarVariant}
-              dominant={entry.position === 1}
               fallbackAvatarUrl={entry.fallbackAvatarUrl}
+              dominant={dominant}
               isCurrent={entry.isCurrent}
               label={entry.name}
               points={entry.points}
-              position={entry.position}
+              position={visualPosition}
               team
             />
           ))}
