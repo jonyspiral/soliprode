@@ -63,6 +63,7 @@ export function AppShell({ children }: AppShellProps) {
       try {
         const response = await fetch("/api/auth/session-status", {
           cache: "no-store",
+          credentials: "include",
         });
 
         if (!active) {
@@ -105,6 +106,19 @@ export function AppShell({ children }: AppShellProps) {
       }
     }
 
+    function applyAuthenticatedServerState(serverState: ServerSessionPayload | null) {
+      if (!serverState?.authenticated) {
+        return false;
+      }
+
+      setIsAuthenticated(true);
+      setParticipationStatus(serverState.paymentStatus ?? "pending");
+      setAvatarUrl(serverState.avatarUrl ?? null);
+      setPlayerLabel("Perfil");
+      setAuthReady(true);
+      return true;
+    }
+
     async function syncProfileIdentity(
       user: { id: string; user_metadata?: Record<string, unknown> } | null,
       fallbackAvatarUrl: string | null,
@@ -132,6 +146,8 @@ export function AppShell({ children }: AppShellProps) {
     async function syncUser() {
       try {
         const serverState = await syncServerSession();
+        if (!active) return;
+        const hasServerSession = applyAuthenticatedServerState(serverState);
         const {
           data: { user },
         } = await supabase.auth.getUser().catch(() => ({
@@ -139,7 +155,9 @@ export function AppShell({ children }: AppShellProps) {
         }));
 
         if (!active) return;
-        const hasServerSession = Boolean(serverState?.authenticated);
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[AppShell session]", { serverState, hasBrowserUser: Boolean(user) });
+        }
         const nextIsAuthenticated = Boolean(user) || hasServerSession;
         const fallbackPaymentStatus = serverState?.paymentStatus ?? (nextIsAuthenticated ? "pending" : null);
         setIsAuthenticated(nextIsAuthenticated);
@@ -168,7 +186,8 @@ export function AppShell({ children }: AppShellProps) {
       void (async () => {
         const serverState = await syncServerSession();
         if (!active) return;
-        const nextIsAuthenticated = Boolean(session?.user) || Boolean(serverState?.authenticated);
+        const hasServerSession = applyAuthenticatedServerState(serverState);
+        const nextIsAuthenticated = Boolean(session?.user) || hasServerSession;
         const fallbackPaymentStatus = serverState?.paymentStatus ?? (nextIsAuthenticated ? "pending" : null);
         setIsAuthenticated(nextIsAuthenticated);
         setParticipationStatus(fallbackPaymentStatus);
