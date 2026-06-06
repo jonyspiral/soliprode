@@ -132,7 +132,12 @@ export function AppShell({ children }: AppShellProps) {
     async function syncUser() {
       try {
         const serverState = await syncServerSession();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser().catch(() => ({
+          data: { user: null },
+        }));
+
         if (!active) return;
         const hasServerSession = Boolean(serverState?.authenticated);
         const nextIsAuthenticated = Boolean(user) || hasServerSession;
