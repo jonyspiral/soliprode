@@ -1,0 +1,73 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="390" y2="844" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#07151F"/>
+      <stop offset="0.55" stop-color="#0B1F2A"/>
+      <stop offset="1" stop-color="#0F2F22"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="390" height="844" rx="34" fill="url(#bg)"/>
+  <circle cx="195" cy="442" r="188" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+  <line x1="32" y1="698" x2="358" y2="698" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="1"/>
+  <line x1="195" y1="80" x2="195" y2="770" stroke="#FFFFFF" stroke-opacity="0.035" stroke-width="1"/>
+
+  <g id="header" transform="translate(24 34)">
+    <circle cx="21" cy="21" r="21" fill="#EAF6FF"/>
+    <path d="M21 8L25.2 16.4L34.5 17.8L27.7 24.3L29.3 33.6L21 29.2L12.7 33.6L14.3 24.3L7.5 17.8L16.8 16.4L21 8Z" fill="#0A7B45"/>
+    <text x="54" y="18" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">SoliProde</text>
+    <text x="54" y="38" fill="#9FB4C2" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">Prode Mundial solidario</text>
+  </g>
+
+  <g id="hero" transform="translate(24 114)">
+    <text x="0" y="42" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="900" letter-spacing="-1.2">JUGÁ EL</text>
+    <text x="0" y="88" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="900" letter-spacing="-1.2">MUNDIAL</text>
+    <text x="0" y="122" fill="#BFD0DA" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">Competí por premios, armá tu Team</text>
+    <text x="0" y="146" fill="#BFD0DA" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">y ayudá a financiar una tesis universitaria.</text>
+  </g>
+
+  <g id="prize-card" transform="translate(24 300)" filter="url(#shadow)">
+    <rect width="342" height="116" rx="24" fill="#F8FAFC"/>
+    <text x="22" y="34" fill="#0B1F2A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="1.4">POZO INICIAL</text>
+    <text x="22" y="82" fill="#0A7B45" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900">$300.000</text>
+    <rect x="218" y="30" width="100" height="58" rx="17" fill="#E8F5EE"/>
+    <text x="237" y="54" fill="#0A7B45" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">+ premios</text>
+    <text x="246" y="74" fill="#0A7B45" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">por Team</text>
+  </g>
+
+  <g id="auth-card" transform="translate(24 448)" filter="url(#shadow)">
+    <rect width="342" height="316" rx="28" fill="#FFFFFF"/>
+    <rect x="20" y="24" width="302" height="54" rx="16" fill="#0B1F2A"/>
+    <circle cx="48" cy="51" r="13" fill="#FFFFFF"/>
+    <text x="44" y="56" fill="#4285F4" font-family="Arial, sans-serif" font-size="14" font-weight="700">G</text>
+    <text x="86" y="57" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800">Entrar con Google</text>
+
+    <line x1="20" y1="108" x2="126" y2="108" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="141" y="113" fill="#64748B" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">o entrá con email</text>
+    <line x1="238" y1="108" x2="322" y2="108" stroke="#E2E8F0" stroke-width="1"/>
+
+    <text x="20" y="145" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">Email</text>
+    <rect x="20" y="158" width="302" height="52" rx="15" fill="#F8FAFC" stroke="#D9E2EA"/>
+    <text x="38" y="191" fill="#94A3B8" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="500">tu@email.com</text>
+
+    <rect x="20" y="224" width="302" height="50" rx="15" fill="#12A454"/>
+    <text x="131" y="255" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">Continuar</text>
+
+    <text x="20" y="302" fill="#64748B" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">El Pase Solidario se activa después del aporte.</text>
+  </g>
+
+  <g id="promoter-compact" transform="translate(24 788)">
+    <text x="0" y="0" fill="#AFC1CC" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">Promotor</text>
+    <rect x="70" y="-18" width="120" height="32" rx="10" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <text x="84" y="3" fill="#8093A0" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">Código / número</text>
+    <text x="0" y="34" fill="#6F8795" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="500">Al entrar aceptás el reglamento y las bases.</text>
+  </g>
+
+  <g id="spec-tag" transform="translate(24 812)">
+    <rect x="218" y="-14" width="124" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.08"/>
+    <text x="232" y="3" fill="#9FB4C2" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">Mobile 390×844</text>
+  </g>
+</svg>
