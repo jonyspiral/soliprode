@@ -78,8 +78,9 @@ export function AuthCallbackScreen({
         clearPromoterCookie();
 
         if (!cancelled) {
-          router.replace(payload.redirectTo);
-          router.refresh();
+          // OAuth writes auth cookies in the fetch response. A hard navigation prevents
+          // App Router from rendering the destination with stale pre-auth state.
+          window.location.replace(payload.redirectTo);
         }
       } catch (error) {
         logOAuthDevError("OAuth callback failed", {
