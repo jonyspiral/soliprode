@@ -24,6 +24,21 @@ type AuthCallbackScreenProps = {
   promoterCode: string | null;
 };
 
+function withClientTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: number | undefined;
+
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  });
+}
+
 function clearPromoterCookie() {
   document.cookie = `${PROMOTER_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
@@ -69,34 +84,28 @@ export function AuthCallbackScreen({
 
       try {
         const supabase = createBrowserSupabaseClient();
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        const { error: exchangeError } = await withClientTimeout(
+          supabase.auth.exchangeCodeForSession(code),
+          8000,
+          "oauth_exchange_timeout",
+        );
 
         if (exchangeError) {
           throw new Error(exchangeError.message || "confirm_failed");
         }
 
-        const response = await fetch("/api/auth/finish-signin", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+        void fetch("/api/auth/finish-signin", {
+          body: JSON.stringify({ promoterCode }),
           cache: "no-store",
-          body: JSON.stringify({
-            promoterCode,
-          }),
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          method: "POST",
+        }).catch((error) => {
+          logOAuthDevError("OAuth finish-signin background failed", {
+            errorMessage: error instanceof Error ? error.message : String(error),
+            nextPath,
+          });
         });
-
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              ok?: boolean;
-              error?: string;
-            }
-          | null;
-
-        if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error ?? "bootstrap_failed");
-        }
-
         clearPromoterCookie();
 
         if (!cancelled) {
