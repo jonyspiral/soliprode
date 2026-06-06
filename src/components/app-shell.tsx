@@ -10,7 +10,6 @@ import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { mobileNavItemsAuthenticated, mobileNavItemsLoggedOut, secondaryNavItems } from "@/lib/navigation";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
 import { getPlayerAvatar, getPlayerDisplayName } from "@/lib/player/identity";
-import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type AppShellProps = { children: ReactNode };
@@ -54,8 +53,7 @@ export function AppShell({ children }: AppShellProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [playerLabel, setPlayerLabel] = useState("Perfil");
   const [participationStatus, setParticipationStatus] = useState<string | null>(null);
-  const participationUiState = resolveParticipationUiState(participationStatus);
-  const showPendingPaymentBanner = authReady && isAuthenticated && !participationUiState.isPaid;
+  const showPendingPaymentBanner = authReady && isAuthenticated && participationStatus !== "paid";
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();

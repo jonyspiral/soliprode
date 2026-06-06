@@ -46,7 +46,7 @@ export async function getServerSessionState(): Promise<SessionState> {
             .select("payment_status, created_at")
             .eq("profile_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(2),
+            .limit(10),
         ),
         "Supabase participation state query timed out",
       );

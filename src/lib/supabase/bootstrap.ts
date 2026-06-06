@@ -198,7 +198,7 @@ export async function ensureRegisteredUserRecords(
     .select("id, promoter_id, created_at")
     .eq("profile_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(10);
 
   if (participationReadError) {
     return {

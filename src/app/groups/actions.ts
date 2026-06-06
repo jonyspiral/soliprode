@@ -95,7 +95,7 @@ async function ensureParticipationId(profileId: string) {
     .select("id, created_at")
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(10);
 
   return pickPrimaryParticipation((data ?? []) as Array<{ id: string; created_at: string }>).participation?.id ?? null;
 }

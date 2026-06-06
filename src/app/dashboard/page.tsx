@@ -66,7 +66,7 @@ async function loadDashboardAccountData(
           .select("id, payment_status, created_at, payment_reference, payment_submitted_at, rules_accepted_at, rules_version, is_adult_confirmed")
           .eq("profile_id", userId)
           .order("created_at", { ascending: false })
-          .limit(2),
+          .limit(10),
         supabase
           .from("predictions")
           .select("id", { count: "exact", head: true })

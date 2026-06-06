@@ -116,7 +116,7 @@ export async function getParticipationForProfile(profileId: string) {
     )
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
-    .limit(2);
+    .limit(10);
 
   if (error) {
     throw error;

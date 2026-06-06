@@ -276,7 +276,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           .select("payment_status, created_at")
           .eq("profile_id", currentUserId)
           .order("created_at", { ascending: false })
-          .limit(2)
+          .limit(10)
       : Promise.resolve({ data: null, error: null });
 
     const predictionQuery = currentUserId
