@@ -15,6 +15,7 @@ import {
   getCanonicalProductionUrl,
   isLegacyProductionHostname,
 } from "@/lib/site-url";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type CallbackStatus = "loading" | "error";
 type AuthCallbackScreenProps = {
@@ -67,14 +68,20 @@ export function AuthCallbackScreen({
       }
 
       try {
-        const response = await fetch("/api/auth/oauth-callback", {
+        const supabase = createBrowserSupabaseClient();
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          throw new Error(exchangeError.message || "confirm_failed");
+        }
+
+        const response = await fetch("/api/auth/finish-signin", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          cache: "no-store",
           body: JSON.stringify({
-            code,
-            nextPath,
             promoterCode,
           }),
         });
@@ -82,22 +89,20 @@ export function AuthCallbackScreen({
         const payload = (await response.json().catch(() => null)) as
           | {
               ok?: boolean;
-              redirectTo?: string;
               error?: string;
-              code?: string;
             }
           | null;
 
-        if (!response.ok || !payload?.ok || !payload.redirectTo) {
-          throw new Error(payload?.code ?? "oauth_failed");
+        if (!response.ok || !payload?.ok) {
+          throw new Error(payload?.error ?? "bootstrap_failed");
         }
 
         clearPromoterCookie();
 
         if (!cancelled) {
-          // OAuth writes auth cookies in the fetch response. A hard navigation prevents
+          // OAuth writes auth cookies in the browser. A hard navigation prevents
           // App Router from rendering the destination with stale pre-auth state.
-          window.location.replace(payload.redirectTo);
+          window.location.replace(nextPath);
         }
       } catch (error) {
         logOAuthDevError("OAuth callback failed", {
