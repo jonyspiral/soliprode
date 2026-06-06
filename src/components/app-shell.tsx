@@ -10,7 +10,6 @@ import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { mobileNavItemsAuthenticated, mobileNavItemsLoggedOut, secondaryNavItems } from "@/lib/navigation";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
 import { getPlayerAvatar, getPlayerDisplayName } from "@/lib/player/identity";
-import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -108,27 +107,6 @@ export function AppShell({ children }: AppShellProps) {
       }
     }
 
-    async function syncParticipation(userId: string | null, fallbackPaymentStatus: string | null) {
-      if (!userId) {
-        if (active) setParticipationStatus(fallbackPaymentStatus);
-        return;
-      }
-      try {
-        const { data } = await supabase
-          .from("participations")
-          .select("payment_status, created_at")
-          .eq("profile_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(2);
-        if (!active) return;
-        setParticipationStatus(
-          pickPrimaryParticipation((data ?? []) as Array<{ created_at: string; payment_status: string }>).participation?.payment_status ?? fallbackPaymentStatus,
-        );
-      } catch {
-        if (active) setParticipationStatus(fallbackPaymentStatus);
-      }
-    }
-
     async function syncProfileIdentity(
       user: { id: string; user_metadata?: Record<string, unknown> } | null,
       fallbackAvatarUrl: string | null,
@@ -159,7 +137,6 @@ export function AppShell({ children }: AppShellProps) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!active) return;
         const hasServerSession = Boolean(serverState?.authenticated);
-        const effectiveUserId = user?.id ?? serverState?.userId ?? null;
         const nextIsAuthenticated = Boolean(user) || hasServerSession;
         const fallbackPaymentStatus = serverState?.paymentStatus ?? (nextIsAuthenticated ? "pending" : null);
         setIsAuthenticated(nextIsAuthenticated);
@@ -171,7 +148,6 @@ export function AppShell({ children }: AppShellProps) {
           user ? { id: user.id, user_metadata: user.user_metadata ?? null } : null,
           serverState?.avatarUrl ?? null,
         );
-        void syncParticipation(effectiveUserId, fallbackPaymentStatus);
       } catch {
         if (!active) return;
         setIsAuthenticated(false);
@@ -199,10 +175,6 @@ export function AppShell({ children }: AppShellProps) {
         void syncProfileIdentity(
           session?.user ? { id: session.user.id, user_metadata: session.user.user_metadata ?? null } : null,
           serverState?.avatarUrl ?? null,
-        );
-        void syncParticipation(
-          session?.user?.id ?? serverState?.userId ?? null,
-          fallbackPaymentStatus,
         );
         setAuthReady(true);
       })();
