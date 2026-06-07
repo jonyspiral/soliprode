@@ -8,7 +8,6 @@ import {
 } from "@/lib/player/identity";
 import { isPublicAliasTaken } from "@/lib/player/public-alias-registry";
 import {
-  createServerSupabaseClient,
   createServiceRoleSupabaseClient,
 } from "@/lib/supabase/server";
 
@@ -42,7 +41,7 @@ function buildFallbackAlias(user: User, metadata: SupabaseUserMetadata) {
 }
 
 async function saveProfileWithUniqueAlias(input: {
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>;
+  supabase: ReturnType<typeof createServiceRoleSupabaseClient>;
   profileId: string;
   fullName: string | null;
   publicAlias: string;
@@ -127,7 +126,7 @@ export async function ensureRegisteredUserRecords(
   user: User,
   options?: EnsureRegisteredUserRecordsOptions,
 ) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createServiceRoleSupabaseClient();
   const metadata = (user.user_metadata ?? {}) as SupabaseUserMetadata;
 
   const fullName =
