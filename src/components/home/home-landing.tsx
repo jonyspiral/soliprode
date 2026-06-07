@@ -1,3 +1,4 @@
+import { AboutHomeCard } from "@/components/home/about-home-card";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList } from "@/components/home/home-match-list";
 import { RulesHomeCard } from "@/components/home/rules-home-card";
@@ -12,10 +13,16 @@ import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 type HomeLandingProps = {
   entryPrice: number;
   heroState: HomeHeroState;
+  aboutHref?: string;
   rulesHref?: string;
 };
 
-export async function HomeLanding({ entryPrice, heroState, rulesHref = "/reglamento" }: HomeLandingProps) {
+export async function HomeLanding({
+  entryPrice,
+  heroState,
+  aboutHref = "/quienes-somos",
+  rulesHref = "/reglamento",
+}: HomeLandingProps) {
   const [homeDisplayMetrics, communityFeed] = await Promise.all([
     getHomeDisplayMetrics(),
     getHomeCommunityFeed(),
@@ -79,6 +86,7 @@ export async function HomeLanding({ entryPrice, heroState, rulesHref = "/reglame
             activeCount: entry.activeCount,
           }))}
         />
+        <AboutHomeCard href={aboutHref} />
 
         <HomeMatchList matches={communityFeed.matches} />
         <HomeSteps steps={landingSteps} />

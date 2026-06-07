@@ -572,6 +572,50 @@ select {
   color: var(--color-muted);
 }
 
+.home-about-card {
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--color-gold-soft), #fff2a8);
+  padding: 1.25rem;
+  box-shadow: 0 10px 24px rgba(0, 50, 125, 0.06);
+}
+
+.home-about-card-tag {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0.875rem;
+  background: rgba(255, 255, 255, 0.55);
+  color: #17210e;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.7rem;
+  font-weight: 1000;
+}
+
+.home-about-card-title {
+  margin: 0;
+  font-family: var(--font-archivo-narrow), sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #17210e;
+}
+
+.home-about-card-copy {
+  margin: 0.75rem 0 0;
+  color: rgba(23, 33, 14, 0.75);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.home-about-card-link {
+  display: inline-flex;
+  margin-top: 1rem;
+  color: #17210e;
+  font-weight: 1000;
+  font-size: 0.95rem;
+}
+
 .home-ranking-list {
   display: grid;
   gap: 0.7rem;

@@ -37,6 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const loginHref = appendPromoterQuery("/login", promoterCode);
   const registerHref = appendPromoterQuery("/register", promoterCode);
+  const aboutHref = appendPromoterQuery("/quienes-somos", promoterCode);
   const rulesHref = appendPromoterQuery("/reglamento", promoterCode);
   const heroState: HomeHeroState = {
     kind: "guest",
@@ -46,7 +47,12 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <PageStack>
-      <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} rulesHref={rulesHref} />
+      <HomeLanding
+        entryPrice={entryConfig.initialPrice}
+        heroState={heroState}
+        aboutHref={aboutHref}
+        rulesHref={rulesHref}
+      />
     </PageStack>
   );
 }
