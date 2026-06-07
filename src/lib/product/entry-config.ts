@@ -1,5 +1,5 @@
 export const entryConfig = {
-  initialPrice: 5000,
+  initialPrice: 6000,
   currency: "ARS",
   priceValidUntil: "2026-06-20T23:59:00-03:00",
 } as const;
