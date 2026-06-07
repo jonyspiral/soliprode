@@ -48,6 +48,7 @@ export function AppShell({ children }: AppShellProps) {
   const isPublicHome = pathname === "/";
   const hidesActivationBanner =
     pathname === "/activar-pase" ||
+    pathname === "/despues-del-pago" ||
     pathname === "/entrar" ||
     pathname.startsWith("/pago") ||
     pathname.startsWith("/payment");

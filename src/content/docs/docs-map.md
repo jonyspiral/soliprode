@@ -20,6 +20,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Setup de Google Auth: `src/content/docs/auth-google-setup.md`
 - Home promo floor and countdown: `src/content/docs/product/home-promo-floor-and-countdown.md`
 - Onboarding contextual por invitación: `src/content/docs/product/invite-onboarding-flow.md`
+- Prompt social post-pago: `src/content/docs/product/post-checkout-team-prompt.md`
 - Grupos competitivos MVP: `src/content/docs/groups-competitive-mvp.md`
 - Fixture real y pronósticos: `src/content/docs/database/fixture-schema.md`
 - Importación controlada del fixture: `src/content/docs/database/fixture-import.md`
@@ -49,6 +50,7 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Setup externo de Google Auth | `src/content/docs/auth-google-setup.md` |
 | Home promo floor and countdown | `src/content/docs/product/home-promo-floor-and-countdown.md` |
 | Onboarding contextual por invitación | `src/content/docs/product/invite-onboarding-flow.md` |
+| Prompt social post-pago | `src/content/docs/product/post-checkout-team-prompt.md` |
 | Base Supabase | `src/content/docs/supabase-base.md` |
 | Esquema de base de datos | `src/content/docs/database-schema.md` |
 | Fixture real y pronósticos | `src/content/docs/database/fixture-schema.md` |

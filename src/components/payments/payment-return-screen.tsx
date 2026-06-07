@@ -6,6 +6,7 @@ import {
   resolvePaymentReturn,
 } from "@/lib/payments/payment-return";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 
 type PaymentReturnScreenProps = {
   kind: "success" | "pending" | "failure";
@@ -69,6 +70,22 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
     redirect(`/login?next=${encodeURIComponent(buildPaymentReturnPath(kind, searchParams))}`);
   }
 
+  const { data: participationRows } = await supabase
+    .from("participations")
+    .select("id, payment_status, group_id, created_at")
+    .eq("profile_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const currentParticipation = pickPrimaryParticipation(
+    (participationRows ?? []) as Array<{
+      id: string;
+      payment_status: string;
+      group_id: string | null;
+      created_at: string;
+    }>,
+  ).participation;
+
   const { attempt, syncResult } = await resolvePaymentReturn(returnParams);
 
   if (!attempt || attempt.profile_id !== user.id) {
@@ -92,18 +109,8 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
     );
   }
 
-  if (syncResult?.syncResult.approved) {
-    return (
-      <PaymentStatusCard
-        title="Tu Pase Solidario ya está activo"
-        description="El pago quedó confirmado y ya podés competir."
-        notice="Tu Aporte confirmado ya habilita pronósticos, Team y ranking oficial."
-        primaryHref="/matches"
-        primaryLabel="Cargar mis pronósticos"
-        secondaryHref="/"
-        secondaryLabel="Ir al inicio"
-      />
-    );
+  if (syncResult?.syncResult.approved || currentParticipation?.payment_status === "paid") {
+    redirect("/despues-del-pago");
   }
 
   if (kind === "success") {
