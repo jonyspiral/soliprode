@@ -1,10 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import {
+  PROMOTER_COOKIE_NAME,
+  normalizePromoterCode,
+} from "@/lib/auth/promoter-attribution";
+import {
   AUTH_NEXT_COOKIE_NAME,
   normalizeAuthNextPath,
 } from "@/lib/auth/oauth";
 import { getCanonicalProductionUrl, isLegacyProductionHostname } from "@/lib/site-url";
+import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/config";
 
 function buildLoginRedirect(request: NextRequest, error: string, nextPath: string) {
@@ -29,6 +34,10 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get("next") ??
       request.cookies.get(AUTH_NEXT_COOKIE_NAME)?.value,
   );
+  const promoterCode =
+    normalizePromoterCode(request.nextUrl.searchParams.get("p")) ??
+    normalizePromoterCode(request.nextUrl.searchParams.get("promoter")) ??
+    normalizePromoterCode(request.cookies.get(PROMOTER_COOKIE_NAME)?.value ?? null);
 
   if (!code) {
     return buildLoginRedirect(request, "missing_code", nextPath);
@@ -55,10 +64,33 @@ export async function GET(request: NextRequest) {
     return buildLoginRedirect(request, "confirm_failed", nextPath);
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return buildLoginRedirect(request, "missing_user", nextPath);
+  }
+
+  const bootstrapResult = await ensureRegisteredUserRecords(user, {
+    promoterCode,
+  });
+
+  if (!bootstrapResult.ok) {
+    return buildLoginRedirect(request, "bootstrap_failed", nextPath);
+  }
+
   response.cookies.set(AUTH_NEXT_COOKIE_NAME, "", {
     maxAge: 0,
     path: "/",
   });
+
+  if (request.cookies.get(PROMOTER_COOKIE_NAME)) {
+    response.cookies.set(PROMOTER_COOKIE_NAME, "", {
+      maxAge: 0,
+      path: "/",
+    });
+  }
 
   return response;
 }
