@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
 import { SOLIPRODE_RULES_VERSION } from "@/lib/rules";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
+import { entryConfig, formatEntryCountdown, formatEntryPrice } from "@/lib/product/entry-config";
 import { resolveParticipationUiState } from "@/lib/participations/status";
 
 type ActivationPanelProps = {
   participationId: string | null;
   participationStatus: string;
+  initialCheckoutError?: string | null;
   initialRulesAcceptedAt: string | null;
   initialRulesVersion: string | null;
   initialIsAdultConfirmed: boolean;
@@ -19,56 +18,17 @@ type ActivationPanelProps = {
 export function ActivationPanel({
   participationId,
   participationStatus,
+  initialCheckoutError = null,
   initialRulesAcceptedAt,
   initialRulesVersion,
   initialIsAdultConfirmed,
 }: ActivationPanelProps) {
-  const [acceptedRules, setAcceptedRules] = useState(
-    Boolean(initialIsAdultConfirmed && initialRulesAcceptedAt && initialRulesVersion === SOLIPRODE_RULES_VERSION),
-  );
-  const [savingAcceptance, setSavingAcceptance] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
-
   const priceLabel = useMemo(() => formatEntryPrice(entryConfig.initialPrice), []);
+  const countdownLabel = useMemo(() => formatEntryCountdown(), []);
+  const rulesAcceptedByDefault = Boolean(
+    initialIsAdultConfirmed && initialRulesAcceptedAt && initialRulesVersion === SOLIPRODE_RULES_VERSION,
+  );
   const participationUiState = resolveParticipationUiState(participationStatus);
-
-  async function persistRulesAcceptance() {
-    if (!participationId) {
-      setFeedback("No encontramos tu participación todavía. Reintentá en unos minutos.");
-      return false;
-    }
-
-    if (!acceptedRules) {
-      setFeedback("Para continuar, tenés que declarar mayoría de edad y aceptar el reglamento.");
-      return false;
-    }
-
-    setSavingAcceptance(true);
-    setFeedback(null);
-
-    try {
-      const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase
-        .from("participations")
-        .update({
-          rules_accepted_at: new Date().toISOString(),
-          rules_version: SOLIPRODE_RULES_VERSION,
-          is_adult_confirmed: true,
-        })
-        .eq("id", participationId);
-
-      if (error) {
-        throw error;
-      }
-
-      return true;
-    } catch {
-      setFeedback("No pudimos guardar la aceptación del reglamento ahora. Intentá de nuevo.");
-      return false;
-    } finally {
-      setSavingAcceptance(false);
-    }
-  }
 
   if (participationStatus === "paid") {
     return (
@@ -158,8 +118,10 @@ export function ActivationPanel({
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
-              checked={acceptedRules}
-              onChange={(event) => setAcceptedRules(event.target.checked)}
+              name="accepted_rules"
+              value="true"
+              required
+              defaultChecked={rulesAcceptedByDefault}
               className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
             />
             <span className="text-sm leading-6 text-[var(--color-ink)]">
@@ -173,25 +135,30 @@ export function ActivationPanel({
             Ver reglamento
           </Link>
         </div>
-        <div className="grid gap-3">
-          <CompleteRegistrationButton
-            disabled={savingAcceptance}
-            helperText={!acceptedRules ? "Aceptá el reglamento para habilitar la activación del Pase." : null}
-            onError={(message) => setFeedback(message)}
-            onBeforeStart={() => persistRulesAcceptance()}
-          />
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            No necesitás cuenta de Mercado Pago. Podés pagar con tarjeta, efectivo o transferencia bancaria según los medios disponibles.
+        <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-3">
+          <input type="hidden" name="participation_id" value={participationId ?? ""} />
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+          >
+            Pagar y activar mi Pase
+          </button>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-[var(--color-muted)]">
+            <span>{`Precio promocional · ${countdownLabel}`}</span>
+            <span>No necesitás cuenta de Mercado Pago</span>
+          </div>
+        </form>
+        <p className="text-sm leading-6 text-[var(--color-muted)]">
+          No necesitás cuenta de Mercado Pago. Podés pagar con tarjeta, efectivo o transferencia bancaria según los medios disponibles.
+        </p>
+        <p className="text-sm leading-6 text-[var(--color-muted)]">
+          Pago seguro procesado por Mercado Pago.
+        </p>
+        {initialCheckoutError ? (
+          <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+            {initialCheckoutError}
           </p>
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Pago seguro procesado por Mercado Pago.
-          </p>
-          {feedback ? (
-            <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
-              {feedback}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
         <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
             Qué desbloquea

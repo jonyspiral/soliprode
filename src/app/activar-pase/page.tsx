@@ -19,6 +19,29 @@ type ParticipationRow = {
   is_adult_confirmed: boolean | null;
 };
 
+type ActivatePassPageProps = {
+  searchParams?: Promise<{
+    checkout_error?: string;
+  }>;
+};
+
+function resolveCheckoutErrorMessage(checkoutError: string | undefined) {
+  switch (checkoutError) {
+    case "rules_required":
+      return "Aceptá el reglamento para continuar con la activación del Pase.";
+    case "rules_persist_failed":
+      return "No pudimos guardar la aceptación del reglamento ahora. Intentá de nuevo.";
+    case "missing_participation":
+      return "No encontramos tu participación todavía. Reintentá en unos minutos.";
+    case "mercadopago_not_configured":
+      return "El pago online todavía no está configurado.";
+    case "checkout_unavailable":
+      return "No pudimos abrir el checkout ahora. Probá de nuevo.";
+    default:
+      return null;
+  }
+}
+
 async function loadParticipation(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
@@ -38,7 +61,8 @@ async function loadParticipation(
   return pickPrimaryParticipation((participationResult.data ?? []) as ParticipationRow[]).participation ?? null;
 }
 
-export default async function ActivatePassPage() {
+export default async function ActivatePassPage({ searchParams }: ActivatePassPageProps) {
+  const params = searchParams ? await searchParams : undefined;
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -104,6 +128,7 @@ export default async function ActivatePassPage() {
       <ActivationPanel
         participationId={participation.id}
         participationStatus={participation.payment_status}
+        initialCheckoutError={resolveCheckoutErrorMessage(params?.checkout_error)}
         initialRulesAcceptedAt={participation.rules_accepted_at}
         initialRulesVersion={participation.rules_version}
         initialIsAdultConfirmed={Boolean(participation.is_adult_confirmed)}
