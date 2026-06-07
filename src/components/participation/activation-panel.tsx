@@ -114,28 +114,28 @@ export function ActivationPanel({
             Pago único. Activación inmediata.
           </p>
         </div>
-        <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="accepted_rules"
-              value="true"
-              required
-              defaultChecked={rulesAcceptedByDefault}
-              className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
-            />
-            <span className="text-sm leading-6 text-[var(--color-ink)]">
-              Declaro que soy mayor de 18 años y acepto el reglamento de SoliProde.
-            </span>
-          </label>
-          <Link
-            href="/reglamento"
-            className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
-          >
-            Ver reglamento
-          </Link>
-        </div>
         <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-3">
+          <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="accepted_rules"
+                value="true"
+                required={!rulesAcceptedByDefault}
+                defaultChecked={rulesAcceptedByDefault}
+                className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
+              />
+              <span className="text-sm leading-6 text-[var(--color-ink)]">
+                Declaro que soy mayor de 18 años y acepto el reglamento de SoliProde.
+              </span>
+            </label>
+            <Link
+              href="/reglamento"
+              className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
+            >
+              Ver reglamento
+            </Link>
+          </div>
           <input type="hidden" name="participation_id" value={participationId ?? ""} />
           <button
             type="submit"

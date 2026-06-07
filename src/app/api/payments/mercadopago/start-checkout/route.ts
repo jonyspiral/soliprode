@@ -40,19 +40,42 @@ export async function POST(request: Request) {
     return redirectToLocalPath(request, buildActivatePassUrl("missing_participation"));
   }
 
-  if (!acceptedRules) {
+  const { data: participation, error: participationError } = await supabase
+    .from("participations")
+    .select("id, rules_accepted_at, rules_version, is_adult_confirmed")
+    .eq("id", participationId)
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (participationError || !participation) {
+    return redirectToLocalPath(request, buildActivatePassUrl("missing_participation"));
+  }
+
+  const alreadyAcceptedRules = Boolean(
+    participation.rules_accepted_at &&
+      participation.rules_version === SOLIPRODE_RULES_VERSION &&
+      participation.is_adult_confirmed,
+  );
+
+  if (!acceptedRules && !alreadyAcceptedRules) {
     return redirectToLocalPath(request, buildActivatePassUrl("rules_required"));
   }
 
-  const { error: updateError } = await supabase
-    .from("participations")
-    .update({
-      rules_accepted_at: new Date().toISOString(),
-      rules_version: SOLIPRODE_RULES_VERSION,
-      is_adult_confirmed: true,
-    })
-    .eq("id", participationId)
-    .eq("profile_id", user.id);
+  let updateError = null;
+
+  if (acceptedRules) {
+    const updateResult = await supabase
+      .from("participations")
+      .update({
+        rules_accepted_at: new Date().toISOString(),
+        rules_version: SOLIPRODE_RULES_VERSION,
+        is_adult_confirmed: true,
+      })
+      .eq("id", participationId)
+      .eq("profile_id", user.id);
+
+    updateError = updateResult.error;
+  }
 
   if (updateError) {
     return redirectToLocalPath(request, buildActivatePassUrl("rules_persist_failed"));
