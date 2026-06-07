@@ -3,7 +3,9 @@ import { getOptionalEnv } from "@/lib/env";
 const DEFAULT_PROMO_END_AT = "2026-06-11T16:00:00-03:00";
 
 export const PROMO_END_AT =
-  getOptionalEnv("NEXT_PUBLIC_PROMO_END_AT") ?? DEFAULT_PROMO_END_AT;
+  getOptionalEnv("NEXT_PUBLIC_PROMO_END_AT") ??
+  getOptionalEnv("NEXT_PUBLIC_ENTRY_PRICE_VALID_UNTIL") ??
+  DEFAULT_PROMO_END_AT;
 
 function padTime(value: number) {
   return String(value).padStart(2, "0");

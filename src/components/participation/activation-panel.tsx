@@ -177,6 +177,7 @@ export function ActivationPanel({
           <CompleteRegistrationButton
             disabled={savingAcceptance}
             helperText={!acceptedRules ? "Aceptá el reglamento para habilitar la activación del Pase." : null}
+            onError={(message) => setFeedback(message)}
             onBeforeStart={() => persistRulesAcceptance()}
           />
           <p className="text-sm leading-6 text-[var(--color-muted)]">

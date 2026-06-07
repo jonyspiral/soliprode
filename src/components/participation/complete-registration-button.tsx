@@ -8,6 +8,7 @@ type CompleteRegistrationButtonProps = {
   className?: string;
   compact?: boolean;
   disabled?: boolean;
+  onError?: (message: string) => void;
   helperText?: string | null;
   onBeforeStart?: () => Promise<boolean> | boolean;
 };
@@ -16,6 +17,7 @@ export function CompleteRegistrationButton({
   className = "",
   compact = false,
   disabled = false,
+  onError,
   helperText = null,
   onBeforeStart,
 }: CompleteRegistrationButtonProps) {
@@ -33,6 +35,7 @@ export function CompleteRegistrationButton({
     <div className={["grid gap-1.5", className].join(" ")}>
       <StartCheckoutButton
         disabled={disabled}
+        onError={onError}
         onBeforeStart={onBeforeStart}
         className={[
           "inline-flex items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-70",

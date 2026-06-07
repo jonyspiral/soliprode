@@ -1,7 +1,36 @@
+import { getOptionalEnv } from "@/lib/env";
+
+const DEFAULT_ENTRY_PRICE = 6000;
+const DEFAULT_PROMO_END_AT = "2026-06-11T16:00:00-03:00";
+
+function resolveEntryPrice() {
+  const rawValue = getOptionalEnv("NEXT_PUBLIC_ENTRY_PRICE");
+
+  if (!rawValue) {
+    return DEFAULT_ENTRY_PRICE;
+  }
+
+  const parsedValue = Number(rawValue);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return DEFAULT_ENTRY_PRICE;
+  }
+
+  return Math.round(parsedValue);
+}
+
+function resolveEntryPriceValidUntil() {
+  return (
+    getOptionalEnv("NEXT_PUBLIC_ENTRY_PRICE_VALID_UNTIL") ??
+    getOptionalEnv("NEXT_PUBLIC_PROMO_END_AT") ??
+    DEFAULT_PROMO_END_AT
+  );
+}
+
 export const entryConfig = {
-  initialPrice: 6000,
+  initialPrice: resolveEntryPrice(),
   currency: "ARS",
-  priceValidUntil: "2026-06-20T23:59:00-03:00",
+  priceValidUntil: resolveEntryPriceValidUntil(),
 } as const;
 
 export function formatEntryPrice(amount: number) {

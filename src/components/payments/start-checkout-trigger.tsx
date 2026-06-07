@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 type CheckoutResponsePayload = {
   ok: boolean;
   alreadyPaid?: boolean;
+  error?: string;
   checkoutUrl?: string;
   initPoint?: string | null;
   sandboxInitPoint?: string | null;
@@ -26,7 +27,7 @@ export async function requestCheckoutUrl() {
   }
 
   if (!response.ok || !payload.ok || !payload.checkoutUrl) {
-    throw new Error("checkout_unavailable");
+    throw new Error(payload.error ?? "No pudimos abrir el checkout ahora. Probá de nuevo.");
   }
 
   return {
@@ -39,6 +40,7 @@ type StartCheckoutButtonProps = {
   children: ReactNode;
   className?: string;
   disabled?: boolean;
+  onError?: (message: string) => void;
   onBeforeStart?: () => Promise<boolean> | boolean;
 };
 
@@ -46,6 +48,7 @@ export function StartCheckoutButton({
   children,
   className = "",
   disabled = false,
+  onError,
   onBeforeStart,
 }: StartCheckoutButtonProps) {
   const router = useRouter();
@@ -76,7 +79,12 @@ export function StartCheckoutButton({
       }
 
       window.location.assign(result.checkoutUrl);
-    } catch {
+    } catch (error) {
+      onError?.(
+        error instanceof Error && error.message
+          ? error.message
+          : "No pudimos abrir el checkout ahora. Probá de nuevo.",
+      );
       setPending(false);
     }
   }
@@ -96,9 +104,10 @@ export function StartCheckoutButton({
 type StartCheckoutCardProps = {
   children: ReactNode;
   className?: string;
+  onError?: (message: string) => void;
 };
 
-export function StartCheckoutCard({ children, className = "" }: StartCheckoutCardProps) {
+export function StartCheckoutCard({ children, className = "", onError }: StartCheckoutCardProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -118,7 +127,12 @@ export function StartCheckoutCard({ children, className = "" }: StartCheckoutCar
       }
 
       window.location.assign(result.checkoutUrl);
-    } catch {
+    } catch (error) {
+      onError?.(
+        error instanceof Error && error.message
+          ? error.message
+          : "No pudimos abrir el checkout ahora. Probá de nuevo.",
+      );
       setPending(false);
     }
   }

@@ -9,35 +9,6 @@ import type { HomeHeroState } from "@/lib/home/player-hero-state";
 import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getHomeDisplayMetrics } from "@/lib/product/home-display";
 
-const LANDING_STEPS: readonly HomeLandingStep[] = [
-  {
-    step: "Paso 1",
-    title: "Creás tu cuenta",
-    description: "Entrás gratis, elegís tu alias y empezás a jugar sin pagar al registrarte.",
-  },
-  {
-    step: "Paso 2",
-    title: "Cargás tus pronósticos",
-    description: "Guardás pronósticos como borrador y preparás tu torneo desde el celular.",
-  },
-  {
-    step: "Paso 3",
-    title: "Creá un equipo e invitá a tus amigos",
-    description: "Pueden ganar la Copa y premios sorpresa.",
-  },
-  {
-    step: "Paso 4",
-    title: "Estate atento",
-    description: "No te pierdas de cargar tus pronósticos antes de cada partido.",
-  },
-  {
-    step: "Paso 5",
-    title: "Activá tu cuenta",
-    description:
-      "Finalizá el proceso de inscripción para acceder a todas las funciones de SoliProde. Hoy por solo $5.000.",
-  },
-] as const;
-
 type HomeLandingProps = {
   entryPrice: number;
   heroState: HomeHeroState;
@@ -49,6 +20,33 @@ export async function HomeLanding({ entryPrice, heroState, rulesHref = "/reglame
     getHomeDisplayMetrics(),
     getHomeCommunityFeed(),
   ]);
+  const landingSteps: readonly HomeLandingStep[] = [
+    {
+      step: "Paso 1",
+      title: "Creás tu cuenta",
+      description: "Entrás gratis, elegís tu alias y empezás a jugar sin pagar al registrarte.",
+    },
+    {
+      step: "Paso 2",
+      title: "Cargás tus pronósticos",
+      description: "Guardás pronósticos como borrador y preparás tu torneo desde el celular.",
+    },
+    {
+      step: "Paso 3",
+      title: "Creá un equipo e invitá a tus amigos",
+      description: "Pueden ganar la Copa y premios sorpresa.",
+    },
+    {
+      step: "Paso 4",
+      title: "Estate atento",
+      description: "No te pierdas de cargar tus pronósticos antes de cada partido.",
+    },
+    {
+      step: "Paso 5",
+      title: "Activá tu cuenta",
+      description: `Finalizá el proceso de inscripción para acceder a todas las funciones de SoliProde. Hoy por solo ${formatEntryPrice(entryPrice)}.`,
+    },
+  ] as const;
 
   return (
     <>
@@ -83,7 +81,7 @@ export async function HomeLanding({ entryPrice, heroState, rulesHref = "/reglame
         />
 
         <HomeMatchList matches={communityFeed.matches} />
-        <HomeSteps steps={LANDING_STEPS} />
+        <HomeSteps steps={landingSteps} />
         <RulesHomeCard href={rulesHref} className="mt-3" />
       </div>
     </>
