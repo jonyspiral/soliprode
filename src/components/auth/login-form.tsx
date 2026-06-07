@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   GoogleIcon,
   LockIcon,
@@ -13,7 +12,6 @@ import {
 } from "@/lib/auth/promoter-attribution";
 import {
   buildAuthCallbackUrl,
-  clearPersistedAuthNextPath,
   hasConfiguredAuthBaseUrl,
   persistAuthNextPath,
 } from "@/lib/auth/oauth";
@@ -22,8 +20,6 @@ import {
   isLegacyProductionHostname,
   resolvePublicSiteOrigin,
 } from "@/lib/site-url";
-import { mapAuthError } from "@/lib/supabase/auth";
-import { ensureBrowserUserRecords } from "@/lib/supabase/browser-bootstrap";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
@@ -54,12 +50,8 @@ function redirectToCanonicalHostIfNeeded() {
 }
 
 export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
-  const [emailExpanded, setEmailExpanded] = useState(false);
   const normalizedPromoterCode = useMemo(() => normalizePromoterCode(promoterCode), [promoterCode]);
   const [manualPromoterCode, setManualPromoterCode] = useState(() => normalizedPromoterCode ?? "");
   const effectivePromoterCode = normalizedPromoterCode ?? normalizePromoterCode(manualPromoterCode);
@@ -74,7 +66,6 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
 
   async function handleGoogleLogin() {
     setError(null);
-    setSuccess(null);
     setGooglePending(true);
 
     try {
@@ -121,77 +112,6 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
     }
   }
 
-  async function handleSubmit(formData: FormData) {
-    setError(null);
-    setSuccess(null);
-    setPending(true);
-
-    try {
-      const email = String(formData.get("email") ?? "").trim();
-      const password = String(formData.get("password") ?? "").trim();
-
-      if (!email || !password) {
-        setError("Completá email y contraseña para seguir jugando.");
-        return;
-      }
-
-      persistPromoterCode(effectivePromoterCode);
-
-      const supabase = createBrowserSupabaseClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) {
-        setError(
-          mapAuthError(
-            signInError,
-            "No pudimos entrar con esos datos. Revisá el email o la contraseña.",
-          ),
-        );
-        return;
-      }
-
-      const user = data.user;
-
-      if (!user) {
-        setError("Entraste, pero no pudimos recuperar tu cuenta todavía. Probá de nuevo.");
-        return;
-      }
-
-      const bootstrapResult = await ensureBrowserUserRecords();
-
-      if (!bootstrapResult.ok) {
-        setError(bootstrapResult.error);
-        return;
-      }
-
-      persistPromoterCode(null);
-      clearPersistedAuthNextPath();
-      setSuccess("Listo. Volvés a tu panel.");
-      router.replace(nextPath);
-      router.refresh();
-    } catch {
-      setError("No pudimos entrar ahora. Probá de nuevo en un rato.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!emailExpanded) {
-      setError(null);
-      setSuccess(null);
-      setEmailExpanded(true);
-      return;
-    }
-
-    await handleSubmit(new FormData(event.currentTarget));
-  }
-
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
@@ -215,12 +135,12 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
       </div>
 
       <form
-        onSubmit={(event) => {
-          void handleEmailSubmit(event);
-        }}
+        action="/api/auth/password-signin"
+        method="post"
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="next" value={nextPath} />
+        <input type="hidden" name="promoter_code" value={effectivePromoterCode ?? ""} />
         <div className="grid gap-2">
           <label
             htmlFor="email"
@@ -242,35 +162,32 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
           </div>
         </div>
 
-        {emailExpanded ? (
-          <div className="grid gap-2">
-            <label
-              htmlFor="password"
-              className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--color-primary)]"
-            >
-              Contraseña
-            </label>
-            <div className="flex items-center overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_0_3px_rgba(154,225,255,0.22)]">
-              <LockIcon className="ml-3 mr-2 h-4 w-4 text-[var(--color-muted)]" />
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-[0.95rem] font-semibold text-[var(--color-ink)] outline-none placeholder:font-normal placeholder:text-[rgba(67,70,83,0.62)]"
-                placeholder="Tu contraseña"
-              />
-            </div>
+        <div className="grid gap-2">
+          <label
+            htmlFor="password"
+            className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--color-primary)]"
+          >
+            Contraseña
+          </label>
+          <div className="flex items-center overflow-hidden rounded-lg border-[1.5px] border-[var(--color-line)] bg-white transition focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_0_3px_rgba(154,225,255,0.22)]">
+            <LockIcon className="ml-3 mr-2 h-4 w-4 text-[var(--color-muted)]" />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="min-h-12 w-full border-none bg-transparent py-3 pr-4 text-[0.95rem] font-semibold text-[var(--color-ink)] outline-none placeholder:font-normal placeholder:text-[rgba(67,70,83,0.62)]"
+              placeholder="Tu contraseña"
+            />
           </div>
-        ) : null}
+        </div>
 
         <button
           type="submit"
-          disabled={pending}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary-strong)] px-5 py-3 text-[0.82rem] font-extrabold uppercase tracking-[0.09em] text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {pending ? "Entrando..." : emailExpanded ? "Entrar con email" : "Continuar"}
+          Entrar con email
         </button>
 
         <div className="grid gap-2 rounded-xl border border-[rgba(0,50,125,0.12)] bg-[var(--color-surface-muted)] p-3">
@@ -306,12 +223,6 @@ export function LoginForm({ nextPath, promoterCode = null }: LoginFormProps) {
         {error ? (
           <p className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
             {error}
-          </p>
-        ) : null}
-
-        {success ? (
-          <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            {success}
           </p>
         ) : null}
 
