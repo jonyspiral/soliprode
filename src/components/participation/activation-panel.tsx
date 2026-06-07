@@ -57,32 +57,31 @@ export function ActivationPanel({
 
   if (participationUiState.isRetryableCheckout) {
     return (
-      <div className="grid gap-4 rounded-[1.25rem] border border-[var(--color-gold)] bg-[rgba(255,225,109,0.12)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:p-5">
-        <div className="grid gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Pase Solidario
-          </p>
-          <h1 className="font-serif text-[1.85rem] font-bold leading-none text-[var(--color-ink)]">
+      <div className="grid gap-3 rounded-[1.25rem] border border-[var(--color-gold)] bg-[rgba(255,225,109,0.12)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:p-5">
+        <div className="grid gap-1">
+          <h1 className="font-serif text-[1.95rem] font-bold leading-none text-[var(--color-ink)]">
             Terminá de activar tu Pase
           </h1>
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Tu activación sigue sin confirmarse. Podés continuar o reintentar el checkout ahora mismo.
+          <p className="font-serif text-[2.65rem] font-bold leading-none text-[var(--color-primary)] sm:text-[2.85rem]">
+            {priceLabel}
+          </p>
+          <p className="text-sm font-semibold leading-5 text-[var(--color-ink)]">
+            Pago único. Activación inmediata.
           </p>
         </div>
 
-        <div className="rounded-[1rem] border border-white/80 bg-white/90 p-4">
-          <div className="grid gap-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Precio actual
-            </p>
-            <p className="font-serif text-[2.25rem] font-bold leading-none text-[var(--color-primary)]">
-              {priceLabel}
-            </p>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-ink)]">Pago único. Activación inmediata.</p>
-        </div>
-
-        <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-3">
+        <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-2">
+          <input type="hidden" name="participation_id" value={participationId ?? ""} />
+          <button
+            type="submit"
+            className="inline-flex min-h-14 w-full items-center justify-center rounded-xl border border-[#d5b63c] bg-[#ffe16d] px-4 py-4 text-[0.86rem] font-extrabold uppercase tracking-[0.1em] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(201,169,0,0.24)]"
+          >
+            Continuar con el pago
+          </button>
+          <p className="text-xs leading-5 text-[var(--color-muted)]">
+            No necesitás saldo en Mercado Pago. Podés elegir tarjeta u otros medios disponibles.
+          </p>
+          <div className="text-[11px] leading-5 text-[var(--color-muted)]">{`Precio promocional · ${countdownLabel}`}</div>
           {!rulesAcceptedByDefault ? (
             <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
               <label className="flex items-start gap-3">
@@ -105,22 +104,7 @@ export function ActivationPanel({
               </Link>
             </div>
           ) : null}
-          <input type="hidden" name="participation_id" value={participationId ?? ""} />
-          <button
-            type="submit"
-            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-          >
-            Continuar con el pago
-          </button>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-[var(--color-muted)]">
-            <span>{`Precio promocional · ${countdownLabel}`}</span>
-            <span>No necesitás cuenta de Mercado Pago</span>
-          </div>
         </form>
-
-        <p className="text-sm leading-6 text-[var(--color-muted)]">
-          No necesitás cuenta de Mercado Pago. Podés pagar con tarjeta, efectivo o transferencia bancaria según los medios disponibles.
-        </p>
 
         {initialCheckoutError ? (
           <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
@@ -164,33 +148,29 @@ export function ActivationPanel({
   }
 
   return (
-    <div className="grid gap-4 rounded-[1.35rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:p-5">
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Pase Solidario
-          </p>
-          <h1 className="font-serif text-[1.95rem] font-bold leading-none text-[var(--color-ink)] sm:text-[2rem]">
+    <div className="grid gap-3 rounded-[1.35rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] sm:p-5">
+      <div className="grid gap-3">
+        <div className="grid gap-1">
+          <h1 className="font-serif text-[2rem] font-bold leading-none text-[var(--color-ink)] sm:text-[2.05rem]">
             Activá tu Pase Solidario
           </h1>
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Con tu pase activo ya podés cargar pronósticos, armar tu Team y competir por premios.
+          <p className="font-serif text-[2.9rem] font-bold leading-none text-[var(--color-primary)] sm:text-[3.15rem]">
+            {priceLabel}
           </p>
+          <p className="text-sm font-semibold leading-5 text-[var(--color-ink)]">Pago único. Activación inmediata.</p>
         </div>
-        <div className="rounded-[1rem] border border-white/80 bg-white/80 p-4">
-          <div className="grid gap-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Precio actual
-            </p>
-            <p className="font-serif text-[2.25rem] font-bold leading-none text-[var(--color-primary)] sm:text-[2.5rem]">
-              {priceLabel}
-            </p>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-ink)]">
-            Pago único. Activación inmediata.
+        <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-2">
+          <input type="hidden" name="participation_id" value={participationId ?? ""} />
+          <button
+            type="submit"
+            className="inline-flex min-h-14 w-full items-center justify-center rounded-xl border border-[#d5b63c] bg-[#ffe16d] px-4 py-4 text-[0.9rem] font-extrabold uppercase tracking-[0.1em] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(201,169,0,0.24)]"
+          >
+            PAGAR Y ACTIVAR MI PASE
+          </button>
+          <p className="text-xs leading-5 text-[var(--color-muted)]">
+            No necesitás saldo en Mercado Pago. Podés elegir tarjeta u otros medios disponibles.
           </p>
-        </div>
-        <form action="/api/payments/mercadopago/start-checkout" method="post" className="grid gap-3">
+          <div className="text-[11px] leading-5 text-[var(--color-muted)]">{`Precio promocional · ${countdownLabel}`}</div>
           <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
             <label className="flex items-start gap-3">
               <input
@@ -209,27 +189,10 @@ export function ActivationPanel({
               href="/reglamento"
               className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
             >
-              Ver reglamento
-            </Link>
-          </div>
-          <input type="hidden" name="participation_id" value={participationId ?? ""} />
-          <button
-            type="submit"
-            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-          >
-            Pagar y activar mi Pase
-          </button>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-[var(--color-muted)]">
-            <span>{`Precio promocional · ${countdownLabel}`}</span>
-            <span>No necesitás cuenta de Mercado Pago</span>
-          </div>
+                Ver reglamento
+              </Link>
+            </div>
         </form>
-        <p className="text-sm leading-6 text-[var(--color-muted)]">
-          No necesitás cuenta de Mercado Pago. Podés pagar con tarjeta, efectivo o transferencia bancaria según los medios disponibles.
-        </p>
-        <p className="text-sm leading-6 text-[var(--color-muted)]">
-          Pago seguro procesado por Mercado Pago.
-        </p>
         {initialCheckoutError ? (
           <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
             {initialCheckoutError}
