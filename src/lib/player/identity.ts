@@ -2,7 +2,10 @@ import {
   buildAvatarCandidateUrls,
   buildGeneratedAvatarDataUrl,
   buildStableAvatarSeed,
+  getStoredAvatarChoice,
   getAvatarFallbackVariant,
+  isEmojiAvatarVariant,
+  isGoogleAvatarVariant,
   getPlayerInitials,
   resolveStoredAvatarUrl,
 } from "@/lib/avatar/identity";
@@ -92,8 +95,10 @@ export function getPlayerAvatarModel(
 ) {
   const metadata = user?.user_metadata;
   const label = getPlayerDisplayName(profile, user);
-  const avatarSeed = buildStableAvatarSeed(
-    profile?.avatar_seed,
+  const generatedSeed = buildStableAvatarSeed(
+    isEmojiAvatarVariant(profile?.avatar_variant) || isGoogleAvatarVariant(profile?.avatar_variant)
+      ? null
+      : profile?.avatar_seed,
     user?.id,
     profile?.id,
     profile?.public_alias,
@@ -102,34 +107,51 @@ export function getPlayerAvatarModel(
     metadata?.full_name,
     label,
   );
-  const avatarVariant = getAvatarFallbackVariant("player", avatarSeed, profile?.avatar_variant);
+  const avatarVariant = getAvatarFallbackVariant("player", generatedSeed, profile?.avatar_variant);
+  const currentAvatarChoice = getStoredAvatarChoice({
+    avatarUrl: profile?.avatar_url,
+    avatarSeed: profile?.avatar_seed,
+    avatarVariant: profile?.avatar_variant,
+  });
   const storedAvatarUrl = resolveStoredAvatarUrl({
     kind: "player",
     avatarUrl: profile?.avatar_url,
     label,
-    seed: avatarSeed,
+    seed: generatedSeed,
     variant: avatarVariant,
   });
   const googleAvatarUrl = firstNonEmpty(metadata?.avatar_url, metadata?.picture);
   const generatedAvatarUrl = buildGeneratedAvatarDataUrl({
     kind: "player",
     label,
-    seed: avatarSeed,
+    seed: generatedSeed,
     variant: avatarVariant,
   });
-  const imageCandidates = buildAvatarCandidateUrls([
-    storedAvatarUrl,
-    googleAvatarUrl,
-    generatedAvatarUrl,
-  ]);
+
+  const selectedAvatarUrl = isEmojiAvatarVariant(profile?.avatar_variant)
+    ? buildGeneratedAvatarDataUrl({
+        kind: "player",
+        label,
+        seed: profile?.avatar_seed ?? generatedSeed,
+        variant: "emoji",
+      })
+    : isGoogleAvatarVariant(profile?.avatar_variant)
+      ? googleAvatarUrl
+      : storedAvatarUrl;
+  const imageCandidates = buildAvatarCandidateUrls(
+    isGoogleAvatarVariant(profile?.avatar_variant)
+      ? [selectedAvatarUrl, generatedAvatarUrl]
+      : [selectedAvatarUrl, googleAvatarUrl, generatedAvatarUrl],
+  );
 
   return {
-    avatarSeed,
+    avatarSeed: generatedSeed,
     avatarVariant,
     avatarUrl: imageCandidates[0] ?? null,
     fallbackAvatarUrl: imageCandidates[1] ?? null,
+    currentAvatarChoice,
     googleAvatarUrl,
-    hasCustomAvatar: Boolean(profile?.avatar_url?.trim()),
+    hasCustomAvatar: currentAvatarChoice !== "auto" && currentAvatarChoice !== "google",
   };
 }
 

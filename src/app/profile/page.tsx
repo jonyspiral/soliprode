@@ -307,10 +307,11 @@ export default async function ProfilePage() {
         avatarSeed={avatarModel.avatarSeed}
         avatarUrl={avatarModel.avatarUrl}
         avatarVariant={avatarModel.avatarVariant}
-        currentAvatarChoice={profile?.avatar_url?.trim() ? profile.avatar_url : "auto"}
+        currentAvatarChoice={avatarModel.currentAvatarChoice}
         email={profile?.email ?? userEmail}
         fullName={accountName}
         hasGoogleAvatar={Boolean(avatarModel.googleAvatarUrl)}
+        googleAvatarUrl={avatarModel.googleAvatarUrl}
         publicLabel={publicLabel}
         publicNickname={profile?.public_alias ?? publicLabel}
         userId={currentUserId}

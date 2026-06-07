@@ -1,10 +1,26 @@
 export type AvatarKind = "player" | "group";
+export type AvatarSelectionMode = "auto" | "google" | "emoji" | "soliprode" | "custom";
+export type AvatarEmojiCategory = "Caras" | "Animales" | "Deporte" | "Simbolos" | "Banderas";
 
 type AvatarPalette = {
   background: string;
   accent: string;
   detail: string;
   text: string;
+};
+
+type ParsedPresetAvatarReference = {
+  kind: AvatarKind;
+  seed: string;
+  variant: string;
+};
+
+export type AvatarEmojiOption = {
+  category: AvatarEmojiCategory;
+  emoji: string;
+  key: string;
+  label: string;
+  recommended: boolean;
 };
 
 const PLAYER_VARIANTS = [
@@ -44,12 +60,68 @@ const GROUP_PALETTES: AvatarPalette[] = [
 ] as const;
 
 const PRESET_PREFIX = "preset";
+const EMOJI_PREFIX = "emoji";
+const GOOGLE_SELECTION = "google";
+const AUTO_SELECTION = "auto";
+const EMOJI_VARIANT = "emoji";
+const GOOGLE_VARIANT = "google";
+const EMOJI_REGEX = /[\p{Extended_Pictographic}\p{Regional_Indicator}\u200d]/u;
 
-type ParsedPresetAvatarReference = {
-  kind: AvatarKind;
-  seed: string;
-  variant: string;
-};
+const PLAYER_EMOJIS: AvatarEmojiOption[] = [
+  { category: "Deporte", emoji: "⚽", key: "ball", label: "Futbol", recommended: true },
+  { category: "Deporte", emoji: "🏆", key: "cup", label: "Copa", recommended: true },
+  { category: "Simbolos", emoji: "🔥", key: "fire", label: "Fuego", recommended: true },
+  { category: "Caras", emoji: "😎", key: "cool", label: "Facha", recommended: true },
+  { category: "Deporte", emoji: "🎯", key: "target", label: "Punteria", recommended: true },
+  { category: "Simbolos", emoji: "🚀", key: "rocket", label: "Cohete", recommended: true },
+  { category: "Animales", emoji: "🐐", key: "goat", label: "GOAT", recommended: true },
+  { category: "Simbolos", emoji: "⭐", key: "star", label: "Estrella", recommended: true },
+  { category: "Simbolos", emoji: "💪", key: "power", label: "Potencia", recommended: true },
+  { category: "Caras", emoji: "🧠", key: "brain", label: "Cabeza", recommended: true },
+  { category: "Deporte", emoji: "🧤", key: "glove", label: "Arquero", recommended: true },
+  { category: "Deporte", emoji: "🥇", key: "gold", label: "Primero", recommended: true },
+  { category: "Simbolos", emoji: "🎉", key: "party", label: "Fiesta", recommended: true },
+  { category: "Simbolos", emoji: "⚡", key: "thunder", label: "Rayo", recommended: true },
+  { category: "Simbolos", emoji: "👑", key: "crown", label: "Rey", recommended: true },
+  { category: "Simbolos", emoji: "🌟", key: "shine", label: "Brillo", recommended: true },
+  { category: "Caras", emoji: "🤖", key: "robot", label: "Robot", recommended: false },
+  { category: "Caras", emoji: "🥶", key: "cold", label: "Frio", recommended: false },
+  { category: "Caras", emoji: "😤", key: "rage", label: "Actitud", recommended: false },
+  { category: "Caras", emoji: "🥳", key: "party-face", label: "Festejo", recommended: false },
+  { category: "Animales", emoji: "🦊", key: "fox", label: "Zorro", recommended: false },
+  { category: "Animales", emoji: "🦈", key: "shark", label: "Tiburon", recommended: false },
+  { category: "Animales", emoji: "🦁", key: "lion", label: "Leon", recommended: false },
+  { category: "Deporte", emoji: "🥅", key: "goal-net", label: "Red", recommended: false },
+  { category: "Deporte", emoji: "📣", key: "megaphone", label: "Aliento", recommended: false },
+  { category: "Simbolos", emoji: "🛡️", key: "shield", label: "Escudo", recommended: false },
+  { category: "Simbolos", emoji: "🎺", key: "trumpet", label: "Tribuna", recommended: false },
+  { category: "Banderas", emoji: "🇦🇷", key: "ar", label: "Argentina", recommended: false },
+  { category: "Banderas", emoji: "🇧🇷", key: "br", label: "Brasil", recommended: false },
+  { category: "Banderas", emoji: "🇺🇾", key: "uy", label: "Uruguay", recommended: false },
+] as const;
+
+const GROUP_EMOJIS: AvatarEmojiOption[] = [
+  { category: "Animales", emoji: "🦁", key: "lion", label: "Leones", recommended: true },
+  { category: "Animales", emoji: "🐺", key: "wolf", label: "Lobos", recommended: true },
+  { category: "Animales", emoji: "🦅", key: "eagle", label: "Aguilas", recommended: true },
+  { category: "Animales", emoji: "🐯", key: "tiger", label: "Tigres", recommended: true },
+  { category: "Animales", emoji: "🐉", key: "dragon", label: "Dragones", recommended: true },
+  { category: "Animales", emoji: "🐍", key: "snake", label: "Serpientes", recommended: true },
+  { category: "Simbolos", emoji: "⚡", key: "lightning", label: "Relampago", recommended: true },
+  { category: "Simbolos", emoji: "🔥", key: "fire", label: "Fuego", recommended: true },
+  { category: "Simbolos", emoji: "🛡️", key: "badge", label: "Escudo", recommended: true },
+  { category: "Simbolos", emoji: "👑", key: "royal", label: "Corona", recommended: true },
+  { category: "Deporte", emoji: "🏆", key: "team-cup", label: "Copa", recommended: true },
+  { category: "Deporte", emoji: "⚽", key: "team-ball", label: "Pelota", recommended: true },
+  { category: "Simbolos", emoji: "🚀", key: "team-rocket", label: "Cohete", recommended: true },
+  { category: "Simbolos", emoji: "⭐", key: "team-star", label: "Estrella", recommended: true },
+  { category: "Simbolos", emoji: "💪", key: "team-power", label: "Fuerza", recommended: true },
+  { category: "Deporte", emoji: "🎯", key: "team-target", label: "Punteria", recommended: true },
+  { category: "Animales", emoji: "🦈", key: "team-shark", label: "Tiburones", recommended: false },
+  { category: "Animales", emoji: "🦊", key: "team-fox", label: "Zorros", recommended: false },
+  { category: "Animales", emoji: "🐻", key: "team-bear", label: "Osos", recommended: false },
+  { category: "Banderas", emoji: "🇦🇷", key: "team-ar", label: "Argentina", recommended: false },
+] as const;
 
 function trimValue(value: string | null | undefined) {
   if (typeof value !== "string") {
@@ -74,6 +146,15 @@ function encodeSvg(svg: string) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function escapeXml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
 function uniqueValues(values: Array<string | null | undefined>) {
   return [...new Set(values.map(trimValue).filter((value): value is string => Boolean(value)))];
 }
@@ -90,7 +171,7 @@ function getPalette(kind: AvatarKind, variant: string, seed: string) {
 
 function buildPlayerSvg(label: string, seed: string, variant: string) {
   const palette = getPalette("player", variant, seed);
-  const initials = getPlayerInitials(label);
+  const initials = escapeXml(getPlayerInitials(label));
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="${initials}">
@@ -112,7 +193,7 @@ function buildPlayerSvg(label: string, seed: string, variant: string) {
 
 function buildGroupSvg(label: string, seed: string, variant: string) {
   const palette = getPalette("group", variant, seed);
-  const initials = getGroupInitials(label);
+  const initials = escapeXml(getGroupInitials(label));
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 144" role="img" aria-label="${initials}">
@@ -127,6 +208,49 @@ function buildGroupSvg(label: string, seed: string, variant: string) {
       <path d="M42 90h44" stroke="${palette.detail}" stroke-width="8" stroke-linecap="round" opacity="0.9" />
       <circle cx="64" cy="105" r="7" fill="${palette.detail}" opacity="0.95" />
       <text x="64" y="80" text-anchor="middle" fill="${palette.text}" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="1">${initials}</text>
+    </svg>
+  `;
+}
+
+function buildEmojiSvg(input: {
+  kind: AvatarKind;
+  emoji: string;
+  seed: string;
+}) {
+  const palette = getPalette(input.kind, "emoji", input.seed);
+  const safeEmoji = escapeXml(input.emoji);
+
+  if (input.kind === "player") {
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="${safeEmoji}">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${palette.accent}" />
+            <stop offset="100%" stop-color="${palette.background}" />
+          </linearGradient>
+        </defs>
+        <rect width="128" height="128" rx="64" fill="url(#bg)" />
+        <circle cx="64" cy="64" r="50" fill="rgba(255,255,255,0.08)" />
+        <circle cx="64" cy="64" r="45" fill="none" stroke="${palette.detail}" stroke-width="6" opacity="0.92" />
+        <path d="M24 42c14-12 36-18 56-18s24 2 24 2" stroke="rgba(255,255,255,0.14)" stroke-width="8" stroke-linecap="round" />
+        <text x="64" y="82" text-anchor="middle" font-size="52">${safeEmoji}</text>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 144" role="img" aria-label="${safeEmoji}">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${palette.accent}" />
+          <stop offset="100%" stop-color="${palette.background}" />
+        </linearGradient>
+      </defs>
+      <path d="M64 8 114 26v38c0 38-24 58-50 72C38 122 14 102 14 64V26L64 8Z" fill="url(#bg)" />
+      <path d="M30 34h68" stroke="${palette.detail}" stroke-width="8" stroke-linecap="round" opacity="0.88" />
+      <path d="M38 102h52" stroke="rgba(255,255,255,0.16)" stroke-width="6" stroke-linecap="round" />
+      <circle cx="64" cy="71" r="38" fill="rgba(255,255,255,0.08)" />
+      <text x="64" y="88" text-anchor="middle" font-size="48">${safeEmoji}</text>
     </svg>
   `;
 }
@@ -161,8 +285,25 @@ export function getGroupInitials(label: string | null | undefined) {
   return initials || "TM";
 }
 
+export function isEmojiAvatarVariant(value: string | null | undefined) {
+  return trimValue(value) === EMOJI_VARIANT;
+}
+
+export function isGoogleAvatarVariant(value: string | null | undefined) {
+  return trimValue(value) === GOOGLE_VARIANT;
+}
+
+export function isValidAvatarEmoji(value: string | null | undefined) {
+  const trimmed = trimValue(value);
+  return Boolean(trimmed && EMOJI_REGEX.test(trimmed));
+}
+
 export function getAvatarVariantOptions(kind: AvatarKind) {
   return [...getVariantOptions(kind)];
+}
+
+export function getAvatarEmojiCatalog(kind: AvatarKind) {
+  return kind === "player" ? [...PLAYER_EMOJIS] : [...GROUP_EMOJIS];
 }
 
 export function normalizeAvatarVariant(kind: AvatarKind, value: string | null | undefined) {
@@ -230,12 +371,64 @@ export function parsePresetAvatarReference(value: string | null | undefined): Pa
   };
 }
 
+export function buildEmojiAvatarChoice(emoji: string) {
+  return `${EMOJI_PREFIX}:${encodeURIComponent(emoji)}`;
+}
+
+export function parseEmojiAvatarChoice(value: string | null | undefined) {
+  const trimmed = trimValue(value);
+
+  if (!trimmed || !trimmed.startsWith(`${EMOJI_PREFIX}:`)) {
+    return null;
+  }
+
+  const decoded = decodeURIComponent(trimmed.slice(EMOJI_PREFIX.length + 1));
+  return isValidAvatarEmoji(decoded) ? decoded : null;
+}
+
+export function getGoogleAvatarChoice() {
+  return GOOGLE_SELECTION;
+}
+
+export function isGoogleAvatarChoice(value: string | null | undefined) {
+  return trimValue(value) === GOOGLE_SELECTION;
+}
+
+export function isAutoAvatarChoice(value: string | null | undefined) {
+  return trimValue(value) === AUTO_SELECTION;
+}
+
+export function getStoredAvatarChoice(input: {
+  avatarUrl?: string | null;
+  avatarSeed?: string | null;
+  avatarVariant?: string | null;
+}) {
+  if (isEmojiAvatarVariant(input.avatarVariant) && isValidAvatarEmoji(input.avatarSeed)) {
+    return buildEmojiAvatarChoice(input.avatarSeed!);
+  }
+
+  if (isGoogleAvatarVariant(input.avatarVariant)) {
+    return GOOGLE_SELECTION;
+  }
+
+  const storedUrl = trimValue(input.avatarUrl);
+  return storedUrl ?? AUTO_SELECTION;
+}
+
 export function buildGeneratedAvatarDataUrl(input: {
   kind: AvatarKind;
   label: string;
   seed: string;
   variant?: string | null;
 }) {
+  if (isEmojiAvatarVariant(input.variant) && isValidAvatarEmoji(input.seed)) {
+    return encodeSvg(buildEmojiSvg({
+      kind: input.kind,
+      emoji: input.seed,
+      seed: `${input.kind}:${input.seed}`,
+    }));
+  }
+
   const variant = getAvatarFallbackVariant(input.kind, input.seed, input.variant);
   const svg =
     input.kind === "player"

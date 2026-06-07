@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import {
   buildPresetAvatarReference,
   buildStableAvatarSeed,
+  isGoogleAvatarChoice,
   normalizeAvatarVariant,
+  parseEmojiAvatarChoice,
   parsePresetAvatarReference,
 } from "@/lib/avatar/identity";
 import { isPublicAliasTaken } from "@/lib/player/public-alias-registry";
@@ -112,22 +114,32 @@ export async function updatePlayerAvatarAction(
     let avatarSeed = buildStableAvatarSeed(user.id, "player");
 
     if (avatarChoice && avatarChoice !== "auto") {
+      const emojiChoice = parseEmojiAvatarChoice(avatarChoice);
+
+      if (emojiChoice) {
+        avatarSeed = emojiChoice;
+        avatarVariant = "emoji";
+      } else if (isGoogleAvatarChoice(avatarChoice)) {
+        avatarSeed = buildStableAvatarSeed(user.id, "player");
+        avatarVariant = "google";
+      } else {
       const presetReference = parsePresetAvatarReference(avatarChoice);
 
-      if (!presetReference || presetReference.kind !== "player") {
-        return {
-          status: "error",
-          message: "Ese avatar no es valido para jugador.",
-        };
-      }
+        if (!presetReference || presetReference.kind !== "player") {
+          return {
+            status: "error",
+            message: "Ese avatar no es valido para jugador.",
+          };
+        }
 
-      avatarVariant = normalizeAvatarVariant("player", presetReference.variant);
-      avatarSeed = buildStableAvatarSeed(presetReference.seed, user.id, "player");
-      avatarUrl = buildPresetAvatarReference({
-        kind: "player",
-        seed: avatarSeed,
-        variant: avatarVariant ?? presetReference.variant,
-      });
+        avatarVariant = normalizeAvatarVariant("player", presetReference.variant);
+        avatarSeed = buildStableAvatarSeed(presetReference.seed, user.id, "player");
+        avatarUrl = buildPresetAvatarReference({
+          kind: "player",
+          seed: avatarSeed,
+          variant: avatarVariant ?? presetReference.variant,
+        });
+      }
     }
 
     const { error } = await supabase
@@ -150,9 +162,14 @@ export async function updatePlayerAvatarAction(
 
     return {
       status: "success",
-      message: avatarUrl
-        ? "Tu avatar de jugador quedo actualizado."
-        : "Volviste al avatar automatico del juego.",
+      message:
+        avatarVariant === "emoji"
+          ? "Tu avatar emoji quedo actualizado."
+          : avatarVariant === "google" || isGoogleAvatarChoice(avatarChoice)
+            ? "Ahora usas la foto de tu cuenta Google."
+            : avatarUrl
+              ? "Tu avatar de jugador quedo actualizado."
+              : "Volviste al avatar automatico del juego.",
     };
   } catch (error) {
     return {

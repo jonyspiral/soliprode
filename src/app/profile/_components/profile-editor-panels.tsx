@@ -12,7 +12,10 @@ import {
 } from "@/app/profile/actions";
 import { initialProfileActionState } from "@/app/profile/state";
 import {
+  buildEmojiAvatarChoice,
   buildPresetAvatarReference,
+  getAvatarEmojiCatalog,
+  getGoogleAvatarChoice,
   getAvatarVariantOptions,
 } from "@/lib/avatar/identity";
 
@@ -24,6 +27,7 @@ type ProfileEditorPanelsProps = {
   email: string | null;
   fullName: string | null;
   hasGoogleAvatar: boolean;
+  googleAvatarUrl: string | null;
   publicLabel: string;
   publicNickname: string;
   userId: string | null;
@@ -92,6 +96,7 @@ export function ProfileEditorPanels({
   email,
   fullName,
   hasGoogleAvatar,
+  googleAvatarUrl,
   publicLabel,
   publicNickname,
   userId,
@@ -105,11 +110,48 @@ export function ProfileEditorPanels({
     updateAccountDetailsAction,
     initialProfileActionState,
   );
-  const playerAvatarOptions = getAvatarVariantOptions("player").map((variant) => ({
-    caption: variant === "stadium" ? "Estadio" : variant === "captain" ? "Capitan" : variant === "wing" ? "Banda" : variant === "goal" ? "Gol" : variant === "tribune" ? "Tribuna" : "Prode",
+  const emojiOptions = getAvatarEmojiCatalog("player").map((option) => ({
+    caption: option.emoji,
+    category: option.category,
+    detail: option.label,
+    kind: "player" as const,
+    label: publicLabel,
+    recommended: option.recommended,
+    seed: option.emoji,
+    tab: "emoji" as const,
+    value: buildEmojiAvatarChoice(option.emoji),
+    variant: "emoji",
+  }));
+  const googleOption = hasGoogleAvatar
+    ? {
+        caption: "Usar foto de tu cuenta Google",
+        detail: "Tu foto de Google queda como selección principal.",
+        kind: "player" as const,
+        label: publicLabel,
+        seed: avatarSeed,
+        tab: "google" as const,
+        value: getGoogleAvatarChoice(),
+        imageUrl: googleAvatarUrl,
+      }
+    : null;
+  const soliprodeOptions = getAvatarVariantOptions("player").map((variant) => ({
+    caption:
+      variant === "stadium"
+        ? "Estadio"
+        : variant === "captain"
+          ? "Capitán"
+          : variant === "wing"
+            ? "Banda"
+            : variant === "goal"
+              ? "Gol"
+              : variant === "tribune"
+                ? "Tribuna"
+                : "Prode",
+    detail: "Avatar SoliProde",
     kind: "player" as const,
     label: publicLabel,
     seed: avatarSeed,
+    tab: "soliprode" as const,
     value: buildPresetAvatarReference({
       kind: "player",
       seed: userId ?? avatarSeed,
@@ -136,31 +178,42 @@ export function ProfileEditorPanels({
             <div className="profile-avatar-panel-copy">
               <p className="profile-field-label">Tu avatar</p>
               <p className="profile-avatar-value">
-                {currentAvatarChoice !== "auto"
-                  ? "Preset elegido dentro de SoliProde"
-                  : hasGoogleAvatar
-                    ? "Foto de Google como fallback"
-                    : "Avatar generado del jugador"}
+                {currentAvatarChoice.startsWith("emoji:")
+                  ? "Emoji elegido como avatar principal"
+                  : currentAvatarChoice === "google"
+                    ? "Foto de Google elegida como avatar principal"
+                    : currentAvatarChoice !== "auto"
+                      ? "Avatar SoliProde elegido"
+                      : hasGoogleAvatar
+                        ? "Foto de Google como fallback"
+                        : "Avatar generado del jugador"}
               </p>
               <p className="profile-avatar-copy">
-                Si no elegis uno propio, usamos Google cuando esta disponible y despues el avatar del juego.
+                Elegí emoji, Google o un avatar SoliProde. Si algo falla, mantenemos un fallback limpio.
               </p>
             </div>
           </div>
 
           <AvatarPicker
             action={updatePlayerAvatarAction}
-            automaticOption={{
-              caption: hasGoogleAvatar ? "Automatico con Google" : "Automatico del juego",
+            autoOption={{
+              caption: hasGoogleAvatar ? "Automático con Google" : "Automático SoliProde",
+              detail: hasGoogleAvatar
+                ? "Sin selección fija, usamos tu foto de Google cuando está disponible."
+                : "Sin selección fija, usamos el avatar generado del juego.",
               kind: "player",
               label: publicLabel,
               seed: avatarSeed,
+              tab: "soliprode",
               value: "auto",
               variant: avatarVariant,
             }}
             currentValue={currentAvatarChoice}
             description="Elegi un avatar compacto para que se vea bien en mobile, ranking y Team."
-            options={playerAvatarOptions}
+            emojiOptions={emojiOptions}
+            googleOption={googleOption}
+            showGoogleTab
+            soliprodeOptions={soliprodeOptions}
             triggerLabel="Cambiar avatar"
           />
         </div>

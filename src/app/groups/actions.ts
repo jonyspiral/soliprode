@@ -7,6 +7,7 @@ import {
   buildPresetAvatarReference,
   buildStableAvatarSeed,
   normalizeAvatarVariant,
+  parseEmojiAvatarChoice,
   parsePresetAvatarReference,
 } from "@/lib/avatar/identity";
 import { normalizeInviteCode } from "@/lib/groups/competition";
@@ -172,22 +173,29 @@ export async function updateGroupAvatarAction(
     let avatarSeed = buildStableAvatarSeed(groupId, "group");
 
     if (avatarChoice && avatarChoice !== "auto") {
-      const presetReference = parsePresetAvatarReference(avatarChoice);
+      const emojiChoice = parseEmojiAvatarChoice(avatarChoice);
 
-      if (!presetReference || presetReference.kind !== "group") {
-        return {
-          status: "error" as const,
-          message: "Ese escudo no es valido para Team.",
-        };
+      if (emojiChoice) {
+        avatarVariant = "emoji";
+        avatarSeed = emojiChoice;
+      } else {
+        const presetReference = parsePresetAvatarReference(avatarChoice);
+
+        if (!presetReference || presetReference.kind !== "group") {
+          return {
+            status: "error" as const,
+            message: "Ese escudo no es valido para Team.",
+          };
+        }
+
+        avatarVariant = normalizeAvatarVariant("group", presetReference.variant);
+        avatarSeed = buildStableAvatarSeed(presetReference.seed, groupId, "group");
+        avatarUrl = buildPresetAvatarReference({
+          kind: "group",
+          seed: avatarSeed,
+          variant: avatarVariant ?? presetReference.variant,
+        });
       }
-
-      avatarVariant = normalizeAvatarVariant("group", presetReference.variant);
-      avatarSeed = buildStableAvatarSeed(presetReference.seed, groupId, "group");
-      avatarUrl = buildPresetAvatarReference({
-        kind: "group",
-        seed: avatarSeed,
-        variant: avatarVariant ?? presetReference.variant,
-      });
     }
 
     const { error } = await service
@@ -210,9 +218,12 @@ export async function updateGroupAvatarAction(
 
     return {
       status: "success" as const,
-      message: avatarUrl
-        ? "El escudo del Team quedo actualizado."
-        : "El Team volvio al escudo automatico.",
+      message:
+        avatarVariant === "emoji"
+          ? "El avatar del Team quedo actualizado."
+          : avatarUrl
+            ? "El escudo del Team quedo actualizado."
+            : "El Team volvio al escudo automatico.",
     };
   } catch (error) {
     return {
