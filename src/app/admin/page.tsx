@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { confirmParticipationAction, publishMatchResultAction } from "@/app/admin/actions";
+import {
+  confirmParticipationAction,
+  publishMatchResultAction,
+  rejectParticipationAction,
+} from "@/app/admin/actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
@@ -62,12 +66,21 @@ type MatchAdminRow = {
   }[] | null;
 };
 
+type PaymentAttemptAdminRow = {
+  id: string;
+  participation_id: string;
+  provider: string;
+  status: string;
+  created_at: string;
+};
+
 type RegisteredWithoutPassRow = {
   profile: ProfileAdminRow;
   participation: ParticipationAdminRow | null;
   promoterLabel: string | null;
   groupLabel: string | null;
   stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo";
+  pendingPaymentLabel: string | null;
 };
 
 function resolveNumericAmount(value: number | string | null) {
@@ -142,6 +155,7 @@ export default async function AdminPage() {
   let groups: GroupRefRow[] = [];
   let predictionCount = 0;
   let matchRows: MatchAdminRow[] = [];
+  let paymentAttempts: PaymentAttemptAdminRow[] = [];
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
 
   try {
@@ -156,6 +170,11 @@ export default async function AdminPage() {
           .from("participations")
           .select("id, profile_id, group_id, promoter_id, payment_status, entry_price, created_at, paid_at")
           .order("created_at", { ascending: false }),
+        adminSupabase
+          .from("payment_attempts")
+          .select("id, participation_id, provider, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(500),
         adminSupabase.from("promoters").select("id, name, code"),
         adminSupabase.from("groups").select("id, name"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
@@ -183,11 +202,12 @@ export default async function AdminPage() {
 
     profiles = (adminResults[0].data ?? []) as ProfileAdminRow[];
     participations = (adminResults[1].data ?? []) as ParticipationAdminRow[];
-    promoters = (adminResults[2].data ?? []) as PromoterRefRow[];
-    groups = (adminResults[3].data ?? []) as GroupRefRow[];
-    predictionCount = adminResults[4].count ?? 0;
-    matchRows = (adminResults[5].data ?? []) as MatchAdminRow[];
-    promotersSnapshot = adminResults[6];
+    paymentAttempts = (adminResults[2].data ?? []) as PaymentAttemptAdminRow[];
+    promoters = (adminResults[3].data ?? []) as PromoterRefRow[];
+    groups = (adminResults[4].data ?? []) as GroupRefRow[];
+    predictionCount = adminResults[5].count ?? 0;
+    matchRows = (adminResults[6].data ?? []) as MatchAdminRow[];
+    promotersSnapshot = adminResults[7];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -196,11 +216,18 @@ export default async function AdminPage() {
   const promoterMap = new Map(promoters.map((promoter) => [promoter.id, promoter]));
   const groupMap = new Map(groups.map((group) => [group.id, group]));
   const participationsByProfile = new Map<string, ParticipationAdminRow[]>();
+  const paymentAttemptByParticipation = new Map<string, PaymentAttemptAdminRow>();
 
   for (const participation of participations) {
     const existing = participationsByProfile.get(participation.profile_id) ?? [];
     existing.push(participation);
     participationsByProfile.set(participation.profile_id, existing);
+  }
+
+  for (const attempt of paymentAttempts) {
+    if (!paymentAttemptByParticipation.has(attempt.participation_id)) {
+      paymentAttemptByParticipation.set(attempt.participation_id, attempt);
+    }
   }
 
   const derivedRows = profiles.map<RegisteredWithoutPassRow>((profile) => {
@@ -209,6 +236,13 @@ export default async function AdminPage() {
     const paymentState = resolveAdminPaymentState(participation?.payment_status);
     const promoter = participation?.promoter_id ? promoterMap.get(participation.promoter_id) ?? null : null;
     const group = participation?.group_id ? groupMap.get(participation.group_id) ?? null : null;
+    const pendingAttempt = participation ? paymentAttemptByParticipation.get(participation.id) ?? null : null;
+    const pendingPaymentLabel =
+      pendingAttempt?.provider === "bank_transfer"
+        ? "Transferencia pendiente"
+        : paymentState.isPending
+          ? "Checkout pendiente"
+          : null;
 
     return {
       profile,
@@ -216,6 +250,7 @@ export default async function AdminPage() {
       promoterLabel: promoter ? `${promoter.name} (${promoter.code})` : null,
       groupLabel: group?.name ?? null,
       stateLabel: paymentState.label,
+      pendingPaymentLabel,
     };
   });
 
@@ -301,6 +336,9 @@ export default async function AdminPage() {
                             {row.groupLabel ? `Team: ${row.groupLabel}` : "Todavía sin Team"} ·{" "}
                             {row.promoterLabel ? `Promoter: ${row.promoterLabel}` : "Sin promoter"}
                           </p>
+                          {row.pendingPaymentLabel ? (
+                            <p className="text-sm text-[var(--color-muted)]">{row.pendingPaymentLabel}</p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -309,15 +347,26 @@ export default async function AdminPage() {
                           {row.stateLabel}
                         </span>
                         {row.stateLabel === "Pago pendiente" && row.participation ? (
-                          <form action={confirmParticipationAction}>
-                            <input type="hidden" name="participation_id" value={row.participation.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                            >
-                              Confirmar pago
-                            </button>
-                          </form>
+                          <>
+                            <form action={confirmParticipationAction}>
+                              <input type="hidden" name="participation_id" value={row.participation.id} />
+                              <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+                              >
+                                Confirmar pago
+                              </button>
+                            </form>
+                            <form action={rejectParticipationAction}>
+                              <input type="hidden" name="participation_id" value={row.participation.id} />
+                              <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+                              >
+                                Rechazar pago
+                              </button>
+                            </form>
+                          </>
                         ) : (
                           <Link
                             href="/activar-pase"
@@ -482,6 +531,7 @@ export default async function AdminPage() {
           <p>3. El webhook o la verificación server-side actualizan `participations.payment_status`.</p>
           <p>4. Si queda pendiente, Admin puede verlo y confirmarlo sin romper ranking ni recaudación.</p>
           <p>5. Hoy hay {predictionCount.toLocaleString("es-AR")} pronóstico(s) cargado(s) en total.</p>
+          <p>6. Transferencia manual, cuando está configurada, también entra por `payment_attempts` y requiere confirmación admin.</p>
         </div>
       </SurfaceCard>
     </PageStack>

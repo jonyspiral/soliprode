@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ActivationPanel } from "@/components/participation/activation-panel";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
+import { getBankTransferConfig } from "@/lib/payments/bank-transfer";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { syncPendingPaymentAttemptsForParticipation } from "@/lib/payments/payment-attempts";
 import { ensureRegisteredUserRecords } from "@/lib/supabase/bootstrap";
@@ -13,6 +14,7 @@ const SYNCABLE_PAYMENT_STATUSES = new Set(["payment_started", "payment_pending",
 type ParticipationRow = {
   id: string;
   payment_status: string;
+  payment_provider: string | null;
   created_at: string;
   rules_accepted_at: string | null;
   rules_version: string | null;
@@ -22,6 +24,8 @@ type ParticipationRow = {
 type ActivatePassPageProps = {
   searchParams?: Promise<{
     checkout_error?: string;
+    transfer_error?: string;
+    transfer_notice?: string;
   }>;
 };
 
@@ -42,6 +46,30 @@ function resolveCheckoutErrorMessage(checkoutError: string | undefined) {
   }
 }
 
+function resolveTransferErrorMessage(transferError: string | undefined) {
+  switch (transferError) {
+    case "rules_required":
+      return "Aceptá el reglamento para avisar tu transferencia.";
+    case "rules_persist_failed":
+      return "No pudimos guardar la aceptación del reglamento ahora. Intentá de nuevo.";
+    case "missing_participation":
+      return "No encontramos tu participación todavía. Reintentá en unos minutos.";
+    case "manual_transfer_unavailable":
+      return "La transferencia manual no está disponible ahora.";
+    default:
+      return null;
+  }
+}
+
+function resolveTransferNoticeMessage(transferNotice: string | undefined) {
+  switch (transferNotice) {
+    case "submitted":
+      return "Registramos tu transferencia. La activación no es automática: la vamos a revisar antes de activar tu Pase.";
+    default:
+      return null;
+  }
+}
+
 async function loadParticipation(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
@@ -50,7 +78,7 @@ async function loadParticipation(
     Promise.resolve(
       supabase
         .from("participations")
-        .select("id, payment_status, created_at, rules_accepted_at, rules_version, is_adult_confirmed")
+        .select("id, payment_status, payment_provider, created_at, rules_accepted_at, rules_version, is_adult_confirmed")
         .eq("profile_id", userId)
         .order("created_at", { ascending: false })
         .limit(10),
@@ -128,10 +156,14 @@ export default async function ActivatePassPage({ searchParams }: ActivatePassPag
       <ActivationPanel
         participationId={participation.id}
         participationStatus={participation.payment_status}
+        participationProvider={participation.payment_provider}
         initialCheckoutError={resolveCheckoutErrorMessage(params?.checkout_error)}
+        initialTransferError={resolveTransferErrorMessage(params?.transfer_error)}
+        initialTransferNotice={resolveTransferNoticeMessage(params?.transfer_notice)}
         initialRulesAcceptedAt={participation.rules_accepted_at}
         initialRulesVersion={participation.rules_version}
         initialIsAdultConfirmed={Boolean(participation.is_adult_confirmed)}
+        bankTransferConfig={getBankTransferConfig()}
       />
     </PageStack>
   );

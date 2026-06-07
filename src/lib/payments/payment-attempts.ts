@@ -287,6 +287,141 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
   };
 }
 
+export async function createBankTransferManualReviewForParticipation(input: {
+  profileId: string;
+  source?: string;
+}) {
+  const paidCheckoutGuard = await getPaidCheckoutGuard(input.profileId);
+
+  if (paidCheckoutGuard.paidParticipations.length > 0 || paidCheckoutGuard.blockingAttempt) {
+    throw new Error("already_paid");
+  }
+
+  const participation = await getParticipationForProfile(input.profileId);
+
+  if (!participation) {
+    throw new Error("missing_participation");
+  }
+
+  if (participation.payment_status === "paid") {
+    throw new Error("already_paid");
+  }
+
+  const service = createServiceRoleSupabaseClient();
+  const now = nowIso();
+  const amount = participation.entry_price ?? entryConfig.initialPrice;
+  const externalReference = `transfer:${participation.id}:${crypto.randomUUID()}`;
+
+  const { data: existingAttemptRows, error: existingAttemptError } = await service
+    .from("payment_attempts")
+    .select(PAYMENT_ATTEMPT_SELECT)
+    .eq("participation_id", participation.id)
+    .eq("provider", "bank_transfer")
+    .in("status", ["created", "manual_review", "payment_pending"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (existingAttemptError) {
+    throw existingAttemptError;
+  }
+
+  const existingAttempt = ((existingAttemptRows ?? [])[0] as PaymentAttemptRow | undefined) ?? null;
+
+  if (existingAttempt) {
+    const nextRaw =
+      typeof existingAttempt.raw_provider_response === "object" && existingAttempt.raw_provider_response
+        ? {
+            ...(existingAttempt.raw_provider_response as Record<string, unknown>),
+            last_declared_at: now,
+            source: input.source ?? "activar-pase",
+          }
+        : {
+            declared_at: now,
+            last_declared_at: now,
+            source: input.source ?? "activar-pase",
+          };
+
+    const { data: updatedAttempt, error: updateAttemptError } = await service
+      .from("payment_attempts")
+      .update({
+        amount,
+        currency: entryConfig.currency,
+        status: "manual_review",
+        raw_provider_response: nextRaw,
+      })
+      .eq("id", existingAttempt.id)
+      .select(PAYMENT_ATTEMPT_SELECT)
+      .single();
+
+    if (updateAttemptError || !updatedAttempt) {
+      throw updateAttemptError ?? new Error("payment_attempt_update_failed");
+    }
+
+    await service
+      .from("participations")
+      .update({
+        payment_status: "manual_review",
+        payment_provider: "bank_transfer",
+        payment_started_at: participation.payment_started_at ?? now,
+        payment_submitted_at: now,
+        entry_price: amount,
+        price_valid_until: entryConfig.priceValidUntil,
+      })
+      .eq("id", participation.id);
+
+    return {
+      participation: {
+        ...participation,
+        entry_price: amount,
+      },
+      paymentAttempt: updatedAttempt as PaymentAttemptRow,
+    };
+  }
+
+  const { data: insertedAttempt, error: insertError } = await service
+    .from("payment_attempts")
+    .insert({
+      participation_id: participation.id,
+      profile_id: input.profileId,
+      provider: "bank_transfer",
+      external_reference: externalReference,
+      amount,
+      currency: entryConfig.currency,
+      status: "manual_review",
+      raw_provider_response: {
+        declared_at: now,
+        last_declared_at: now,
+        source: input.source ?? "activar-pase",
+      },
+    })
+    .select(PAYMENT_ATTEMPT_SELECT)
+    .single();
+
+  if (insertError || !insertedAttempt) {
+    throw insertError ?? new Error("payment_attempt_insert_failed");
+  }
+
+  await service
+    .from("participations")
+    .update({
+      payment_status: "manual_review",
+      payment_provider: "bank_transfer",
+      payment_started_at: participation.payment_started_at ?? now,
+      payment_submitted_at: now,
+      entry_price: amount,
+      price_valid_until: entryConfig.priceValidUntil,
+    })
+    .eq("id", participation.id);
+
+  return {
+    participation: {
+      ...participation,
+      entry_price: amount,
+    },
+    paymentAttempt: insertedAttempt as PaymentAttemptRow,
+  };
+}
+
 async function applyAttemptAndParticipationState(
   attempt: PaymentAttemptRow,
   paymentInfo: MercadoPagoPaymentInfo | null,

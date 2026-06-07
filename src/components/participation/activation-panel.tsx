@@ -2,6 +2,10 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import {
+  buildSuggestedTransferReference,
+  type BankTransferConfig,
+} from "@/lib/payments/bank-transfer";
 import { SOLIPRODE_RULES_VERSION } from "@/lib/rules";
 import { entryConfig, formatEntryCountdown, formatEntryPrice } from "@/lib/product/entry-config";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -9,16 +13,71 @@ import { resolveParticipationUiState } from "@/lib/participations/status";
 type ActivationPanelProps = {
   participationId: string | null;
   participationStatus: string;
+  participationProvider?: string | null;
+  bankTransferConfig: BankTransferConfig | null;
   initialCheckoutError?: string | null;
+  initialTransferError?: string | null;
+  initialTransferNotice?: string | null;
   initialRulesAcceptedAt: string | null;
   initialRulesVersion: string | null;
   initialIsAdultConfirmed: boolean;
 };
 
+function TransferDetailsPanel({
+  bankTransferConfig,
+  participationId,
+}: {
+  bankTransferConfig: BankTransferConfig;
+  participationId: string | null;
+}) {
+  return (
+    <details className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--color-primary)]">
+        ¿No podés pagar online? Pagar por transferencia
+      </summary>
+      <div className="mt-3 grid gap-2 text-sm leading-6 text-[var(--color-ink)]">
+        <p className="font-semibold text-[var(--color-primary)]">
+          La activación por transferencia no es automática.
+        </p>
+        <p>
+          <strong>Alias:</strong> {bankTransferConfig.alias}
+        </p>
+        <p>
+          <strong>CVU / CBU:</strong> {bankTransferConfig.cvu}
+        </p>
+        <p>
+          <strong>Titular:</strong> {bankTransferConfig.holder}
+        </p>
+        <p>
+          <strong>Importe:</strong> {bankTransferConfig.amountLabel}
+        </p>
+        <p>
+          <strong>Concepto sugerido:</strong> {bankTransferConfig.suggestedConcept}
+        </p>
+        <p>
+          <strong>Referencia:</strong> {buildSuggestedTransferReference(participationId)}
+        </p>
+      </div>
+      <button
+        type="submit"
+        formAction="/api/payments/bank-transfer/declare-submitted"
+        formMethod="post"
+        className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+      >
+        Ya transferí
+      </button>
+    </details>
+  );
+}
+
 export function ActivationPanel({
   participationId,
   participationStatus,
+  participationProvider = null,
+  bankTransferConfig,
   initialCheckoutError = null,
+  initialTransferError = null,
+  initialTransferNotice = null,
   initialRulesAcceptedAt,
   initialRulesVersion,
   initialIsAdultConfirmed,
@@ -104,6 +163,12 @@ export function ActivationPanel({
               </Link>
             </div>
           ) : null}
+          {bankTransferConfig ? (
+            <TransferDetailsPanel
+              bankTransferConfig={bankTransferConfig}
+              participationId={participationId}
+            />
+          ) : null}
         </form>
 
         {initialCheckoutError ? (
@@ -111,11 +176,23 @@ export function ActivationPanel({
             {initialCheckoutError}
           </p>
         ) : null}
+        {initialTransferError ? (
+          <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+            {initialTransferError}
+          </p>
+        ) : null}
+        {initialTransferNotice ? (
+          <p className="rounded-lg border border-[#c7d6f8] bg-[#eef4ff] px-4 py-3 text-sm leading-6 text-[var(--color-ink)]">
+            {initialTransferNotice}
+          </p>
+        ) : null}
       </div>
     );
   }
 
   if (participationUiState.isPendingReview) {
+    const isBankTransferReview = participationProvider === "bank_transfer";
+
     return (
       <div className="grid gap-4 rounded-[1.25rem] border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 sm:p-5">
         <div className="grid gap-3">
@@ -123,11 +200,18 @@ export function ActivationPanel({
             Pase Solidario
           </p>
           <h2 className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-ink)]">
-            Tu pago está en revisión
+            {isBankTransferReview ? "Estamos revisando tu transferencia" : "Tu pago está en revisión"}
           </h2>
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Cuando Mercado Pago confirme la operación, tu Pase Solidario se activa automáticamente.
+            {isBankTransferReview
+              ? "La activación por transferencia no es automática. Cuando revisemos el pago, tu Pase Solidario se activa."
+              : "Cuando Mercado Pago confirme la operación, tu Pase Solidario se activa automáticamente."}
           </p>
+          {initialTransferNotice ? (
+            <p className="rounded-lg border border-[#c7d6f8] bg-[#eef4ff] px-4 py-3 text-sm leading-6 text-[var(--color-ink)]">
+              {initialTransferNotice}
+            </p>
+          ) : null}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href="/pago/pending"
@@ -190,12 +274,23 @@ export function ActivationPanel({
               className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
             >
                 Ver reglamento
-              </Link>
-            </div>
+            </Link>
+          </div>
+          {bankTransferConfig ? (
+            <TransferDetailsPanel
+              bankTransferConfig={bankTransferConfig}
+              participationId={participationId}
+            />
+          ) : null}
         </form>
         {initialCheckoutError ? (
           <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
             {initialCheckoutError}
+          </p>
+        ) : null}
+        {initialTransferError ? (
+          <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+            {initialTransferError}
           </p>
         ) : null}
         <details className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">

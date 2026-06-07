@@ -26,6 +26,56 @@ function readStrictNonNegativeInteger(rawValue: FormDataEntryValue | null) {
   return parsed;
 }
 
+async function updateLatestPendingAttemptForParticipation(params: {
+  participationId: string;
+  nextStatus: "paid" | "rejected";
+  approvedAt?: string | null;
+}) {
+  const supabase = createServiceRoleSupabaseClient();
+  const { data: attemptRows, error: attemptError } = await supabase
+    .from("payment_attempts")
+    .select("id, raw_provider_response")
+    .eq("participation_id", params.participationId)
+    .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (attemptError) {
+    throw attemptError;
+  }
+
+  const attempt = ((attemptRows ?? [])[0] as { id: string; raw_provider_response: unknown } | undefined) ?? null;
+
+  if (!attempt) {
+    return;
+  }
+
+  const nextRaw =
+    typeof attempt.raw_provider_response === "object" && attempt.raw_provider_response
+      ? {
+          ...(attempt.raw_provider_response as Record<string, unknown>),
+          admin_resolved_at: new Date().toISOString(),
+          admin_resolution: params.nextStatus,
+        }
+      : {
+          admin_resolved_at: new Date().toISOString(),
+          admin_resolution: params.nextStatus,
+        };
+
+  const { error: updateAttemptError } = await supabase
+    .from("payment_attempts")
+    .update({
+      status: params.nextStatus,
+      approved_at: params.approvedAt ?? null,
+      raw_provider_response: nextRaw,
+    })
+    .eq("id", attempt.id);
+
+  if (updateAttemptError) {
+    throw updateAttemptError;
+  }
+}
+
 export async function confirmParticipationAction(formData: FormData) {
   await requireAdminUser();
 
@@ -71,6 +121,12 @@ export async function confirmParticipationAction(formData: FormData) {
     throw new Error("No pudimos confirmar la participación.");
   }
 
+  await updateLatestPendingAttemptForParticipation({
+    participationId,
+    nextStatus: "paid",
+    approvedAt: now,
+  });
+
   await rebuildGeneralRankings();
 
   revalidatePath("/admin");
@@ -78,6 +134,41 @@ export async function confirmParticipationAction(formData: FormData) {
   revalidatePath("/groups");
   revalidatePath("/matches");
   revalidatePath("/rankings");
+}
+
+export async function rejectParticipationAction(formData: FormData) {
+  await requireAdminUser();
+
+  const participationId = String(formData.get("participation_id") ?? "").trim();
+
+  if (!participationId) {
+    throw new Error("Missing participation_id");
+  }
+
+  const supabase = createServiceRoleSupabaseClient();
+  const { error } = await supabase
+    .from("participations")
+    .update({
+      payment_status: "rejected",
+    })
+    .eq("id", participationId)
+    .neq("payment_status", "paid");
+
+  if (error) {
+    throw new Error("No pudimos rechazar la participación.");
+  }
+
+  await updateLatestPendingAttemptForParticipation({
+    participationId,
+    nextStatus: "rejected",
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/groups");
+  revalidatePath("/matches");
+  revalidatePath("/rankings");
+  revalidatePath("/activar-pase");
 }
 
 export async function publishMatchResultAction(formData: FormData) {
