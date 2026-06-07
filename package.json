@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "qa:prepare-users": "node scripts/qa/prepare-test-users.mjs",
+    "qa:e2e": "npm run qa:prepare-users && playwright test",
+    "qa:e2e:ui": "npm run qa:prepare-users && playwright test --ui",
+    "qa:e2e:headed": "npm run qa:prepare-users && playwright test --headed",
+    "qa:e2e:report": "playwright show-report",
     "fixture:validate": "node scripts/fixture/import-fixture.mjs --file scripts/fixture/worldcup-2026-group-stage.template.csv",
     "fixture:import": "node scripts/fixture/import-fixture.mjs"
   },
@@ -20,6 +24,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
