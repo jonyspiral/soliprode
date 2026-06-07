@@ -14,18 +14,19 @@ type PaymentReturnScreenProps = {
 
 export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnScreenProps) {
   const returnParams = readPaymentReturnParams(searchParams);
+  const hasReturnIdentifiers = Boolean(
+    returnParams.externalReference ||
+      returnParams.paymentId ||
+      returnParams.collectionId ||
+      returnParams.preferenceId,
+  );
 
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !returnParams.externalReference &&
-    !returnParams.paymentId &&
-    !returnParams.collectionId &&
-    !returnParams.preferenceId
-  ) {
+  if (!hasReturnIdentifiers) {
     if (kind === "success") {
       return (
         <PaymentStatusCard
@@ -41,11 +42,13 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
     if (kind === "pending") {
       return (
         <PaymentStatusCard
-          title="Tu pago quedó pendiente"
-          description="Todavía no hay confirmación final."
-          notice="Cuando Mercado Pago confirme la operación, tu Pase Solidario se activará automáticamente."
+          title="El pago no se completó"
+          description="Todavía no activaste tu Pase Solidario."
+          notice="Podés volver a intentar el pago online. No necesitás cuenta de Mercado Pago."
           primaryHref="/activar-pase"
-          primaryLabel="Volver a activar mi Pase"
+          primaryLabel="Intentar pagar nuevamente"
+          secondaryHref="/"
+          secondaryLabel="Volver al inicio"
         />
       );
     }
@@ -71,12 +74,20 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
   if (!attempt || attempt.profile_id !== user.id) {
     return (
       <PaymentStatusCard
-        title={kind === "failure" ? "No se pudo activar tu Pase" : kind === "pending" ? "Tu pago quedó pendiente" : "Estamos confirmando tu pago"}
+        title={
+          kind === "failure"
+            ? "No se pudo activar tu Pase"
+            : kind === "pending"
+              ? "El pago no se completó"
+              : "Estamos confirmando tu pago"
+        }
         description="No pudimos asociar este retorno a tu participación actual."
         notice="El retorno solo informa el estado visual. La activación real depende del webhook o de una verificación server-side confiable."
         tone={kind === "failure" ? "error" : "info"}
         primaryHref="/activar-pase"
-        primaryLabel={kind === "failure" ? "Intentar nuevamente" : "Volver a activar mi Pase"}
+        primaryLabel={kind === "failure" ? "Intentar nuevamente" : "Intentar pagar nuevamente"}
+        secondaryHref="/"
+        secondaryLabel="Volver al inicio"
       />
     );
   }
@@ -110,15 +121,25 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
   }
 
   if (kind === "pending") {
+    const attemptLooksPending = attempt.status === "payment_pending" || attempt.status === "manual_review";
+
     return (
       <PaymentStatusCard
-        title="Tu pago quedó pendiente"
-        description="Mercado Pago todavía no confirmó el cobro."
-        notice="Cuando la operación cambie de estado, tu Pase Solidario se activará automáticamente."
-        primaryHref="/"
-        primaryLabel="Volver al inicio"
-        secondaryHref="/activar-pase"
-        secondaryLabel="Ver mi activación"
+        title={attemptLooksPending ? "Tu pago quedó pendiente" : "El pago no se completó"}
+        description={
+          attemptLooksPending
+            ? "Mercado Pago todavía no confirmó el cobro."
+            : "Tu activación sigue sin confirmarse."
+        }
+        notice={
+          attemptLooksPending
+            ? "Cuando la operación cambie de estado, tu Pase Solidario se activará automáticamente."
+            : "Podés volver a intentar el checkout desde la activación de tu Pase."
+        }
+        primaryHref="/activar-pase"
+        primaryLabel={attemptLooksPending ? "Ver mi activación" : "Intentar pagar nuevamente"}
+        secondaryHref={attemptLooksPending ? "/" : "/matches"}
+        secondaryLabel={attemptLooksPending ? "Volver al inicio" : "Ver partidos"}
       />
     );
   }

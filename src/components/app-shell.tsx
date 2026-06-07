@@ -46,6 +46,8 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const isAuthScreen = pathname === "/login" || pathname === "/register" || pathname === "/auth/callback";
   const isPublicHome = pathname === "/";
+  const hidesActivationBanner =
+    pathname === "/activar-pase" || pathname.startsWith("/pago") || pathname.startsWith("/payment");
   const isSecondaryScreen = secondaryNavItems.some((item) => isActive(pathname, item.href));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -55,7 +57,7 @@ export function AppShell({ children }: AppShellProps) {
   const showPendingPaymentBanner =
     authReady &&
     !isAuthScreen &&
-    pathname !== "/activar-pase" &&
+    !hidesActivationBanner &&
     (!isAuthenticated || participationStatus !== "paid");
 
   useEffect(() => {
