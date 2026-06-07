@@ -1,6 +1,6 @@
 import { getOptionalEnv } from "@/lib/env";
 
-const DEFAULT_PROMO_END_AT = "2026-06-06T23:59:59-03:00";
+const DEFAULT_PROMO_END_AT = "2026-06-11T16:00:00-03:00";
 
 export const PROMO_END_AT =
   getOptionalEnv("NEXT_PUBLIC_PROMO_END_AT") ?? DEFAULT_PROMO_END_AT;
@@ -17,12 +17,14 @@ export function getPromoCountdownParts(targetIso = PROMO_END_AT) {
   }
 
   const totalSeconds = Math.floor(diff / 1000);
-  const totalHours = Math.floor(totalSeconds / 3600);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   return {
-    totalHours,
+    days,
+    hours,
     minutes,
     seconds,
   };
@@ -35,5 +37,5 @@ export function formatPromoCountdown(targetIso = PROMO_END_AT) {
     return null;
   }
 
-  return `${parts.totalHours}h ${padTime(parts.minutes)}m ${padTime(parts.seconds)}s`;
+  return `${parts.days}d ${padTime(parts.hours)}h ${padTime(parts.minutes)}m ${padTime(parts.seconds)}s`;
 }
