@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
+  // QA users mutate shared Supabase auth/participation state, so project-level parallelism is flaky.
+  workers: 1,
   expect: {
     timeout: 10_000,
   },
