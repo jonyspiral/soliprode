@@ -286,6 +286,15 @@ export function PredictionBoard({
           .
         </div>
       ) : null}
+      {isAuthenticated && !participationActive ? (
+        <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+          Tus picks se pueden mirar, pero para competir necesitás activar tu Pase Solidario.{" "}
+          <Link href="/activar-pase" className="font-semibold text-[var(--color-primary)]">
+            Activar mi Pase
+          </Link>
+          .
+        </div>
+      ) : null}
 
       {matches.map((match) => {
         const state = predictionState[match.id];
@@ -417,14 +426,23 @@ export function PredictionBoard({
                 </p>
               ) : null}
 
-              <button
-                type="button"
-                onClick={() => void savePrediction(match)}
-                disabled={!isAuthenticated || !open || savingMatchId === match.id}
-                className="inline-flex min-h-9 items-center justify-center self-start rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {buttonLabel}
-              </button>
+              {!participationActive && isAuthenticated ? (
+                <Link
+                  href="/activar-pase"
+                  className="inline-flex min-h-9 items-center justify-center self-start rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+                >
+                  Activar mi Pase
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void savePrediction(match)}
+                  disabled={!isAuthenticated || !open || savingMatchId === match.id}
+                  className="inline-flex min-h-9 items-center justify-center self-start rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {buttonLabel}
+                </button>
+              )}
             </div>
           </article>
         );

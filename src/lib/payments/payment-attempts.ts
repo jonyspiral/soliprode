@@ -86,7 +86,7 @@ function mapMercadoPagoStatus(status: string | null | undefined) {
 }
 
 function buildReturnUrl(kind: "success" | "pending" | "failure", externalReference: string) {
-  const url = new URL(`${getBaseUrl()}/payment/${kind}`);
+  const url = new URL(`${getBaseUrl()}/pago/${kind}`);
   url.searchParams.set("external_reference", externalReference);
   return url.toString();
 }
@@ -199,6 +199,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
   }
 
   const amount = entryConfig.initialPrice;
+  const persistedEntryPrice = participation.entry_price ?? amount;
   const currency = entryConfig.currency;
   const externalReference = `soliprode:${participation.id}:${crypto.randomUUID()}`;
   const expiresAt = entryConfig.priceValidUntil;
@@ -211,7 +212,7 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       profile_id: input.profileId,
       provider: "mercadopago",
       external_reference: externalReference,
-      amount,
+      amount: persistedEntryPrice,
       currency,
       status: "created",
       expires_at: expiresAt,
@@ -226,10 +227,10 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
   const preference = await createMercadoPagoPreference({
     items: [
       {
-        title: "SoliProde - Inscripción inicial",
+        title: "Pase Solidario SoliProde",
         quantity: 1,
         currency_id: currency,
-        unit_price: amount,
+        unit_price: persistedEntryPrice,
       },
     ],
     payer: {
@@ -271,11 +272,16 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       payment_status: "payment_started",
       payment_provider: "mercadopago",
       payment_started_at: paymentStartedAt,
+      entry_price: persistedEntryPrice,
+      price_valid_until: expiresAt,
     })
     .eq("id", participation.id);
 
   return {
-    participation,
+    participation: {
+      ...participation,
+      entry_price: persistedEntryPrice,
+    },
     paymentAttempt: updatedAttempt as PaymentAttemptRow,
     checkoutUrl,
   };
@@ -296,16 +302,17 @@ async function applyAttemptAndParticipationState(
   }
 
   const nextAttemptStatus = mapMercadoPagoStatus(paymentInfo.status);
-  const amountMatches = Number(paymentInfo.transaction_amount) === Number(attempt.amount);
+  const amountMatchesAttempt = Number(paymentInfo.transaction_amount) === Number(attempt.amount);
   const externalReferenceMatches = paymentInfo.external_reference === attempt.external_reference;
   const approvedAt = normalizeProviderApprovedAt(paymentInfo.approved_at);
 
-  const safeAttemptStatus =
-    amountMatches && externalReferenceMatches ? nextAttemptStatus : "manual_review";
+  let safeAttemptStatus = externalReferenceMatches ? nextAttemptStatus : "manual_review";
 
   const { data: participationRows, error: participationError } = await service
     .from("participations")
-    .select("id, payment_status, payment_started_at, payment_submitted_at, activated_at, created_at")
+    .select(
+      "id, payment_status, entry_price, payment_started_at, payment_submitted_at, activated_at, created_at",
+    )
     .eq("id", attempt.participation_id)
     .limit(1);
 
@@ -315,8 +322,24 @@ async function applyAttemptAndParticipationState(
 
   const participation = ((participationRows ?? [])[0] as Pick<
     ParticipationRow,
-    "id" | "payment_status" | "payment_started_at" | "payment_submitted_at" | "activated_at" | "created_at"
+    | "id"
+    | "payment_status"
+    | "entry_price"
+    | "payment_started_at"
+    | "payment_submitted_at"
+    | "activated_at"
+    | "created_at"
   > | undefined) ?? null;
+  const participationAmount =
+    typeof participation?.entry_price === "number" ? participation.entry_price : Number(participation?.entry_price ?? 0);
+  const amountMatchesParticipation =
+    Number.isFinite(participationAmount) && participationAmount > 0
+      ? Number(paymentInfo.transaction_amount) === participationAmount
+      : amountMatchesAttempt;
+
+  if (!amountMatchesParticipation) {
+    safeAttemptStatus = "manual_review";
+  }
 
   await service
     .from("payment_attempts")
@@ -329,6 +352,14 @@ async function applyAttemptAndParticipationState(
     .eq("id", attempt.id);
 
   if (safeAttemptStatus === "paid") {
+    if (participation?.payment_status === "paid") {
+      return {
+        attemptStatus: safeAttemptStatus,
+        participationStatus: "paid",
+        approved: true,
+      };
+    }
+
     const paidAt = nowIso();
     const activatedAt = nowIso();
     const eligibleFrom = resolveOnlineEligibleFrom(

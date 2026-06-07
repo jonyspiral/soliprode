@@ -38,7 +38,9 @@ export function normalizePublicSiteOrigin(origin: string | null | undefined) {
 }
 
 export function readConfiguredPublicSiteOrigin() {
-  return normalizePublicSiteOrigin(process.env.NEXT_PUBLIC_BASE_URL?.trim() || null);
+  return normalizePublicSiteOrigin(
+    process.env.APP_URL?.trim() || process.env.NEXT_PUBLIC_BASE_URL?.trim() || null,
+  );
 }
 
 export function resolvePublicSiteOrigin(currentOrigin?: string | null) {

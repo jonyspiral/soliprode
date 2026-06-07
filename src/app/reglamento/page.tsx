@@ -141,7 +141,7 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
     ? { href: registerHref, label: "Registrarme para jugar" }
     : sessionState.isPaid
       ? { href: "/matches", label: "Ir a mis pronósticos" }
-      : { href: "/dashboard#activar-pase", label: "Activar Pase Solidario" };
+      : { href: "/activar-pase", label: "Activar Pase Solidario" };
 
   return (
     <PageStack>

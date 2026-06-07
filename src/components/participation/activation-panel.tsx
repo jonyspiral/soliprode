@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { EntryCountdown } from "@/components/payments/entry-countdown";
 import { CompleteRegistrationButton } from "@/components/participation/complete-registration-button";
-import { MercadoPagoBadge } from "@/components/payments/mercado-pago-badge";
 import { SOLIPRODE_RULES_VERSION } from "@/lib/rules";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { entryConfig, formatEntryPrice } from "@/lib/product/entry-config";
@@ -13,9 +11,6 @@ import { resolveParticipationUiState } from "@/lib/participations/status";
 type ActivationPanelProps = {
   participationId: string | null;
   participationStatus: string;
-  draftCount: number;
-  initialPaymentReference: string | null;
-  initialPaymentSubmittedAt: string | null;
   initialRulesAcceptedAt: string | null;
   initialRulesVersion: string | null;
   initialIsAdultConfirmed: boolean;
@@ -24,20 +19,13 @@ type ActivationPanelProps = {
 export function ActivationPanel({
   participationId,
   participationStatus,
-  draftCount,
-  initialPaymentReference,
-  initialPaymentSubmittedAt,
   initialRulesAcceptedAt,
   initialRulesVersion,
   initialIsAdultConfirmed,
 }: ActivationPanelProps) {
-  const [showFallback, setShowFallback] = useState(false);
-  const [paymentReference, setPaymentReference] = useState(initialPaymentReference ?? "");
-  const [paymentSubmittedAt, setPaymentSubmittedAt] = useState(initialPaymentSubmittedAt);
   const [acceptedRules, setAcceptedRules] = useState(
     Boolean(initialIsAdultConfirmed && initialRulesAcceptedAt && initialRulesVersion === SOLIPRODE_RULES_VERSION),
   );
-  const [savingReference, setSavingReference] = useState(false);
   const [savingAcceptance, setSavingAcceptance] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -82,59 +70,18 @@ export function ActivationPanel({
     }
   }
 
-  async function saveReference() {
-    if (!participationId) {
-      setFeedback("No encontramos tu participación todavía. Reintentá en unos minutos.");
-      return;
-    }
-
-    setSavingReference(true);
-    setFeedback(null);
-
-    try {
-      const supabase = createBrowserSupabaseClient();
-      const nextPaymentSubmittedAt =
-        paymentReference.trim() && !paymentSubmittedAt
-          ? new Date().toISOString()
-          : paymentSubmittedAt;
-      const { error } = await supabase
-        .from("participations")
-        .update({
-          payment_reference: paymentReference.trim() || null,
-          payment_submitted_at: nextPaymentSubmittedAt,
-        })
-        .eq("id", participationId);
-
-      if (error) {
-        throw error;
-      }
-
-      setPaymentSubmittedAt(nextPaymentSubmittedAt);
-
-      setFeedback(
-        paymentReference.trim()
-          ? "Referencia guardada. Tu pago manual queda pendiente hasta confirmación admin."
-          : "Referencia borrada. Podés volver a cargarla si necesitás informar un pago manual.",
-      );
-    } catch {
-      setFeedback("No pudimos guardar la referencia ahora. Intentá de nuevo.");
-    } finally {
-      setSavingReference(false);
-    }
-  }
-
   if (participationStatus === "paid") {
     return (
-      <div className="grid gap-4">
-      <div className="rounded-lg border border-[#8bd3a5] bg-[#eef9f1] p-4">
+      <div className="grid gap-4 rounded-[1.25rem] border border-[#8bd3a5] bg-[#eef9f1] p-5">
+        <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1f6b37]">
-            Participación activa
+            Pase Solidario
           </p>
-          <p className="mt-2 font-serif text-[1.9rem] font-bold uppercase text-[var(--color-primary)]">
-            Ya estás compitiendo por premios
-          </p>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Tus próximos pronósticos ya juegan por ranking oficial, Team score y premio.
+          <h2 className="mt-2 font-serif text-[1.9rem] font-bold leading-none text-[var(--color-primary)]">
+            Tu Pase Solidario ya está activo
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+            Ya podés cargar pronósticos, armar tu Team y competir por premios.
           </p>
         </div>
 
@@ -150,19 +97,30 @@ export function ActivationPanel({
 
   if (participationUiState.isPendingReview) {
     return (
-      <div className="grid gap-4">
-        <div className="rounded-[1rem] border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-          <div className="grid gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-              Pase Solidario
-            </p>
-            <h3 className="font-serif text-[1.45rem] font-bold leading-none text-[var(--color-ink)]">
-              Pase Solidario en revisión
-            </h3>
-            <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tus pronósticos quedan guardados. Cuando se confirme tu Aporte, pasás a competir.
-            </p>
-            <MercadoPagoBadge compact secondaryText="Seguimos esperando confirmación final" className="w-fit" />
+      <div className="grid gap-4 rounded-[1.25rem] border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-5">
+        <div className="grid gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+            Pase Solidario
+          </p>
+          <h2 className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-ink)]">
+            Tu pago está en revisión
+          </h2>
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Cuando Mercado Pago confirme la operación, tu Pase Solidario se activa automáticamente.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/pago/pending"
+              className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Ver estado del pago
+            </Link>
+            <Link
+              href="/matches"
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              Volver a pronósticos
+            </Link>
           </div>
         </div>
       </div>
@@ -170,108 +128,80 @@ export function ActivationPanel({
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="rounded-[1.25rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
-        <div className="grid gap-4">
+    <div className="grid gap-4 rounded-[1.35rem] border-[1.5px] border-[var(--color-gold)] bg-[rgba(255,225,109,0.14)] p-5 shadow-[0_10px_24px_rgba(0,50,125,0.05)]">
+      <div className="grid gap-5">
+        <div className="grid gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            Pase Solidario
+          </p>
+          <h1 className="font-serif text-[2rem] font-bold leading-none text-[var(--color-ink)]">
+            Activá tu Pase Solidario
+          </h1>
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Con tu pase activo ya podés cargar pronósticos, armar tu Team y competir por premios.
+          </p>
+        </div>
+        <div className="rounded-[1rem] border border-white/80 bg-white/80 p-4">
           <div className="grid gap-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              Pase Solidario
+              Precio actual
             </p>
-            <h3 className="font-serif text-[1.75rem] font-bold leading-none text-[var(--color-ink)]">
-              Completá tu Aporte Solidario
-            </h3>
-          </div>
-          <div className="flex items-end justify-between gap-3">
             <p className="font-serif text-[2.5rem] font-bold leading-none text-[var(--color-primary)]">
               {priceLabel}
             </p>
-            <MercadoPagoBadge compact secondaryText="" className="min-w-0 px-2 py-1.5 text-[11px]" />
           </div>
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            {participationUiState.statusLabel}
+          <p className="mt-2 text-sm leading-6 text-[var(--color-ink)]">
+            Pago único. Activación inmediata.
           </p>
-          <EntryCountdown className="bg-white/70" />
-          <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={acceptedRules}
-                onChange={(event) => setAcceptedRules(event.target.checked)}
-                className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
-              />
-              <span className="text-sm leading-6 text-[var(--color-ink)]">
-                Declaro que soy mayor de 18 años y acepto el reglamento de SoliProde.
-              </span>
-            </label>
-            <Link
-              href="/reglamento"
-              className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
-            >
-              Ver reglamento
-            </Link>
-          </div>
-          <div className="grid gap-3">
-            <CompleteRegistrationButton
-              disabled={savingAcceptance}
-              helperText={!acceptedRules ? "Aceptá el reglamento para habilitar la activación del Pase." : null}
-              onBeforeStart={() => persistRulesAcceptance()}
+        </div>
+        <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={acceptedRules}
+              onChange={(event) => setAcceptedRules(event.target.checked)}
+              className="mt-1 h-5 w-5 accent-[var(--color-primary)]"
             />
-            {feedback ? (
-              <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
-                {feedback}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Pago manual
-              </p>
-              <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
-                Si Mercado Pago falla, podés dejar una referencia.
-              </p>
-            </div>
-            <span className="rounded-full bg-[var(--color-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-              {draftCount} pronóstico{draftCount === 1 ? "" : "s"}
+            <span className="text-sm leading-6 text-[var(--color-ink)]">
+              Declaro que soy mayor de 18 años y acepto el reglamento de SoliProde.
             </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowFallback((current) => !current)}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+          </label>
+          <Link
+            href="/reglamento"
+            className="mt-3 inline-flex text-sm font-semibold text-[var(--color-primary)] underline underline-offset-2"
           >
-            {showFallback ? "Ocultar opción manual" : "Tuve un problema con Mercado Pago"}
-          </button>
+            Ver reglamento
+          </Link>
         </div>
-
-        {showFallback ? (
-          <div className="mt-4 grid gap-3">
-            <label className="grid gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Referencia
-              </span>
-              <input
-                value={paymentReference}
-                onChange={(event) => setPaymentReference(event.target.value)}
-                placeholder="Alias, transferencia o nota para identificar el pago"
-                className="min-h-12 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-ink)] outline-none"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => void saveReference()}
-              disabled={savingReference}
-              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {savingReference ? "Guardando..." : "Guardar referencia"}
-            </button>
+        <div className="grid gap-3">
+          <CompleteRegistrationButton
+            disabled={savingAcceptance}
+            helperText={!acceptedRules ? "Aceptá el reglamento para habilitar la activación del Pase." : null}
+            onBeforeStart={() => persistRulesAcceptance()}
+          />
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            No necesitás cuenta de Mercado Pago. Podés pagar con tarjeta, efectivo o transferencia bancaria según los medios disponibles.
+          </p>
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Pago seguro procesado por Mercado Pago.
+          </p>
+          {feedback ? (
+            <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
+              {feedback}
+            </p>
+          ) : null}
+        </div>
+        <div className="rounded-xl border border-[var(--color-line)] bg-white/80 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            Qué desbloquea
+          </p>
+          <div className="mt-3 grid gap-2 text-sm leading-6 text-[var(--color-ink)]">
+            <p>• Cargar tus pronósticos</p>
+            <p>• Competir por el pozo individual</p>
+            <p>• Crear o sumarte a un Team</p>
+            <p>• Ayudar a financiar la tesis universitaria</p>
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

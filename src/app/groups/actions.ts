@@ -98,12 +98,15 @@ async function ensureParticipationId(profileId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data } = await service
     .from("participations")
-    .select("id, created_at")
+    .select("id, created_at, payment_status")
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(10);
 
-  return pickPrimaryParticipation((data ?? []) as Array<{ id: string; created_at: string }>).participation?.id ?? null;
+  return (
+    pickPrimaryParticipation((data ?? []) as Array<{ id: string; created_at: string; payment_status: string }>).participation ??
+    null
+  );
 }
 
 async function buildUniqueGroupIdentity(groupName: string) {
@@ -233,12 +236,18 @@ export async function createGroupAction(formData: FormData) {
     });
   }
 
-  const participationId = await ensureParticipationId(user.id);
+  const participation = await ensureParticipationId(user.id);
 
-  if (!participationId) {
+  if (!participation) {
     redirectToTeamSurface(returnPath, {
       error: "No pudimos encontrar tu inscripción para crear el Team.",
     });
+  }
+
+  const currentParticipation = participation!;
+
+  if (currentParticipation.payment_status !== "paid") {
+    redirect("/activar-pase");
   }
 
   const { slug, inviteCode } = await buildUniqueGroupIdentity(name);
@@ -274,7 +283,7 @@ export async function createGroupAction(formData: FormData) {
   const { error: participationUpdateError } = await service
     .from("participations")
     .update({ group_id: insertedGroupId })
-    .eq("id", participationId);
+    .eq("id", currentParticipation.id);
 
   if (participationUpdateError) {
     redirectToTeamSurface(returnPath, {
@@ -300,12 +309,18 @@ export async function joinGroupAction(formData: FormData) {
     });
   }
 
-  const participationId = await ensureParticipationId(user.id);
+  const participation = await ensureParticipationId(user.id);
 
-  if (!participationId) {
+  if (!participation) {
     redirectToTeamSurface(returnPath, {
       error: "No pudimos encontrar tu inscripción para sumarte al Team.",
     });
+  }
+
+  const currentParticipation = participation!;
+
+  if (currentParticipation.payment_status !== "paid") {
+    redirect("/activar-pase");
   }
 
   const service = createServiceRoleSupabaseClient();
@@ -335,7 +350,7 @@ export async function joinGroupAction(formData: FormData) {
   const { data: participationRow } = await service
     .from("participations")
     .select("group_id")
-    .eq("id", participationId)
+    .eq("id", currentParticipation.id)
     .maybeSingle();
 
   const currentGroupId =
@@ -358,7 +373,7 @@ export async function joinGroupAction(formData: FormData) {
   const { error } = await service
     .from("participations")
     .update({ group_id: targetGroupId })
-    .eq("id", participationId);
+    .eq("id", currentParticipation.id);
 
   if (error) {
     redirectToTeamSurface(returnPath, {

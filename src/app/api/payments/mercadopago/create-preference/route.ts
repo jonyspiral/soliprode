@@ -98,6 +98,8 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       checkoutUrl: result.checkoutUrl,
+      initPoint: result.paymentAttempt.init_point,
+      sandboxInitPoint: result.paymentAttempt.sandbox_init_point,
       externalReference: result.paymentAttempt.external_reference,
       attemptId: result.paymentAttempt.id,
     });
@@ -119,7 +121,7 @@ export async function POST() {
             ok: false,
             alreadyPaid: true,
             error: "Tu participación ya está paga y activa.",
-            redirectTo: "/dashboard",
+            redirectTo: "/activar-pase",
           },
           { status: 409 },
         );

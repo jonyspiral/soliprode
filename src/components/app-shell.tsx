@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { HomeIcon, MatchIcon, RankingIcon, TeamIcon, UserIcon } from "@/components/app-icons";
-import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { mobileNavItemsAuthenticated, mobileNavItemsLoggedOut, secondaryNavItems } from "@/lib/navigation";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
@@ -53,7 +52,11 @@ export function AppShell({ children }: AppShellProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [playerLabel, setPlayerLabel] = useState("Perfil");
   const [participationStatus, setParticipationStatus] = useState<string | null>(null);
-  const showPendingPaymentBanner = authReady && isAuthenticated && participationStatus !== "paid";
+  const showPendingPaymentBanner =
+    authReady &&
+    !isAuthScreen &&
+    pathname !== "/activar-pase" &&
+    (!isAuthenticated || participationStatus !== "paid");
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -215,6 +218,8 @@ export function AppShell({ children }: AppShellProps) {
         ? "/profile"
         : "/login?next=/profile&error=session_required";
   const showProfileChip = authReady && isAuthenticated;
+  const activationHref = isAuthenticated ? "/activar-pase" : "/login?next=/activar-pase";
+  const activationLabel = isAuthenticated ? "Activar mi Pase" : "Loguearme y activar mi Pase";
 
   if (isAuthScreen) {
     return (
@@ -252,12 +257,12 @@ export function AppShell({ children }: AppShellProps) {
         {showPendingPaymentBanner ? (
           <div className="shell-status-banner px-4">
             <div className="mx-auto w-full max-w-6xl md:px-2">
-              <StartCheckoutCard className="block w-full text-left">
+              <Link href={activationHref} className="block w-full text-left">
                 <div className="shell-status-banner-inner">
-                  <div className="shell-status-banner-track"><div className="shell-status-banner-marquee"><span className="shell-status-banner-kicker">No activo</span><span className="shell-status-banner-copy">No tenés Pase Solidario. Completá tu inscripción para competir.</span></div></div>
-                  <span className="shell-status-banner-cta">Completar</span>
+                  <div className="shell-status-banner-track"><div className="shell-status-banner-marquee"><span className="shell-status-banner-kicker">Pase Solidario</span><span className="shell-status-banner-copy">{isAuthenticated ? "Activá tu Pase Solidario para cargar pronósticos, armar tu Team y competir por premios." : "Logueate para activar tu Pase Solidario y empezar a competir por premios."}</span></div></div>
+                  <span className="shell-status-banner-cta">{activationLabel}</span>
                 </div>
-              </StartCheckoutCard>
+              </Link>
             </div>
           </div>
         ) : null}

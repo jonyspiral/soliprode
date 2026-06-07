@@ -1,4 +1,4 @@
-import { StartCheckoutCard } from "@/components/payments/start-checkout-trigger";
+import Link from "next/link";
 import { PromoCountdownInline } from "@/components/home/promo-countdown-inline";
 
 type HomePromoPanelProps = {
@@ -31,8 +31,8 @@ export function HomePromoPanel({ entryPrice, clickable = false }: HomePromoPanel
   }
 
   return (
-    <StartCheckoutCard className="block text-left">
+    <Link href="/activar-pase" className="block text-left">
       {content}
-    </StartCheckoutCard>
+    </Link>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileEditorPanels } from "@/app/profile/_components/profile-editor-panels";
-import { StartCheckoutButton } from "@/components/payments/start-checkout-trigger";
 import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
@@ -49,9 +48,10 @@ function buildPrimaryAction(input: {
 }) {
   if (!input.isPaid) {
     return {
-      kind: "checkout" as const,
-      helper: "Tu Pase Solidario está pendiente.",
-      label: "Confirmar Pase Solidario",
+      kind: "link" as const,
+      helper: "Todavía te falta activar el Pase Solidario.",
+      href: "/activar-pase",
+      label: "Activar mi Pase",
     };
   }
 
@@ -250,18 +250,12 @@ export default async function ProfilePage() {
         </div>
 
         <div className="profile-hero-actions">
-          {primaryAction.kind === "checkout" ? (
-            <StartCheckoutButton className="profile-primary-cta">
-              {primaryAction.label}
-            </StartCheckoutButton>
-          ) : (
-            <Link
-              href={primaryAction.href}
-              className="profile-primary-cta"
-            >
-              {primaryAction.label}
-            </Link>
-          )}
+          <Link
+            href={primaryAction.href}
+            className="profile-primary-cta"
+          >
+            {primaryAction.label}
+          </Link>
         </div>
       </section>
 

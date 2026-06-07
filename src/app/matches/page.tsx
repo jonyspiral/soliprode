@@ -320,7 +320,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const subcopy = currentUserId
     ? participationActive
       ? "Tus pronósticos ya compiten en el ranking."
-      : "Tus pronósticos quedan guardados. Completá tu inscripción para jugar."
+      : "Tus pronósticos quedan guardados. Activá tu Pase Solidario para competir."
     : "Entrá al Prode para guardar tus pronósticos cuando esté el fixture.";
 
   return (

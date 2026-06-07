@@ -71,6 +71,7 @@ function EmptyPanel({
 function TeamAccessPanel({
   authStatus,
   hasCurrentTeam,
+  currentParticipationStatus,
   routeBase,
   loginReturnPath,
   inviteCodePrefill,
@@ -82,6 +83,7 @@ function TeamAccessPanel({
 }: {
   authStatus: "guest" | "member";
   hasCurrentTeam: boolean;
+  currentParticipationStatus: string | null;
   routeBase: "/groups" | "/teams";
   loginReturnPath: string;
   inviteCodePrefill: string;
@@ -115,6 +117,24 @@ function TeamAccessPanel({
             Crear cuenta
           </Link>
         </div>
+      </article>
+    );
+  }
+
+  if (currentParticipationStatus !== "paid") {
+    return (
+      <article className="teams-support-card teams-support-card-ops">
+        <div className="teams-support-header">
+          <span className="teams-chip teams-chip-outline">Pase Solidario</span>
+          <span className="teams-inline-meta">Activación requerida</span>
+        </div>
+        <h2 className="teams-support-title">Activá tu Pase para crear o sumarte a un Team.</h2>
+        <p className="teams-support-copy">
+          Con el Pase Solidario activo ya podés entrar al Plantel, armar tu Team y competir por La Gloria.
+        </p>
+        <Link href="/activar-pase" className="teams-button-primary">
+          Activar mi Pase
+        </Link>
       </article>
     );
   }
@@ -301,6 +321,7 @@ export function TeamsScreen({
           <TeamAccessPanel
             authStatus={authStatus}
             hasCurrentTeam={hasCurrentTeam}
+            currentParticipationStatus={currentParticipationStatus}
             routeBase={routeBase}
             loginReturnPath={loginReturnPath}
             inviteCodePrefill={inviteCodePrefill}

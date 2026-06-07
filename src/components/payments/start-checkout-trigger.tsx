@@ -7,6 +7,8 @@ type CheckoutResponsePayload = {
   ok: boolean;
   alreadyPaid?: boolean;
   checkoutUrl?: string;
+  initPoint?: string | null;
+  sandboxInitPoint?: string | null;
   redirectTo?: string;
 };
 

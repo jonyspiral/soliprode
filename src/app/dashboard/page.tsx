@@ -7,7 +7,6 @@ import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
-import { ActivationPanel } from "@/components/participation/activation-panel";
 import { getHomeCommunityFeed } from "@/lib/home/community-feed";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
 import { getPlayerDisplayName } from "@/lib/player/identity";
@@ -36,11 +35,6 @@ type DashboardParticipation = {
   id: string;
   payment_status: string;
   created_at: string;
-  payment_reference: string | null;
-  payment_submitted_at: string | null;
-  rules_accepted_at: string | null;
-  rules_version: string | null;
-  is_adult_confirmed: boolean | null;
 };
 
 type DashboardPageProps = {
@@ -63,7 +57,7 @@ async function loadDashboardAccountData(
           .maybeSingle(),
         supabase
           .from("participations")
-          .select("id, payment_status, created_at, payment_reference, payment_submitted_at, rules_accepted_at, rules_version, is_adult_confirmed")
+          .select("id, payment_status, created_at")
           .eq("profile_id", userId)
           .order("created_at", { ascending: false })
           .limit(10),
@@ -205,18 +199,22 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     return (
       <PageStack>
         <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
-        <section id="activar-pase">
-          <ActivationPanel
-            participationId={participation?.id ?? null}
-            participationStatus={participationStatus}
-            draftCount={predictionCount}
-            initialPaymentReference={participation?.payment_reference ?? null}
-            initialPaymentSubmittedAt={participation?.payment_submitted_at ?? null}
-            initialRulesAcceptedAt={participation?.rules_accepted_at ?? null}
-            initialRulesVersion={participation?.rules_version ?? null}
-            initialIsAdultConfirmed={Boolean(participation?.is_adult_confirmed)}
-          />
-        </section>
+        <SurfaceCard
+          title="Activá tu Pase Solidario"
+          description="Con tu pase activo ya podés cargar pronósticos, armar tu Team y competir por premios."
+        >
+          <div className="grid gap-3">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              No necesitás cuenta de Mercado Pago. El pago online se hace con los medios disponibles y la activación se confirma automáticamente.
+            </p>
+            <Link
+              href="/activar-pase"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Ir a activar mi Pase
+            </Link>
+          </div>
+        </SurfaceCard>
       </PageStack>
     );
   }

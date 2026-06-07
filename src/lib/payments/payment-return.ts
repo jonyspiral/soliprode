@@ -36,6 +36,7 @@ export function readPaymentReturnParams(params: PaymentReturnSearchParams): Paym
 export function buildPaymentReturnPath(
   kind: "success" | "pending" | "failure",
   params: PaymentReturnSearchParams,
+  basePath = "/pago",
 ) {
   const search = new URLSearchParams();
 
@@ -46,7 +47,7 @@ export function buildPaymentReturnPath(
   }
 
   const query = search.toString();
-  return query ? `/payment/${kind}?${query}` : `/payment/${kind}`;
+  return query ? `${basePath}/${kind}?${query}` : `${basePath}/${kind}`;
 }
 
 export async function resolvePaymentReturn(params: PaymentReturnParams) {

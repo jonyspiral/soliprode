@@ -1,29 +1,47 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { confirmParticipationAction, publishMatchResultAction } from "@/app/admin/actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
+import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import { requireAdminUser } from "@/lib/admin/access";
+import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
-import {
-  createServiceRoleSupabaseClient,
-} from "@/lib/supabase/server";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
-type PendingParticipationRow = {
+type ProfileAdminRow = {
   id: string;
-  payment_status: string;
+  full_name: string | null;
+  public_alias: string | null;
+  email: string | null;
+  whatsapp: string | null;
   created_at: string;
-  payment_reference: string | null;
-  paid_at: string | null;
+};
+
+type ParticipationAdminRow = {
+  id: string;
   profile_id: string;
-  profile: {
-    full_name: string | null;
-    public_alias: string;
-    email: string | null;
-    whatsapp: string | null;
-  }[] | null;
+  group_id: string | null;
+  promoter_id: string | null;
+  payment_status: string;
+  entry_price: number | string | null;
+  created_at: string;
+  paid_at: string | null;
+};
+
+type PromoterRefRow = {
+  id: string;
+  name: string;
+  code: string;
+};
+
+type GroupRefRow = {
+  id: string;
+  name: string;
 };
 
 type MatchAdminRow = {
@@ -43,6 +61,54 @@ type MatchAdminRow = {
     name: string;
   }[] | null;
 };
+
+type RegisteredWithoutPassRow = {
+  profile: ProfileAdminRow;
+  participation: ParticipationAdminRow | null;
+  promoterLabel: string | null;
+  groupLabel: string | null;
+  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo";
+};
+
+function resolveNumericAmount(value: number | string | null) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+}
+
+function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
+  if (paymentStatus === "paid") {
+    return {
+      isActive: true,
+      isPending: false,
+      label: "Pase activo" as const,
+    };
+  }
+
+  if (paymentStatus && ["payment_started", "payment_pending", "manual_review"].includes(paymentStatus)) {
+    return {
+      isActive: false,
+      isPending: true,
+      label: "Pago pendiente" as const,
+    };
+  }
+
+  return {
+    isActive: false,
+    isPending: false,
+    label: "Sin Pase" as const,
+  };
+}
 
 export default async function AdminPage() {
   try {
@@ -69,12 +135,13 @@ export default async function AdminPage() {
     );
   }
 
-  let pendingRows: PendingParticipationRow[] = [];
-  let paidCount = 0;
-  let pendingCount = 0;
+  let adminNotice: string | null = null;
+  let profiles: ProfileAdminRow[] = [];
+  let participations: ParticipationAdminRow[] = [];
+  let promoters: PromoterRefRow[] = [];
+  let groups: GroupRefRow[] = [];
   let predictionCount = 0;
   let matchRows: MatchAdminRow[] = [];
-  let adminNotice: string | null = null;
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
 
   try {
@@ -82,28 +149,15 @@ export default async function AdminPage() {
     const adminResults = await withSupabaseTimeout(
       Promise.all([
         adminSupabase
-          .from("participations")
-          .select(
-            `
-              id,
-              payment_status,
-              created_at,
-              payment_reference,
-              paid_at,
-              profile_id,
-              profile:profiles(full_name, public_alias, email, whatsapp)
-            `,
-          )
-          .eq("payment_status", "pending")
-          .order("created_at", { ascending: true }),
+          .from("profiles")
+          .select("id, full_name, public_alias, email, whatsapp, created_at")
+          .order("created_at", { ascending: false }),
         adminSupabase
           .from("participations")
-          .select("id", { count: "exact", head: true })
-          .eq("payment_status", "paid"),
-        adminSupabase
-          .from("participations")
-          .select("id", { count: "exact", head: true })
-          .eq("payment_status", "pending"),
+          .select("id, profile_id, group_id, promoter_id, payment_status, entry_price, created_at, paid_at")
+          .order("created_at", { ascending: false }),
+        adminSupabase.from("promoters").select("id, name, code"),
+        adminSupabase.from("groups").select("id, name"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
         adminSupabase
           .from("matches")
@@ -126,38 +180,160 @@ export default async function AdminPage() {
       ]),
       "Supabase admin query timed out",
     );
-    const [pendingResult, paidResult, pendingCountResult, predictionCountResult, matchesResult, promotersResult] =
-      adminResults;
 
-    pendingRows = (((pendingResult.data ?? []) as PendingParticipationRow[])).map((row) => ({
-      ...row,
-      profile: row.profile ?? [],
-    }));
-    paidCount = paidResult.count ?? 0;
-    pendingCount = pendingCountResult.count ?? 0;
-    predictionCount = predictionCountResult.count ?? 0;
-    matchRows = (matchesResult.data ?? []) as MatchAdminRow[];
-    promotersSnapshot = promotersResult;
+    profiles = (adminResults[0].data ?? []) as ProfileAdminRow[];
+    participations = (adminResults[1].data ?? []) as ParticipationAdminRow[];
+    promoters = (adminResults[2].data ?? []) as PromoterRefRow[];
+    groups = (adminResults[3].data ?? []) as GroupRefRow[];
+    predictionCount = adminResults[4].count ?? 0;
+    matchRows = (adminResults[5].data ?? []) as MatchAdminRow[];
+    promotersSnapshot = adminResults[6];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
   }
 
+  const promoterMap = new Map(promoters.map((promoter) => [promoter.id, promoter]));
+  const groupMap = new Map(groups.map((group) => [group.id, group]));
+  const participationsByProfile = new Map<string, ParticipationAdminRow[]>();
+
+  for (const participation of participations) {
+    const existing = participationsByProfile.get(participation.profile_id) ?? [];
+    existing.push(participation);
+    participationsByProfile.set(participation.profile_id, existing);
+  }
+
+  const derivedRows = profiles.map<RegisteredWithoutPassRow>((profile) => {
+    const participation =
+      pickPrimaryParticipation(participationsByProfile.get(profile.id) ?? []).participation ?? null;
+    const paymentState = resolveAdminPaymentState(participation?.payment_status);
+    const promoter = participation?.promoter_id ? promoterMap.get(participation.promoter_id) ?? null : null;
+    const group = participation?.group_id ? groupMap.get(participation.group_id) ?? null : null;
+
+    return {
+      profile,
+      participation,
+      promoterLabel: promoter ? `${promoter.name} (${promoter.code})` : null,
+      groupLabel: group?.name ?? null,
+      stateLabel: paymentState.label,
+    };
+  });
+
+  const registeredCount = derivedRows.length;
+  const activeRows = derivedRows.filter((row) => row.stateLabel === "Pase activo");
+  const pendingRows = derivedRows.filter((row) => row.stateLabel === "Pago pendiente");
+  const withoutPassRows = derivedRows.filter((row) => row.stateLabel !== "Pase activo");
+  const confirmedRevenue = activeRows.reduce(
+    (sum, row) => sum + resolveNumericAmount(row.participation?.entry_price ?? null),
+    0,
+  );
+  const conversionRate = registeredCount > 0 ? Math.round((activeRows.length / registeredCount) * 100) : 0;
+
   return (
     <PageStack>
       <PageHero
         title="Admin"
-        description="Operación mínima para empezar a cobrar, revisar pendientes y activar participaciones."
+        description="Operación mínima para activar jugadores, revisar pagos y sostener la recaudación real del torneo."
         tone="stadium"
       />
 
       {adminNotice ? <InfoNotice tone="error" message={adminNotice} /> : null}
 
-      <section className="grid grid-cols-3 gap-3">
-        <StatCard label="Pendientes" value={String(pendingCount)} detail="Esperan confirmación manual" />
-        <StatCard label="Activos" value={String(paidCount)} detail="Ya compiten oficialmente" />
-        <StatCard label="Picks" value={String(predictionCount)} detail="Pronósticos cargados" />
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <StatCard label="Registrados" value={String(registeredCount)} detail="Perfiles creados" />
+        <StatCard label="Sin Pase" value={String(withoutPassRows.length)} detail="Aún no están activos" />
+        <StatCard label="Pagos pendientes" value={String(pendingRows.length)} detail="Esperan confirmación" />
+        <StatCard label="Jugadores activos" value={String(activeRows.length)} detail="payment_status = paid" />
+        <StatCard label="Conversión" value={`${conversionRate}%`} detail="Registro → Pase activo" />
+        <StatCard label="Recaudado" value={formatEntryPrice(confirmedRevenue)} detail="Solo participations paid" />
       </section>
+
+      <SurfaceCard
+        title="Registrados sin Pase"
+        description="Bandeja operativa para detectar quién todavía no activó, quién está pendiente y quién ya pasó a competir."
+      >
+        {withoutPassRows.length === 0 ? (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            No hay jugadores registrados sin Pase activo ahora mismo.
+          </p>
+        ) : (
+          <div className="grid gap-4">
+            {withoutPassRows
+              .sort((left, right) => {
+                const leftPriority = left.stateLabel === "Pago pendiente" ? 0 : 1;
+                const rightPriority = right.stateLabel === "Pago pendiente" ? 0 : 1;
+
+                if (leftPriority !== rightPriority) {
+                  return leftPriority - rightPriority;
+                }
+
+                return Date.parse(right.profile.created_at) - Date.parse(left.profile.created_at);
+              })
+              .map((row) => {
+                const profile = row.profile;
+                const avatarModel = getPlayerAvatarModel(profile);
+                const label = getPlayerDisplayName(profile);
+
+                return (
+                  <div
+                    key={profile.id}
+                    className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex gap-3">
+                        <PlayerAvatar
+                          imageUrl={avatarModel.avatarUrl}
+                          fallbackImageUrl={avatarModel.fallbackAvatarUrl}
+                          label={label}
+                          seed={avatarModel.avatarSeed}
+                          size="md"
+                          variant={avatarModel.avatarVariant}
+                        />
+                        <div className="grid gap-1">
+                          <p className="font-semibold text-[var(--color-ink)]">{label}</p>
+                          <p className="text-sm text-[var(--color-muted)]">
+                            {profile.full_name ?? "Nombre pendiente"} · {profile.email ?? "Sin email"}
+                          </p>
+                          <p className="text-sm text-[var(--color-muted)]">
+                            Alta: {new Date(profile.created_at).toLocaleDateString("es-AR")} · Estado: {row.stateLabel}
+                          </p>
+                          <p className="text-sm text-[var(--color-muted)]">
+                            {row.groupLabel ? `Team: ${row.groupLabel}` : "Todavía sin Team"} ·{" "}
+                            {row.promoterLabel ? `Promoter: ${row.promoterLabel}` : "Sin promoter"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 sm:min-w-[180px]">
+                        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                          {row.stateLabel}
+                        </span>
+                        {row.stateLabel === "Pago pendiente" && row.participation ? (
+                          <form action={confirmParticipationAction}>
+                            <input type="hidden" name="participation_id" value={row.participation.id} />
+                            <button
+                              type="submit"
+                              className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+                            >
+                              Confirmar pago
+                            </button>
+                          </form>
+                        ) : (
+                          <Link
+                            href="/activar-pase"
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+                          >
+                            Ver activación
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </SurfaceCard>
 
       <SurfaceCard
         title="Promoters"
@@ -199,71 +375,17 @@ export default async function AdminPage() {
               </p>
             )}
 
-            <a
+            <Link
               href="/admin/promoters"
               className="inline-flex w-fit items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
             >
               Ir al panel de Promoters
-            </a>
+            </Link>
           </div>
         ) : (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             No pudimos cargar el resumen de Promoters en este momento.
           </p>
-        )}
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Participaciones pendientes"
-        description="Antes de Mercado Pago, esta es la bandeja operativa para confirmar pagos manuales."
-      >
-        {pendingRows.length === 0 ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            No hay participaciones pendientes ahora mismo.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {pendingRows.map((row) => {
-              const profile = row.profile?.[0] ?? null;
-
-              return (
-                <div
-                  key={row.id}
-                  className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="grid gap-2">
-                      <p className="font-serif text-[1.5rem] font-bold uppercase text-[var(--color-primary)]">
-                        {profile?.public_alias ?? "Sin alias"}
-                      </p>
-                      <p className="text-sm text-[var(--color-ink)]">
-                        {profile?.full_name ?? "Nombre pendiente"}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        {profile?.email ?? "Sin email"} · {profile?.whatsapp ?? "WhatsApp opcional"}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        Alta: {new Date(row.created_at).toLocaleDateString("es-AR")}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        Referencia: {row.payment_reference?.trim() || "Todavía no cargó referencia o comprobante."}
-                      </p>
-                    </div>
-
-                    <form action={confirmParticipationAction} className="sm:min-w-[180px]">
-                      <input type="hidden" name="participation_id" value={row.id} />
-                      <button
-                        type="submit"
-                        className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                      >
-                        Confirmar pago
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         )}
       </SurfaceCard>
 
@@ -352,13 +474,14 @@ export default async function AdminPage() {
 
       <SurfaceCard
         title="Qué sigue"
-        description="Con esta base ya podés empezar a operar manualmente mientras el cobro automático sigue pendiente."
+        description="Con esta base ya podés seguir la conversión real y confirmar jugadores cuando un pago quede pendiente."
       >
         <div className="grid gap-3 text-sm leading-6 text-[var(--color-muted)]">
-          <p>1. El jugador crea su cuenta y carga pronósticos.</p>
-          <p>2. Guarda una referencia o comprobante desde su dashboard.</p>
-          <p>3. El admin confirma manualmente y la participación pasa a activa.</p>
-          <p>4. Desde ese momento, los pronósticos futuros ya compiten por premios y ranking oficial.</p>
+          <p>1. El jugador entra o se loguea y va directo a `/activar-pase`.</p>
+          <p>2. Checkout Pro crea o reutiliza el intento trazable en `payment_attempts`.</p>
+          <p>3. El webhook o la verificación server-side actualizan `participations.payment_status`.</p>
+          <p>4. Si queda pendiente, Admin puede verlo y confirmarlo sin romper ranking ni recaudación.</p>
+          <p>5. Hoy hay {predictionCount.toLocaleString("es-AR")} pronóstico(s) cargado(s) en total.</p>
         </div>
       </SurfaceCard>
     </PageStack>

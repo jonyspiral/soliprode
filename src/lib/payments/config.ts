@@ -24,6 +24,14 @@ export function hasMercadoPagoAccessToken() {
   return Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN?.trim());
 }
 
+export function getMercadoPagoPublicKey() {
+  return process.env.MERCADOPAGO_PUBLIC_KEY?.trim() || null;
+}
+
+export function getMercadoPagoEnv() {
+  return process.env.MERCADOPAGO_ENV?.trim() || null;
+}
+
 export function getMercadoPagoWebhookSecret() {
   return process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() || null;
 }

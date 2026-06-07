@@ -24,6 +24,8 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 - Importación controlada del fixture: `src/content/docs/database/fixture-import.md`
 - Usuarios QA de prueba: `src/content/docs/qa/test-users.md`
 - Checklist productivo de Mercado Pago: `src/content/docs/payments/mercadopago-production-checklist.md`
+- Flujo corto de activación: `src/content/docs/payments/activation-flow-short-checkout.md`
+- Monitoreo post-lanzamiento del checkout: `src/content/docs/payments/checkout-clean-flow-monitoring.md`
 - Roadmap de notificaciones PWA: `src/content/docs/roadmap/pwa-notifications-roadmap.md`
 - Contratos de tono y UI: `src/content/docs/contracts/`
 - Auditoría UI inicial: `src/content/docs/ui-audit-2026-06-02.md`
@@ -51,6 +53,8 @@ Propósito: mapa rápido para que humanos y agentes ubiquen contexto sin recorre
 | Importación controlada del fixture | `src/content/docs/database/fixture-import.md` |
 | Usuarios QA de prueba | `src/content/docs/qa/test-users.md` |
 | Checklist productivo de Mercado Pago | `src/content/docs/payments/mercadopago-production-checklist.md` |
+| Flujo corto de activación | `src/content/docs/payments/activation-flow-short-checkout.md` |
+| Monitoreo post-lanzamiento del checkout | `src/content/docs/payments/checkout-clean-flow-monitoring.md` |
 | Base Auth | `src/content/docs/auth-base.md` |
 | Grupos competitivos MVP | `src/content/docs/groups-competitive-mvp.md` |
 | Roadmap de notificaciones PWA | `src/content/docs/roadmap/pwa-notifications-roadmap.md` |

@@ -41,12 +41,12 @@ export function CompleteRegistrationButton({
             : "min-h-11 px-4 py-3 text-sm font-bold uppercase tracking-[0.08em]",
         ].join(" ")}
       >
-        Completar Aporte Solidario
+        Pagar y activar mi Pase
       </StartCheckoutButton>
       {helperText ? <p className="text-[11px] leading-5 text-[var(--color-muted)]">{helperText}</p> : null}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-[var(--color-muted)]">
         <span>{`Precio promocional · ${countdown}`}</span>
-        <span>con Mercado Pago</span>
+        <span>No necesitás cuenta de Mercado Pago</span>
       </div>
     </div>
   );
