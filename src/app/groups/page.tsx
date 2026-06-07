@@ -1,7 +1,10 @@
+import { redirect } from "next/navigation";
 import { SOLIPRODE_BRAND_ASSETS } from "@/lib/brand-assets";
 import type { Metadata } from "next";
 import { TeamsScreen } from "@/app/teams/_components/teams-screen";
 import { getTeamsPageState } from "@/app/teams/_page-state";
+import { buildInternalPathWithSearch, buildEnterHref } from "@/lib/invite-flow";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Groups",
@@ -34,7 +37,46 @@ type GroupsPageProps = {
 };
 
 export default async function GroupsPage({ searchParams }: GroupsPageProps) {
+  const resolvedSearchParams = (searchParams ? await searchParams : undefined) ?? undefined;
+  const inviteCode =
+    typeof resolvedSearchParams?.code === "string"
+      ? resolvedSearchParams.code
+      : Array.isArray(resolvedSearchParams?.code)
+        ? resolvedSearchParams?.code[0] ?? ""
+        : "";
+
+  if (inviteCode) {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const currentPath = buildInternalPathWithSearch(
+      "/groups",
+      new URLSearchParams(
+        Object.entries(resolvedSearchParams ?? {}).flatMap(([key, value]) =>
+          Array.isArray(value)
+            ? value.map((entry) => [key, entry])
+            : typeof value === "string"
+              ? [[key, value]]
+              : [],
+        ),
+      ),
+    );
+
+    if (!user) {
+      redirect(`/login?next=${encodeURIComponent(currentPath)}`);
+    }
+  }
+
   const state = await getTeamsPageState(searchParams);
+
+  if (
+    state.inviteContext?.code &&
+    state.authStatus === "member" &&
+    (state.currentParticipationStatus !== "paid" || !state.currentAlias)
+  ) {
+    redirect(buildEnterHref({ groupInviteCode: state.inviteContext.code }));
+  }
 
   return <TeamsScreen {...state} routeBase="/groups" data={state.screenData} />;
 }
