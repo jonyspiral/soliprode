@@ -246,7 +246,7 @@ export async function getGroupCompetitionSnapshot(
       const groupAvatar = getGroupAvatarModel(group);
 
       return {
-        avatarChoice: group.avatar_url,
+        avatarChoice: groupAvatar.currentAvatarChoice,
         groupId: group.id,
         avatarSeed: groupAvatar.avatarSeed,
         avatarUrl: groupAvatar.avatarUrl,

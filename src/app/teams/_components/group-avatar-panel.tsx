@@ -4,7 +4,9 @@ import { AvatarPicker } from "@/components/avatar/avatar-picker";
 import { GroupAvatar } from "@/components/groups/group-avatar";
 import { updateGroupAvatarAction } from "@/app/groups/actions";
 import {
+  buildEmojiAvatarChoice,
   buildPresetAvatarReference,
+  getAvatarEmojiCatalog,
   getAvatarVariantOptions,
 } from "@/lib/avatar/identity";
 
@@ -29,7 +31,19 @@ export function GroupAvatarPanel({
   url,
   variant,
 }: GroupAvatarPanelProps) {
-  const options = getAvatarVariantOptions("group").map((option) => ({
+  const emojiOptions = getAvatarEmojiCatalog("group").map((option) => ({
+    caption: option.emoji,
+    category: option.category,
+    detail: option.label,
+    kind: "group" as const,
+    label,
+    recommended: option.recommended,
+    seed: option.emoji,
+    tab: "emoji" as const,
+    value: buildEmojiAvatarChoice(option.emoji),
+    variant: "emoji",
+  }));
+  const soliprodeOptions = getAvatarVariantOptions("group").map((option) => ({
     caption:
       option === "shield"
         ? "Escudo"
@@ -42,9 +56,11 @@ export function GroupAvatarPanel({
               : option === "cup"
                 ? "Copa"
                 : "Club",
+    detail: "Avatar SoliProde",
     kind: "group" as const,
     label,
     seed,
+    tab: "soliprode" as const,
     value: buildPresetAvatarReference({
       kind: "group",
       seed: groupId,
@@ -66,18 +82,22 @@ export function GroupAvatarPanel({
       {canEdit ? (
         <AvatarPicker
           action={updateGroupAvatarAction}
-          automaticOption={{
-            caption: "Automatico del Team",
+          autoOption={{
+            caption: "Automático del Team",
+            detail: "Sin selección fija, SoliProde usa el escudo automático del Team.",
             kind: "group",
             label,
             seed,
+            tab: "soliprode",
             value: "auto",
             variant,
           }}
           currentValue={currentAvatarChoice}
-          description="Elegi un escudo compacto para ranking, tarjetas y la vista principal del Team."
+          description="Elegí un avatar compacto para ranking, tarjetas y la vista principal del Team."
+          emojiOptions={emojiOptions}
+          googleOption={null}
           hiddenFields={{ group_id: groupId }}
-          options={options}
+          soliprodeOptions={soliprodeOptions}
           triggerLabel="Cambiar escudo"
         />
       ) : null}
