@@ -68,6 +68,13 @@ a {
   text-decoration: none;
 }
 
+a[class*="bg-[var(--color-primary)]"],
+a[class*="bg-[var(--color-primary-strong)]"],
+button[class*="bg-[var(--color-primary)]"],
+button[class*="bg-[var(--color-primary-strong)]"] {
+  color: #fff;
+}
+
 button,
 input,
 textarea,
