@@ -81,8 +81,35 @@ type MatchesPageProps = {
   searchParams?: Promise<{
     zona?: string;
     zone?: string;
+    view?: string;
   }>;
 };
+
+function sortMatchesByKickoff(matches: MatchBoardItem[]) {
+  return [...matches].sort((a, b) => {
+    const kickoffA = new Date(a.starts_at).getTime();
+    const kickoffB = new Date(b.starts_at).getTime();
+    const hasValidA = Number.isFinite(kickoffA);
+    const hasValidB = Number.isFinite(kickoffB);
+
+    if (hasValidA && hasValidB) {
+      if (kickoffA !== kickoffB) {
+        return kickoffA - kickoffB;
+      }
+      return a.id.localeCompare(b.id);
+    }
+
+    if (hasValidA) {
+      return -1;
+    }
+
+    if (hasValidB) {
+      return 1;
+    }
+
+    return a.id.localeCompare(b.id);
+  });
+}
 
 function groupMatches(matches: MatchBoardItem[]) {
   return matches.reduce<Record<string, MatchBoardItem[]>>((acc, match) => {
@@ -91,6 +118,19 @@ function groupMatches(matches: MatchBoardItem[]) {
     acc[groupKey].push(match);
     return acc;
   }, {});
+}
+
+function buildMatchesHref(zoneCode: string | null, viewMode: "fecha" | "zonas") {
+  const params = new URLSearchParams();
+
+  if (zoneCode) {
+    params.set("zona", zoneCode);
+  }
+
+  params.set("view", viewMode);
+
+  const queryString = params.toString();
+  return queryString ? `/matches?${queryString}` : "/matches";
 }
 
 function getExistingZoneCodes(matches: MatchBoardItem[]) {
@@ -310,12 +350,15 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const participationActive = participationStatus === "paid";
   const existingZoneCodes = getExistingZoneCodes(matches);
   const requestedZoneCode = normalizeZoneCode(params?.zona ?? params?.zone);
+  const isGroupedView = params?.view === "zonas";
+  const currentView: "fecha" | "zonas" = isGroupedView ? "zonas" : "fecha";
   const selectedZoneCode =
     requestedZoneCode && existingZoneCodes.includes(requestedZoneCode) ? requestedZoneCode : null;
-  const visibleMatches = selectedZoneCode
+  const zoneFilteredMatches = selectedZoneCode
     ? matches.filter((match) => normalizeZoneCode(match.group_code) === selectedZoneCode)
     : matches;
-  const groupedMatches = groupMatches(visibleMatches);
+  const sortedMatches = sortMatchesByKickoff(zoneFilteredMatches);
+  const groupedMatches = groupMatches(sortedMatches);
   const orderedGroupCodes = Object.keys(groupedMatches).sort();
   const subcopy = currentUserId
     ? participationActive
@@ -365,10 +408,40 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
       {!dataNotice && matches.length > 0 ? (
         <nav
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
+          aria-label="Modo de visualización de partidos"
+        >
+          <Link
+            href={buildMatchesHref(selectedZoneCode, "fecha")}
+            className={[
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
+              currentView === "fecha"
+                ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                : "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]",
+            ].join(" ")}
+          >
+            Por fecha
+          </Link>
+          <Link
+            href={buildMatchesHref(selectedZoneCode, "zonas")}
+            className={[
+              "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
+              currentView === "zonas"
+                ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                : "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]",
+            ].join(" ")}
+          >
+            Por zonas
+          </Link>
+        </nav>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 ? (
+        <nav
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
           aria-label="Filtrar partidos por zona"
         >
           <Link
-            href="/matches"
+            href={buildMatchesHref(null, currentView)}
             className={[
               "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
               selectedZoneCode
@@ -381,7 +454,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           {existingZoneCodes.map((zoneCode) => (
             <Link
               key={zoneCode}
-              href={`/matches?zona=${encodeURIComponent(zoneCode)}`}
+              href={buildMatchesHref(zoneCode, currentView)}
               className={[
                 "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
                 selectedZoneCode === zoneCode
@@ -395,7 +468,24 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </nav>
       ) : null}
 
-      {!dataNotice && matches.length > 0
+      {!dataNotice && matches.length > 0 && currentView === "fecha" ? (
+        <SurfaceCard
+          title={
+            selectedZoneCode ? `Fixture · ${formatZoneLabel(selectedZoneCode)}` : "Fixture por fecha"
+          }
+          description={`${sortedMatches.length} partido${sortedMatches.length === 1 ? "" : "s"} ordenado${sortedMatches.length === 1 ? "" : "s"} por fecha de juego.`}
+        >
+          <PredictionBoard
+            matches={sortedMatches}
+            initialPredictions={predictions}
+            currentUserId={currentUserId}
+            isAuthenticated={Boolean(currentUserId)}
+            participationActive={participationActive}
+          />
+        </SurfaceCard>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 && currentView === "zonas"
         ? orderedGroupCodes.map((groupCode) => (
             <SurfaceCard
               key={groupCode}
