@@ -5,11 +5,10 @@ import { HomeLanding } from "@/components/home/home-landing";
 import { HomeMatchList } from "@/components/home/home-match-list";
 import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
-import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
+import { InfoNotice, PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { getHomeCommunityFeed } from "@/lib/home/community-feed";
 import { getPlayerHeroState } from "@/lib/home/player-hero-state";
-import { getPlayerDisplayName } from "@/lib/player/identity";
 import { entryConfig } from "@/lib/product/entry-config";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -47,7 +46,7 @@ async function loadDashboardAccountData(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
 ) {
-  const [{ data: profileData }, { data: participationRows }, { count: userPredictionCount }] =
+  const [{ data: profileData }, { data: participationRows }] =
     await withSupabaseTimeout(
       Promise.all([
         supabase
@@ -61,10 +60,6 @@ async function loadDashboardAccountData(
           .eq("profile_id", userId)
           .order("created_at", { ascending: false })
           .limit(10),
-        supabase
-          .from("predictions")
-          .select("id", { count: "exact", head: true })
-          .eq("profile_id", userId),
       ]),
       "Supabase dashboard query timed out",
     );
@@ -73,7 +68,6 @@ async function loadDashboardAccountData(
     participation: pickPrimaryParticipation(participationRows ?? []).participation as
       | DashboardParticipation
       | null,
-    predictionCount: userPredictionCount ?? 0,
     profile: (profileData as DashboardProfile | null) ?? null,
   };
 }
@@ -86,7 +80,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   let currentUserId: string | null = null;
   let profile: DashboardProfile | null = null;
   let participation: DashboardParticipation | null = null;
-  let predictionCount = 0;
   let fallbackMessage =
     "No pudimos revisar tu sesión ahora. Reintentá en unos minutos o volvé a entrar.";
 
@@ -121,7 +114,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
     profile = accountData.profile;
     participation = accountData.participation;
-    predictionCount = accountData.predictionCount;
 
     if (participation && SYNCABLE_PAYMENT_STATUSES.has(participation.payment_status)) {
       try {
@@ -175,9 +167,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const participationStatus = participation?.payment_status ?? "pending";
   const participationUiState = resolveParticipationUiState(participationStatus);
   const participationActive = participationUiState.isPaid;
-  const aliasLabel = getPlayerDisplayName(profile);
-  const stateLabel = participationUiState.statusLabel;
-  const picksLabel = `${predictionCount} pronóstico${predictionCount === 1 ? "" : "s"} cargado${predictionCount === 1 ? "" : "s"}`;
 
   if (!currentUserId) {
     return (
@@ -267,38 +256,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <RulesHomeCard href="/reglamento" />
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tus pronósticos" value={String(predictionCount)} detail={picksLabel} />
-        <StatCard label="Estado" value={stateLabel} detail="Aporte confirmado y ranking activo." />
-        <StatCard label="Nick de juego" value={aliasLabel} detail="Así aparecés en el torneo." />
-      </section>
-
       <section className="grid gap-4 md:grid-cols-2">
-        <SurfaceCard title="Estado de juego">
-          <div className="grid gap-3">
-            <p className="font-serif text-[1.9rem] font-bold uppercase text-[var(--color-primary)]">{stateLabel}</p>
-            <p className="text-sm leading-6 text-[var(--color-muted)]">{participationUiState.supportText}</p>
-            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                Tus pronósticos
-              </p>
-              <p className="mt-1 text-base font-semibold text-[var(--color-ink)]">{picksLabel}</p>
-            </div>
-          </div>
+        <SurfaceCard title="Racha">
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Racha: se activa cuando empiecen a jugarse los partidos.
+          </p>
         </SurfaceCard>
-
-        <div className="grid gap-4">
-          <SurfaceCard title="Racha">
-            <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Racha: se activa cuando empiecen a jugarse los partidos.
-            </p>
-          </SurfaceCard>
-          <SurfaceCard title="Tu evolución">
-            <p className="text-sm leading-6 text-[var(--color-muted)]">
-              Tu evolución aparecerá cuando haya resultados cargados.
-            </p>
-          </SurfaceCard>
-        </div>
+        <SurfaceCard title="Tu evolución">
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Tu evolución aparecerá cuando haya resultados cargados.
+          </p>
+        </SurfaceCard>
       </section>
     </PageStack>
   );
