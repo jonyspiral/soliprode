@@ -94,6 +94,10 @@ function buildAdminRedirect(params: Record<string, string | null | undefined>) {
     }
   }
 
+  // Force a distinct URL for repeated admin actions so same-message redirects
+  // still navigate and refresh notices on the current page.
+  searchParams.set("admin_redirect_at", Date.now().toString());
+
   const queryString = searchParams.toString();
   redirect(queryString ? `/admin?${queryString}` : "/admin");
 }
