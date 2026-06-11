@@ -3,6 +3,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireAdminUser } from "@/lib/admin/access";
 import {
   buildBrevoBatchError,
@@ -544,6 +545,10 @@ export async function sendBrevoRecoveryTestAction(formData: FormData) {
       }),
     );
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     buildAdminRedirect(
       buildManualRecoveryRedirectParams({
         profileIds,
@@ -661,6 +666,10 @@ export async function sendBrevoRecoveryEmailsAction(formData: FormData) {
       }),
     );
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     buildAdminRedirect(
       buildManualRecoveryRedirectParams({
         profileIds,
