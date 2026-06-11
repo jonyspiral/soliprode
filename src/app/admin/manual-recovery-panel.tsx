@@ -75,18 +75,6 @@ function buildOriginLabel(row: ManualRecoveryPanelRow) {
   return parts.length > 0 ? parts.join(" · ") : "Sin promoter ni Team";
 }
 
-function encodeClientSelectionContext(profileIds: string[], templateKey: ManualRecoveryTemplateKey) {
-  return btoa(
-    JSON.stringify({
-      profileIds: [...new Set(profileIds)].sort(),
-      templateKey,
-    }),
-  )
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replaceAll("=", "");
-}
-
 function DraftSelectionRow({
   row,
   checked,
@@ -229,6 +217,7 @@ export function ManualRecoveryPanel({
     initialTemplateKey || getDefaultManualRecoveryTemplateKey(),
   );
   const [confirmRealSend, setConfirmRealSend] = useState(false);
+  const [validatedTestProof, setValidatedTestProof] = useState(initialTestProof ?? "");
 
   const selectedSet = useMemo(() => new Set(selectedProfileIds), [selectedProfileIds]);
   const selectedRows = useMemo(
@@ -240,14 +229,10 @@ export function ManualRecoveryPanel({
     const email = row.profile.email ?? "Sin email";
     return `${name} <${email}>`;
   });
-  const currentContext = useMemo(
-    () => encodeClientSelectionContext(selectedProfileIds, templateKey),
-    [selectedProfileIds, templateKey],
-  );
-  const hasMatchingTest = Boolean(initialTestProof && initialTestContext && currentContext === initialTestContext);
   const previewTemplate = previewTemplates[templateKey];
   const canSendTest = brevoStatus.configReady && Boolean(adminEmail) && selectedRows.length > 0;
-  const canSendReal = canSendTest && hasMatchingTest && confirmRealSend;
+  const hasValidatedTest = Boolean(validatedTestProof && initialTestContext);
+  const canSendReal = canSendTest && hasValidatedTest && confirmRealSend;
 
   return (
     <SurfaceCard
@@ -255,7 +240,7 @@ export function ManualRecoveryPanel({
       description="Bandeja operativa para previsualizar, probar y recién después enviar tandas reales por Brevo."
     >
       <form action={sendRealAction} className="grid gap-4">
-        <input type="hidden" name="manual_recovery_test_proof" value={hasMatchingTest ? initialTestProof ?? "" : ""} />
+        <input type="hidden" name="manual_recovery_test_proof" value={validatedTestProof} />
         <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
           <div className="grid gap-1">
             <p className="font-semibold text-[var(--color-ink)]">Envío Brevo</p>
@@ -283,6 +268,7 @@ export function ManualRecoveryPanel({
                 onChange={(event) => {
                   setTemplateKey(event.target.value as ManualRecoveryTemplateKey);
                   setConfirmRealSend(false);
+                  setValidatedTestProof("");
                 }}
                 className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
               >
@@ -357,7 +343,7 @@ export function ManualRecoveryPanel({
                 name="confirm_brevo_send"
                 value="yes"
                 checked={confirmRealSend}
-                disabled={!hasMatchingTest}
+                disabled={!hasValidatedTest}
                 onChange={(event) => {
                   setConfirmRealSend(event.target.checked);
                 }}
@@ -369,7 +355,7 @@ export function ManualRecoveryPanel({
             </label>
 
             <p className="text-sm text-[var(--color-muted)]">
-              {hasMatchingTest
+              {hasValidatedTest
                 ? "Prueba válida detectada para esta misma selección y plantilla."
                 : "La tanda real sigue bloqueada hasta que envíes una prueba con esta misma selección y plantilla."}
             </p>
@@ -404,6 +390,7 @@ export function ManualRecoveryPanel({
                     return [...next].sort();
                   });
                   setConfirmRealSend(false);
+                  setValidatedTestProof("");
                 }}
                 confirmParticipationAction={confirmParticipationAction}
                 rejectParticipationAction={rejectParticipationAction}
