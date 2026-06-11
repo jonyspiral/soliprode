@@ -1,5 +1,6 @@
 import { getAuthAvatarMap } from "@/lib/player/avatar-directory";
 import { getGroupAvatarModel } from "@/lib/groups/identity";
+import { getTeamMinActivePlayers, getTeamScoringMaxPlayers } from "@/lib/competition/settings";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -109,6 +110,8 @@ export async function getGroupCompetitionSnapshot(
   currentUserId: string | null,
 ): Promise<GroupCompetitionSnapshot> {
   const service = createServiceRoleSupabaseClient();
+  const teamMinActivePlayers = getTeamMinActivePlayers();
+  const teamScoringMaxPlayers = getTeamScoringMaxPlayers();
 
   const currentParticipationQuery = currentUserId
     ? service
@@ -240,9 +243,9 @@ export async function getGroupCompetitionSnapshot(
         return compareMembers(a, b);
       });
 
-      const starters = activeMembers.slice(0, 11);
+      const starters = activeMembers.slice(0, teamScoringMaxPlayers);
       const teamScore = starters.reduce((sum, member) => sum + member.points, 0);
-      const isEligible = activeMembers.length >= 11;
+      const isEligible = activeMembers.length >= teamMinActivePlayers;
       const groupAvatar = getGroupAvatarModel(group);
 
       return {

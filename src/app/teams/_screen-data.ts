@@ -3,6 +3,7 @@ import type {
   GroupLeaderboardEntry,
   GroupMemberSnapshot,
 } from "@/lib/groups/competition";
+import { getTeamMinActivePlayers, getTeamScoringMaxPlayers } from "@/lib/competition/settings";
 import type { TeamMember, TeamRankingEntry } from "@/app/teams/_mock";
 
 export type TeamsScreenData = {
@@ -230,12 +231,14 @@ export function buildTeamsScreenDataFromSnapshot(
     return null;
   }
 
+  const teamMinActivePlayers = getTeamMinActivePlayers();
+  const teamScoringMaxPlayers = getTeamScoringMaxPlayers();
   const activeMembers = currentGroup.members.filter((member) => member.isActive);
   const registeredMembers = currentGroup.members.filter((member) => !member.isActive);
-  const starters = activeMembers.slice(0, 11).map((member, index) =>
+  const starters = activeMembers.slice(0, teamScoringMaxPlayers).map((member, index) =>
     toStarter(member, index, currentGroup.ownerProfileId),
   );
-  const bench = activeMembers.slice(11).map((member, index) => toBench(member, index));
+  const bench = activeMembers.slice(teamScoringMaxPlayers).map((member, index) => toBench(member, index));
   const registered = registeredMembers.map((member, index) => toRegistered(member, index));
   const teamScore = starters.reduce((sum, member) => sum + member.points, 0);
   const captainParts = buildAliasParts(
@@ -253,7 +256,7 @@ export function buildTeamsScreenDataFromSnapshot(
     currentAvatarChoice: currentGroup.avatarChoice?.trim() ? currentGroup.avatarChoice : "auto",
     teamName: currentGroup.name,
     teamScore,
-    statusLabel: currentGroup.activeCount >= 11 ? "En competencia" : "Team en formación",
+    statusLabel: currentGroup.activeCount >= teamMinActivePlayers ? "En competencia" : "Team en formación",
     headline: "Armá tu Team. Entran todos. Puntúan los mejores 11.",
     supportCopy:
       "El Capitán arma el Team. El DT se gana el puesto sumando puntos. Los mejores 11 salen a buscar La Gloria.",

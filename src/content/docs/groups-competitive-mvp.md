@@ -17,7 +17,7 @@ Estado: implementado como segunda competencia del MVP, sin comunidades.
 - Exponer ranking interno del grupo.
 - Marcar `DT del grupo`.
 - Exponer ranking de grupos por promedio.
-- Distinguir `preview` vs `habilitado` con regla de `11+` activos.
+- Distinguir `preview` vs `habilitado` con regla de `7+` activos.
 
 ## Decisiones activas
 
@@ -28,7 +28,7 @@ Estado: implementado como segunda competencia del MVP, sin comunidades.
 - El ranking interno usa solo miembros `paid`.
 - Los miembros pendientes siguen visibles para mostrar grupos en formación.
 - El ranking de grupos promedia solo puntos oficiales de miembros `paid`.
-- `11+` activos/pagos = grupo habilitado para competencia oficial.
+- `7+` activos/pagos = grupo habilitado para competencia oficial.
 
 ## Fuente de verdad
 

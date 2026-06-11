@@ -11,6 +11,7 @@ type MatchRow = {
 
 type PredictionRow = {
   id: string;
+  match_id?: string;
   profile_id: string;
   predicted_home: number;
   predicted_away: number;
@@ -88,6 +89,8 @@ function isEligibleForMatch(eligibleFrom: string | null, startsAt: string) {
   return new Date(startsAt).getTime() >= new Date(eligibleFrom).getTime();
 }
 
+// Hotfix operativo: `predictions.points` sigue siendo el storage legacy/transicional
+// del scoring oficial hasta migrar a un ledger dedicado por prediction/match.
 export async function rebuildGeneralRankings() {
   const service = createServiceRoleSupabaseClient();
 
@@ -161,6 +164,109 @@ export async function rebuildGeneralRankings() {
       throw insertError;
     }
   }
+}
+
+export async function rebuildFinishedMatchScoresAndRankings() {
+  const service = createServiceRoleSupabaseClient();
+  const { data: matches, error: matchesError } = await service
+    .from("matches")
+    .select("id, starts_at, status, score_home, score_away")
+    .eq("status", "finished")
+    .not("score_home", "is", null)
+    .not("score_away", "is", null)
+    .order("starts_at", { ascending: true });
+
+  if (matchesError) {
+    throw matchesError;
+  }
+
+  const finishedMatches = (matches ?? []) as MatchRow[];
+
+  if (finishedMatches.length === 0) {
+    await rebuildGeneralRankings();
+
+    return {
+      finishedMatchesProcessed: 0,
+      predictionsProcessed: 0,
+      rankedPlayers: 0,
+    };
+  }
+
+  const matchIds = finishedMatches.map((match) => match.id);
+  const { data: predictions, error: predictionError } = await service
+    .from("predictions")
+    .select("id, match_id, profile_id, predicted_home, predicted_away, locked_at")
+    .in("match_id", matchIds);
+
+  if (predictionError) {
+    throw predictionError;
+  }
+
+  const predictionRows = (predictions ?? []) as PredictionRow[];
+  const profileIds = [...new Set(predictionRows.map((row) => row.profile_id))];
+  const participationRows =
+    profileIds.length > 0
+      ? await service
+          .from("participations")
+          .select("profile_id, payment_status, eligible_from, created_at")
+          .in("profile_id", profileIds)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
+
+  if (participationRows.error) {
+    throw participationRows.error;
+  }
+
+  const participationMap = buildPrimaryParticipationMap(
+    (participationRows.data ?? []) as ParticipationRow[],
+  );
+  const matchMap = new Map(finishedMatches.map((match) => [match.id, match]));
+
+  for (const prediction of predictionRows) {
+    const match = typeof prediction.match_id === "string" ? matchMap.get(prediction.match_id) ?? null : null;
+    const participation = participationMap.get(prediction.profile_id);
+
+    if (!match || match.score_home === null || match.score_away === null) {
+      continue;
+    }
+
+    const isEligible =
+      participation?.payment_status === "paid" &&
+      isEligibleForMatch(participation.eligible_from, match.starts_at);
+
+    const points = isEligible
+      ? scorePrediction(
+          prediction.predicted_home,
+          prediction.predicted_away,
+          match.score_home,
+          match.score_away,
+        )
+      : 0;
+
+    const { error: updatePredictionError } = await service
+      .from("predictions")
+      .update({
+        points,
+        locked_at: prediction.locked_at ?? match.starts_at,
+      })
+      .eq("id", prediction.id);
+
+    if (updatePredictionError) {
+      throw updatePredictionError;
+    }
+  }
+
+  await rebuildGeneralRankings();
+
+  return {
+    finishedMatchesProcessed: finishedMatches.length,
+    predictionsProcessed: predictionRows.length,
+    rankedPlayers: [...new Set(
+      [...participationMap.values()]
+        .filter((participation) => participation.payment_status === "paid")
+        .map((participation) => participation.profile_id),
+    )].length,
+  };
 }
 
 export async function publishMatchResultAndScore(input: {

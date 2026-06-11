@@ -21,7 +21,11 @@ import {
 } from "@/lib/admin/manual-recovery-email";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveManualEligibleFrom } from "@/lib/participations/eligibility";
-import { publishMatchResultAndScore, rebuildGeneralRankings } from "@/lib/scoring/official-rankings";
+import {
+  publishMatchResultAndScore,
+  rebuildFinishedMatchScoresAndRankings,
+  rebuildGeneralRankings,
+} from "@/lib/scoring/official-rankings";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 function readStrictNonNegativeInteger(rawValue: FormDataEntryValue | null) {
@@ -702,4 +706,23 @@ export async function publishMatchResultAction(formData: FormData) {
   revalidatePath("/matches");
   revalidatePath("/rankings");
   revalidatePath("/dashboard");
+}
+
+export async function rebuildRankingsAction() {
+  await requireAdminUser();
+
+  const summary = await rebuildFinishedMatchScoresAndRankings();
+
+  revalidatePath("/admin");
+  revalidatePath("/groups");
+  revalidatePath("/matches");
+  revalidatePath("/rankings");
+  revalidatePath("/dashboard");
+
+  buildAdminRedirect({
+    ranking_notice:
+      `Rebuild OK: ${summary.finishedMatchesProcessed} partido(s), ` +
+      `${summary.predictionsProcessed} pronóstico(s), ` +
+      `${summary.rankedPlayers} jugador(es) rankeado(s).`,
+  });
 }

@@ -5,6 +5,7 @@ import {
   confirmParticipationAction,
   publishMatchResultAction,
   rejectParticipationAction,
+  rebuildRankingsAction,
   sendBrevoRecoveryEmailsAction,
   sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
@@ -30,6 +31,7 @@ import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
 type AdminPageProps = {
   searchParams?: Promise<{
+    ranking_notice?: string;
     send_error?: string;
     send_notice?: string;
     selected_profile_ids?: string;
@@ -461,6 +463,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {adminNotice ? <InfoNotice tone="error" message={adminNotice} /> : null}
       {params?.send_notice ? <InfoNotice tone="info" message={params.send_notice} /> : null}
       {params?.send_error ? <InfoNotice tone="error" message={params.send_error} /> : null}
+      {params?.ranking_notice ? <InfoNotice tone="info" message={params.ranking_notice} /> : null}
       {params?.test_notice ? <InfoNotice tone="info" message={params.test_notice} /> : null}
       {params?.test_error ? <InfoNotice tone="error" message={params.test_error} /> : null}
 
@@ -560,6 +563,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         title="Resultados y scoring"
         description="Publicá resultados finales, recalculá puntos y reconstruí el ranking oficial desde la misma jugada."
       >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Si ya hay resultados oficiales cargados, podés re-scorear los partidos finalizados y reconstruir el ranking general sin tocar KO, especiales ni mediana.
+          </p>
+          <form action={rebuildRankingsAction}>
+            <button
+              type="submit"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              Recalcular ranking
+            </button>
+          </form>
+        </div>
         {matchRows.length === 0 ? (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             Todavía no hay partidos cargados para operar.
