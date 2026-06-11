@@ -81,16 +81,10 @@ function scorePrediction(
   return 0;
 }
 
-function isEligibleForMatch(eligibleFrom: string | null, startsAt: string) {
-  if (!eligibleFrom) {
-    return true;
-  }
-
-  return new Date(startsAt).getTime() >= new Date(eligibleFrom).getTime();
-}
-
 // Hotfix operativo: `predictions.points` sigue siendo el storage legacy/transicional
 // del scoring oficial hasta migrar a un ledger dedicado por prediction/match.
+// Mientras no exista la mediana reglamentaria, el ranking urgente usa solo
+// `payment_status = 'paid'` y no corta por `eligible_from`.
 export async function rebuildGeneralRankings() {
   const service = createServiceRoleSupabaseClient();
 
@@ -128,10 +122,6 @@ export async function rebuildGeneralRankings() {
     const match = row.match?.[0];
 
     if (!participation || !match || match.status !== "finished") {
-      continue;
-    }
-
-    if (!isEligibleForMatch(participation.eligible_from, match.starts_at)) {
       continue;
     }
 
@@ -230,9 +220,7 @@ export async function rebuildFinishedMatchScoresAndRankings() {
       continue;
     }
 
-    const isEligible =
-      participation?.payment_status === "paid" &&
-      isEligibleForMatch(participation.eligible_from, match.starts_at);
+    const isEligible = participation?.payment_status === "paid";
 
     const points = isEligible
       ? scorePrediction(
@@ -320,9 +308,7 @@ export async function publishMatchResultAndScore(input: {
 
   for (const prediction of (predictions ?? []) as PredictionRow[]) {
     const participation = participationMap.get(prediction.profile_id);
-    const isEligible =
-      participation?.payment_status === "paid" &&
-      isEligibleForMatch(participation.eligible_from, match.starts_at);
+    const isEligible = participation?.payment_status === "paid";
 
     const points = isEligible
       ? scorePrediction(
