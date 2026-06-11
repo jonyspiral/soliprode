@@ -64,6 +64,8 @@ function renderEmailShell(params: {
   spotlightLines: string[];
   bodyLines: string[];
   paymentLines: string[];
+  helpLine?: string;
+  signatureLines?: string[];
   ctaLabel: string;
   ctaHref: string;
   footerLine: string;
@@ -85,6 +87,15 @@ function renderEmailShell(params: {
     .map(
       (line) =>
         `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#514a40;">${escapeHtml(line)}</p>`,
+    )
+    .join("");
+  const helpHtml = params.helpLine
+    ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#514a40;">${escapeHtml(params.helpLine)}</p>`
+    : "";
+  const signatureHtml = (params.signatureLines ?? [])
+    .map(
+      (line, index) =>
+        `<p style="margin:0 0 ${index === (params.signatureLines?.length ?? 0) - 1 ? "0" : "4px"};font-size:14px;line-height:1.6;color:#6a6258;">${escapeHtml(line)}</p>`,
     )
     .join("");
 
@@ -119,19 +130,21 @@ function renderEmailShell(params: {
             </tr>
             <tr>
               <td style="padding:0 28px 8px;">
-                <a href="${escapeHtml(params.ctaHref)}" style="display:inline-block;border-radius:14px;background:#ffe16d;border:1px solid #e7ca55;padding:16px 24px;font-size:15px;line-height:1;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#1d1d1b;text-decoration:none;">${escapeHtml(params.ctaLabel)}</a>
+                <a href="${escapeHtml(params.ctaHref)}" style="display:inline-block;border-radius:14px;background:#ffe16d;border:1px solid #e7ca55;padding:16px 24px;font-size:15px;line-height:1;font-weight:800;letter-spacing:0.02em;color:#1d1d1b;text-decoration:none;">${escapeHtml(params.ctaLabel)}</a>
               </td>
             </tr>
             <tr>
               <td style="padding:8px 28px 10px;">
                 <div style="border-top:1px solid #eadfcb;padding-top:18px;">
                   ${paymentHtml}
+                  ${helpHtml}
                 </div>
               </td>
             </tr>
             <tr>
               <td style="padding:0 28px 28px;">
                 <p style="margin:0;font-size:14px;line-height:1.6;color:#6a6258;">${escapeHtml(params.footerLine)}</p>
+                ${signatureHtml ? `<div style="margin-top:12px;">${signatureHtml}</div>` : ""}
               </td>
             </tr>
           </table>
@@ -231,40 +244,46 @@ export function buildManualRecoveryTemplateContent(
   }
 
   return {
-    subject: "El Mundial arranca mañana: activá tu Pase",
+    subject: "Tu Pase Solidario sigue pendiente",
     activationUrl,
     html: renderEmailShell({
       preheader:
-        "Entrá al Prode Mundial, competí por $300.000 y ayudá a financiar una tesis universitaria.",
-      eyebrow: "El Mundial arranca mañana",
-      title: "Activá tu Pase Solidario hoy",
+        "Recibís este mensaje porque te registraste en SoliProde y tu Pase todavía no figura activo.",
+      eyebrow: "Pase pendiente",
+      title: "Tu Pase Solidario sigue pendiente",
       salutation,
-      intro: "Activá tu Pase Solidario y entrá al Prode antes del primer partido.",
-      spotlightLines: ["Pozo acumulado: $300.000", "+ camisetas para tu Team"],
+      intro: "Recibís este mensaje porque te registraste en SoliProde y tu Pase todavía no figura activo.",
+      spotlightLines: ["Activá tu Pase Solidario", "Completá tu activación para entrar al Prode."],
       bodyLines: [
-        "Con el Pase activo cargás pronósticos, seguís cada partido con puntaje y competís en el ranking.",
+        "Con el Pase activo podés cargar pronósticos, seguir el Mundial con puntaje, competir en el ranking y participar por los premios del juego. El pozo acumulado ya es de $300.000 y también hay camisetas para el Team ganador.",
         "Además, tu aporte ayuda a financiar una tesis universitaria.",
       ],
       paymentLines: [
         "El pago se hace online. No necesitás saldo en Mercado Pago: podés elegir tarjeta u otros medios disponibles dentro del checkout.",
         "Si no podés pagar online, también podés consultar por transferencia. La activación por transferencia no es automática.",
       ],
-      ctaLabel: "ACTIVAR MI PASE HOY",
+      helpLine: "Si necesitás ayuda, respondé este correo.",
+      signatureLines: ["SoliProde", "hola@soliprode.com", "https://www.soliprode.com"],
+      ctaLabel: "Activar mi Pase",
       ctaHref: activationUrl,
-      footerLine: "Entrás al Prode y quedás listo para competir apenas confirmás tu Pase.",
+      footerLine: "Cuando confirmás tu Pase, quedás listo para competir en SoliProde.",
     }),
     plainText: [
       salutation,
       "",
-      "El Mundial arranca mañana.",
-      "Activá tu Pase Solidario y entrá al Prode antes del primer partido.",
-      "Pozo acumulado: $300.000",
-      "+ camisetas para tu Team",
-      "Con el Pase activo cargás pronósticos, seguís cada partido con puntaje y competís en el ranking.",
+      "Recibís este mensaje porque te registraste en SoliProde y tu Pase todavía no figura activo.",
+      "Activá tu Pase Solidario para completar tu ingreso al Prode.",
+      "Con el Pase activo podés cargar pronósticos, seguir el Mundial con puntaje, competir en el ranking y participar por los premios del juego. El pozo acumulado ya es de $300.000 y también hay camisetas para el Team ganador.",
       "Además, tu aporte ayuda a financiar una tesis universitaria.",
       "",
       "El pago se hace online. No necesitás saldo en Mercado Pago: podés elegir tarjeta u otros medios disponibles dentro del checkout.",
       "Si no podés pagar online, también podés consultar por transferencia. La activación por transferencia no es automática.",
+      "",
+      "Si necesitás ayuda, respondé este correo.",
+      "",
+      "SoliProde",
+      "hola@soliprode.com",
+      "https://www.soliprode.com",
       "",
       `Activá tu Pase: ${activationUrl}`,
     ].join("\n"),
