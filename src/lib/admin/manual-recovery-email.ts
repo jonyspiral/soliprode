@@ -156,6 +156,7 @@ export function buildManualRecoveryTemplateContent(
   if (templateKey === "payment_issue") {
     return {
       subject: "Tu Pase Solidario sigue pendiente: retomá tu activación",
+      activationUrl,
       html: renderEmailShell({
         preheader:
           "Si tu pago se frenó o quedó pendiente, podés retomarlo hoy y entrar al Prode antes del primer partido.",
@@ -194,6 +195,7 @@ export function buildManualRecoveryTemplateContent(
   if (templateKey === "solidarity") {
     return {
       subject: "Activá tu Pase y ayudá a financiar una tesis universitaria",
+      activationUrl,
       html: renderEmailShell({
         preheader:
           "Entrá al Prode Mundial, competí por $300.000 y ayudá a financiar una tesis universitaria.",
@@ -230,6 +232,7 @@ export function buildManualRecoveryTemplateContent(
 
   return {
     subject: "El Mundial arranca mañana: activá tu Pase",
+    activationUrl,
     html: renderEmailShell({
       preheader:
         "Entrá al Prode Mundial, competí por $300.000 y ayudá a financiar una tesis universitaria.",

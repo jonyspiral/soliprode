@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
 import {
   confirmParticipationAction,
   publishMatchResultAction,
   rejectParticipationAction,
   sendBrevoRecoveryEmailsAction,
+  sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
@@ -14,7 +16,10 @@ import { getBrevoAdminStatus } from "@/lib/admin/brevo";
 import { requireAdminUser } from "@/lib/admin/access";
 import {
   MANUAL_RECOVERY_TEMPLATE_OPTIONS,
+  buildManualRecoveryTemplateContent,
   getDefaultManualRecoveryTemplateKey,
+  type ManualRecoveryRecipient,
+  type ManualRecoveryTemplateKey,
 } from "@/lib/admin/manual-recovery-email";
 import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -27,6 +32,12 @@ type AdminPageProps = {
   searchParams?: Promise<{
     send_error?: string;
     send_notice?: string;
+    selected_profile_ids?: string;
+    template_key?: string;
+    test_context?: string;
+    test_error?: string;
+    test_notice?: string;
+    test_proof?: string;
   }>;
 };
 
@@ -101,6 +112,28 @@ type RegisteredWithoutPassRow = {
   paymentAttempt: PaymentAttemptAdminRow | null;
   canCreateDraft: boolean;
 };
+
+const MANUAL_RECOVERY_PREVIEW_RECIPIENT: ManualRecoveryRecipient = {
+  profileId: "preview",
+  participationId: "preview",
+  paymentAttemptId: null,
+  email: "preview@soliprode.com",
+  fullName: "Nombre de ejemplo",
+  nickname: "Alias ejemplo",
+  promoterLabel: null,
+  groupLabel: null,
+  paymentStatus: "pending",
+  paymentAttemptStatus: null,
+  paymentAttemptProvider: null,
+};
+
+function parseSelectedProfileIds(rawValue: string | null | undefined) {
+  if (!rawValue) {
+    return [];
+  }
+
+  return [...new Set(rawValue.split(",").map((value) => value.trim()).filter(Boolean))].sort();
+}
 
 function resolveNumericAmount(value: number | string | null) {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -201,97 +234,6 @@ function buildOriginLabel(row: RegisteredWithoutPassRow) {
   return parts.length > 0 ? parts.join(" · ") : "Sin promoter ni Team";
 }
 
-function DraftSelectionRow({ row }: { row: RegisteredWithoutPassRow }) {
-  const profile = row.profile;
-  const avatarModel = getPlayerAvatarModel(profile);
-  const label = getPlayerDisplayName(profile);
-  const hasEmail = Boolean(profile.email?.trim());
-
-  return (
-    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex gap-3">
-          <label className="mt-1 flex items-start">
-            <input
-              type="checkbox"
-              name="profile_id"
-              value={profile.id}
-              defaultChecked={hasEmail && row.canCreateDraft}
-              disabled={!hasEmail || !row.canCreateDraft}
-              className="mt-1 h-4 w-4 rounded border-[var(--color-line)]"
-            />
-          </label>
-          <PlayerAvatar
-            imageUrl={avatarModel.avatarUrl}
-            fallbackImageUrl={avatarModel.fallbackAvatarUrl}
-            label={label}
-            seed={avatarModel.avatarSeed}
-            size="md"
-            variant={avatarModel.avatarVariant}
-          />
-          <div className="grid gap-1">
-            <p className="font-semibold text-[var(--color-ink)]">{label}</p>
-            <p className="text-sm text-[var(--color-muted)]">
-              Nombre: {profile.full_name ?? "Pendiente"} · Nickname: {profile.public_alias ?? "Pendiente"}
-            </p>
-            <p className="text-sm text-[var(--color-muted)]">Email: {profile.email ?? "Sin email"}</p>
-            <p className="text-sm text-[var(--color-muted)]">
-              Alta: {new Date(profile.created_at).toLocaleDateString("es-AR")} · Estado: {row.stateLabel}
-            </p>
-            <p className="text-sm text-[var(--color-muted)]">
-              payment_status: {row.paymentStatusLabel}
-            </p>
-            {row.latestPaymentAttemptLabel ? (
-              <p className="text-sm text-[var(--color-muted)]">
-                Último intento: {row.latestPaymentAttemptLabel}
-              </p>
-            ) : null}
-            <p className="text-sm text-[var(--color-muted)]">{buildOriginLabel(row)}</p>
-            {!hasEmail ? (
-              <p className="text-sm text-[#93000a]">No se puede crear draft: el perfil no tiene email.</p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid gap-2 lg:min-w-[190px]">
-          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            {row.stateLabel}
-          </span>
-          {row.stateLabel === "Pago pendiente" && row.participation ? (
-            <>
-              <button
-                type="submit"
-                name="participation_id"
-                value={row.participation.id}
-                formAction={confirmParticipationAction}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-              >
-                Confirmar pago
-              </button>
-              <button
-                type="submit"
-                name="participation_id"
-                value={row.participation.id}
-                formAction={rejectParticipationAction}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-              >
-                Rechazar pago
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/activar-pase"
-              className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-            >
-              Ver activación
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ManualReviewRow({ row }: { row: RegisteredWithoutPassRow }) {
   const profile = row.profile;
   const avatarModel = getPlayerAvatarModel(profile);
@@ -356,8 +298,10 @@ function ManualReviewRow({ row }: { row: RegisteredWithoutPassRow }) {
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
+  let adminUser: Awaited<ReturnType<typeof requireAdminUser>> | null = null;
+
   try {
-    await withSupabaseTimeout(requireAdminUser(), "Supabase admin access check timed out");
+    adminUser = await withSupabaseTimeout(requireAdminUser(), "Supabase admin access check timed out");
   } catch (error) {
     if (error instanceof Error && error.message === "unauthenticated") {
       redirect("/login?next=/admin");
@@ -381,6 +325,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const params = searchParams ? await searchParams : undefined;
+  const selectedProfileIds = parseSelectedProfileIds(params?.selected_profile_ids);
+  const selectedTemplateOption = MANUAL_RECOVERY_TEMPLATE_OPTIONS.find((option) => option.key === params?.template_key);
+  const selectedTemplateKey: ManualRecoveryTemplateKey = selectedTemplateOption?.key ?? getDefaultManualRecoveryTemplateKey();
 
   let adminNotice: string | null = null;
   let profiles: ProfileAdminRow[] = [];
@@ -496,6 +443,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     0,
   );
   const conversionRate = registeredCount > 0 ? Math.round((activeRows.length / registeredCount) * 100) : 0;
+  const previewTemplates = Object.fromEntries(
+    MANUAL_RECOVERY_TEMPLATE_OPTIONS.map((option) => [
+      option.key,
+      buildManualRecoveryTemplateContent(option.key, MANUAL_RECOVERY_PREVIEW_RECIPIENT),
+    ]),
+  ) as Record<ManualRecoveryTemplateKey, ReturnType<typeof buildManualRecoveryTemplateContent>>;
 
   return (
     <PageStack>
@@ -508,6 +461,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {adminNotice ? <InfoNotice tone="error" message={adminNotice} /> : null}
       {params?.send_notice ? <InfoNotice tone="info" message={params.send_notice} /> : null}
       {params?.send_error ? <InfoNotice tone="error" message={params.send_error} /> : null}
+      {params?.test_notice ? <InfoNotice tone="info" message={params.test_notice} /> : null}
+      {params?.test_error ? <InfoNotice tone="error" message={params.test_error} /> : null}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Registrados" value={String(registeredCount)} detail="Perfiles creados" />
@@ -519,94 +474,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <StatCard label="Recaudado" value={formatEntryPrice(confirmedRevenue)} detail="Solo participations paid" />
       </section>
 
-      <SurfaceCard
-        title="Registrados sin Pase"
-        description="Bandeja operativa para enviar tandas controladas por Brevo a registrados con estados reintentables."
-      >
-        <form action={sendBrevoRecoveryEmailsAction} className="grid gap-4">
-          <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-            <div className="grid gap-1">
-              <p className="font-semibold text-[var(--color-ink)]">Envío Brevo</p>
-              {brevoStatus.configReady ? (
-                <p className="text-sm text-[var(--color-muted)]">
-                  Sender listo: {brevoStatus.senderName ?? "Sender"} &lt;{brevoStatus.senderEmail ?? "sin email"}&gt;.
-                  Tanda máxima: {brevoStatus.batchLimit} correos.
-                </p>
-              ) : (
-                <p className="text-sm text-[#93000a]">
-                  Faltan `BREVO_API_KEY`, `BREVO_SENDER_NAME` o `BREVO_SENDER_EMAIL`.
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,260px)_auto] lg:items-end">
-              <label className="grid gap-1 text-sm text-[var(--color-muted)]">
-                <span className="font-semibold uppercase tracking-[0.08em]">Plantilla</span>
-                <select
-                  name="template_key"
-                  defaultValue={getDefaultManualRecoveryTemplateKey()}
-                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                >
-                  {MANUAL_RECOVERY_TEMPLATE_OPTIONS.map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="submit"
-                disabled={!brevoStatus.configReady || withoutPassRows.length === 0}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60 lg:w-fit"
-              >
-                Enviar tanda Brevo
-              </button>
-            </div>
-
-            <div className="grid gap-3 rounded-lg border border-dashed border-[var(--color-line)] bg-white/70 p-4">
-              <label className="flex items-start gap-3 text-sm text-[var(--color-muted)]">
-                <input
-                  type="checkbox"
-                  name="confirm_brevo_send"
-                  value="yes"
-                  className="mt-1 h-4 w-4 rounded border-[var(--color-line)]"
-                />
-                <span>
-                  Confirmo que quiero enviar esta tanda ahora. La acción envía correos reales, excluye `manual_review` y corta por server-side si supera {brevoStatus.batchLimit}.
-                </span>
-              </label>
-            </div>
-
-            <p className="text-sm text-[var(--color-muted)]">
-              Brevo deja logs de envío por destinatario para evitar duplicados accidentales dentro de las últimas 24 horas.
-            </p>
-          </div>
-
-          {withoutPassRows.length === 0 ? (
-            <p className="text-sm leading-6 text-[var(--color-muted)]">
-              No hay jugadores en estados reintentables para este flujo ahora mismo.
-            </p>
-          ) : (
-            <div className="grid gap-4">
-              {withoutPassRows
-                .sort((left, right) => {
-                  const leftPriority = left.stateLabel === "Pago pendiente" ? 0 : 1;
-                  const rightPriority = right.stateLabel === "Pago pendiente" ? 0 : 1;
-
-                  if (leftPriority !== rightPriority) {
-                    return leftPriority - rightPriority;
-                  }
-
-                  return Date.parse(right.profile.created_at) - Date.parse(left.profile.created_at);
-                })
-                .map((row) => (
-                  <DraftSelectionRow key={row.profile.id} row={row} />
-                ))}
-            </div>
-          )}
-        </form>
-      </SurfaceCard>
+      <ManualRecoveryPanel
+        adminEmail={adminUser?.user.email ?? null}
+        brevoStatus={brevoStatus}
+        rows={withoutPassRows as ManualRecoveryPanelRow[]}
+        previewTemplates={previewTemplates}
+        initialSelectedProfileIds={selectedProfileIds}
+        initialTemplateKey={selectedTemplateKey}
+        initialTestContext={params?.test_context ?? null}
+        initialTestProof={params?.test_proof ?? null}
+        sendRealAction={sendBrevoRecoveryEmailsAction}
+        sendTestAction={sendBrevoRecoveryTestAction}
+        confirmParticipationAction={confirmParticipationAction}
+        rejectParticipationAction={rejectParticipationAction}
+      />
 
       {manualReviewRows.length > 0 ? (
         <SurfaceCard

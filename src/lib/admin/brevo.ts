@@ -72,6 +72,29 @@ async function sendBrevoTransactionalEmail(params: {
   templateKey: ManualRecoveryTemplateKey;
 }) {
   const template = buildManualRecoveryTemplateContent(params.templateKey, params.recipient);
+  const providerMessageId = await sendBrevoEmail({
+    toEmail: params.recipient.email.trim(),
+    toName: buildRecipientLabel(params.recipient),
+    subject: template.subject,
+    htmlContent: template.html,
+    textContent: template.plainText,
+    tags: ["soliprode", "manual-recovery", params.templateKey],
+  });
+
+  return {
+    providerMessageId,
+    template,
+  };
+}
+
+async function sendBrevoEmail(params: {
+  toEmail: string;
+  toName?: string | null;
+  subject: string;
+  htmlContent: string;
+  textContent: string;
+  tags: string[];
+}) {
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -84,11 +107,11 @@ async function sendBrevoTransactionalEmail(params: {
         name: getBrevoSenderName(),
         email: getBrevoSenderEmail(),
       },
-      to: [{ email: params.recipient.email.trim(), name: buildRecipientLabel(params.recipient) }],
-      subject: template.subject,
-      htmlContent: template.html,
-      textContent: template.plainText,
-      tags: ["soliprode", "manual-recovery", params.templateKey],
+      to: [{ email: params.toEmail.trim(), name: params.toName?.trim() || params.toEmail.trim() }],
+      subject: params.subject,
+      htmlContent: params.htmlContent,
+      textContent: params.textContent,
+      tags: params.tags,
       replyTo: {
         email: getBrevoSenderEmail(),
         name: getBrevoSenderName(),
@@ -104,8 +127,27 @@ async function sendBrevoTransactionalEmail(params: {
 
   const payload = (await response.json().catch(() => ({}))) as BrevoSendSuccessResponse;
 
+  return payload.messageId ?? null;
+}
+
+export async function sendManualRecoveryBrevoTestEmail(params: {
+  recipient: ManualRecoveryRecipient;
+  templateKey: ManualRecoveryTemplateKey;
+  adminEmail: string;
+  adminName?: string | null;
+}) {
+  const template = buildManualRecoveryTemplateContent(params.templateKey, params.recipient);
+  const providerMessageId = await sendBrevoEmail({
+    toEmail: params.adminEmail,
+    toName: params.adminName,
+    subject: template.subject,
+    htmlContent: template.html,
+    textContent: template.plainText,
+    tags: ["soliprode", "manual-recovery-test", params.templateKey],
+  });
+
   return {
-    providerMessageId: payload.messageId ?? null,
+    providerMessageId,
     template,
   };
 }

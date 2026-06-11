@@ -1,11 +1,13 @@
 "use server";
 
+import { createHash, createHmac } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminUser } from "@/lib/admin/access";
 import {
   buildBrevoBatchError,
   buildBrevoBatchNotice,
+  sendManualRecoveryBrevoTestEmail,
   sendManualRecoveryBrevoBatch,
 } from "@/lib/admin/brevo";
 import {
@@ -76,6 +78,8 @@ type DraftGroupRefRow = {
   name: string;
 };
 
+const MANUAL_RECOVERY_TEST_PROOF_WINDOW_MS = 30 * 60 * 1000;
+
 function buildAdminRedirect(params: Record<string, string | null | undefined>) {
   const searchParams = new URLSearchParams();
 
@@ -87,6 +91,152 @@ function buildAdminRedirect(params: Record<string, string | null | undefined>) {
 
   const queryString = searchParams.toString();
   redirect(queryString ? `/admin?${queryString}` : "/admin");
+}
+
+function normalizeSelectedProfileIds(profileIds: string[]) {
+  return [...new Set(profileIds.map((value) => value.trim()).filter(Boolean))].sort();
+}
+
+function serializeSelectedProfileIds(profileIds: string[]) {
+  return normalizeSelectedProfileIds(profileIds).join(",");
+}
+
+function encodeBase64Url(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url");
+}
+
+function decodeBase64Url(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function buildSelectionContextValue(profileIds: string[], templateKey: ManualRecoveryTemplateKey) {
+  return encodeBase64Url(
+    JSON.stringify({
+      profileIds: normalizeSelectedProfileIds(profileIds),
+      templateKey,
+    }),
+  );
+}
+
+function buildSelectionHash(profileIds: string[], templateKey: ManualRecoveryTemplateKey) {
+  return createHash("sha256")
+    .update(`${templateKey}:${normalizeSelectedProfileIds(profileIds).join(",")}`)
+    .digest("hex");
+}
+
+function getManualRecoveryProofSecret() {
+  const secret = process.env.BREVO_API_KEY?.trim();
+
+  if (!secret) {
+    throw new Error("Faltan BREVO_API_KEY, BREVO_SENDER_NAME o BREVO_SENDER_EMAIL.");
+  }
+
+  return secret;
+}
+
+function createManualRecoveryTestProof(params: {
+  adminProfileId: string;
+  adminEmail: string;
+  profileIds: string[];
+  templateKey: ManualRecoveryTemplateKey;
+}) {
+  const payload = {
+    adminEmail: params.adminEmail.trim().toLowerCase(),
+    adminProfileId: params.adminProfileId,
+    selectionHash: buildSelectionHash(params.profileIds, params.templateKey),
+    templateKey: params.templateKey,
+    testedAt: Date.now(),
+    v: 1,
+  };
+  const payloadValue = encodeBase64Url(JSON.stringify(payload));
+  const signature = createHmac("sha256", getManualRecoveryProofSecret()).update(payloadValue).digest("base64url");
+
+  return `${payloadValue}.${signature}`;
+}
+
+function verifyManualRecoveryTestProof(params: {
+  token: string;
+  adminProfileId: string;
+  adminEmail: string;
+  profileIds: string[];
+  templateKey: ManualRecoveryTemplateKey;
+}) {
+  const [payloadValue, signature] = params.token.split(".");
+
+  if (!payloadValue || !signature) {
+    return false;
+  }
+
+  const expectedSignature = createHmac("sha256", getManualRecoveryProofSecret()).update(payloadValue).digest("base64url");
+
+  if (signature !== expectedSignature) {
+    return false;
+  }
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(payloadValue)) as {
+      adminEmail?: string;
+      adminProfileId?: string;
+      selectionHash?: string;
+      templateKey?: string;
+      testedAt?: number;
+      v?: number;
+    };
+
+    if (payload.v !== 1) {
+      return false;
+    }
+
+    if (payload.adminProfileId !== params.adminProfileId) {
+      return false;
+    }
+
+    if (payload.adminEmail !== params.adminEmail.trim().toLowerCase()) {
+      return false;
+    }
+
+    if (payload.templateKey !== params.templateKey) {
+      return false;
+    }
+
+    if (payload.selectionHash !== buildSelectionHash(params.profileIds, params.templateKey)) {
+      return false;
+    }
+
+    if (
+      typeof payload.testedAt !== "number" ||
+      !Number.isFinite(payload.testedAt) ||
+      Date.now() - payload.testedAt > MANUAL_RECOVERY_TEST_PROOF_WINDOW_MS
+    ) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function buildManualRecoveryRedirectParams(params: {
+  profileIds: string[];
+  templateKey: ManualRecoveryTemplateKey;
+  sendError?: string | null;
+  sendNotice?: string | null;
+  testError?: string | null;
+  testNotice?: string | null;
+  testContext?: string | null;
+  testProof?: string | null;
+}) {
+  return {
+    selected_profile_ids: serializeSelectedProfileIds(params.profileIds),
+    template_key: params.templateKey,
+    send_error: params.sendError ?? null,
+    send_notice: params.sendNotice ?? null,
+    test_error: params.testError ?? null,
+    test_notice: params.testNotice ?? null,
+    test_context: params.testContext ?? null,
+    test_proof: params.testProof ?? null,
+  };
 }
 
 async function updateLatestPendingAttemptForParticipation(params: {
@@ -237,7 +387,7 @@ export async function rejectParticipationAction(formData: FormData) {
 function readSelectedProfileIds(formData: FormData) {
   const rawValues = formData.getAll("profile_id");
 
-  return [...new Set(rawValues.map((value) => String(value ?? "").trim()).filter(Boolean))];
+  return normalizeSelectedProfileIds(rawValues.map((value) => String(value ?? "").trim()));
 }
 
 function readTemplateKey(formData: FormData): ManualRecoveryTemplateKey {
@@ -320,43 +470,179 @@ async function resolveManualRecoveryRecipients(profileIds: string[]) {
   });
 }
 
+export async function sendBrevoRecoveryTestAction(formData: FormData) {
+  const adminUser = await requireAdminUser();
+  const profileIds = readSelectedProfileIds(formData);
+  const templateKey = readTemplateKey(formData);
+  const adminEmail = adminUser.user.email?.trim() ?? null;
+
+  if (profileIds.length === 0) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        testError: "Seleccioná al menos un usuario para enviar la prueba.",
+      }),
+    );
+  }
+
+  if (profileIds.length > MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        testError: `La selección supera el máximo de ${MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE} correos por tanda.`,
+      }),
+    );
+  }
+
+  if (!adminEmail) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        testError: "Tu usuario admin no tiene email disponible para recibir la prueba.",
+      }),
+    );
+  }
+
+  const safeAdminEmail = adminEmail || "";
+
+  try {
+    const recipients = await resolveManualRecoveryRecipients(profileIds);
+
+    if (recipients.length === 0) {
+      buildAdminRedirect(
+        buildManualRecoveryRedirectParams({
+          profileIds,
+          templateKey,
+          testError: "Los usuarios seleccionados no están en estados reintentables para este flujo.",
+        }),
+      );
+    }
+
+    const previewRecipient = recipients[0];
+    await sendManualRecoveryBrevoTestEmail({
+      recipient: previewRecipient,
+      templateKey,
+      adminEmail: safeAdminEmail,
+      adminName: adminUser.profile.public_alias ?? safeAdminEmail,
+    });
+
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        testContext: buildSelectionContextValue(profileIds, templateKey),
+        testProof: createManualRecoveryTestProof({
+          adminProfileId: adminUser.user.id,
+          adminEmail: safeAdminEmail,
+          profileIds,
+          templateKey,
+        }),
+        testNotice: `Prueba enviada a ${safeAdminEmail} usando la plantilla seleccionada.`,
+      }),
+    );
+  } catch (error) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        testError: error instanceof Error ? error.message : "No pudimos enviar la prueba con Brevo.",
+      }),
+    );
+  }
+}
+
 export async function sendBrevoRecoveryEmailsAction(formData: FormData) {
   const adminUser = await requireAdminUser();
   const profileIds = readSelectedProfileIds(formData);
   const templateKey = readTemplateKey(formData);
   const confirmSend = String(formData.get("confirm_brevo_send") ?? "").trim();
+  const testProof = String(formData.get("manual_recovery_test_proof") ?? "").trim();
+  const adminEmail = adminUser.user.email?.trim() ?? null;
 
   if (profileIds.length === 0) {
-    buildAdminRedirect({
-      send_error: "Seleccioná al menos un usuario para enviar la tanda.",
-    });
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: "Seleccioná al menos un usuario para enviar la tanda.",
+      }),
+    );
   }
 
   if (confirmSend !== "yes") {
-    buildAdminRedirect({
-      send_error: "Confirmá la tanda antes de enviar con Brevo.",
-    });
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: "Confirmá la tanda antes de enviar con Brevo.",
+      }),
+    );
   }
 
   if (profileIds.length > MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE) {
-    buildAdminRedirect({
-      send_error: `La selección supera el máximo de ${MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE} correos por tanda.`,
-    });
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: `La selección supera el máximo de ${MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE} correos por tanda.`,
+      }),
+    );
+  }
+
+  if (!testProof || !adminEmail) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: "Antes de enviar la tanda real, mandá una prueba a tu correo.",
+      }),
+    );
+  }
+
+  const safeAdminEmail = adminEmail || "";
+
+  if (
+    !verifyManualRecoveryTestProof({
+      token: testProof,
+      adminProfileId: adminUser.user.id,
+      adminEmail: safeAdminEmail,
+      profileIds,
+      templateKey,
+    })
+  ) {
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: "La prueba previa no coincide con esta selección o ya venció. Enviá una prueba nueva.",
+      }),
+    );
   }
 
   try {
     const recipients = await resolveManualRecoveryRecipients(profileIds);
 
     if (recipients.length === 0) {
-      buildAdminRedirect({
-        send_error: "Los usuarios seleccionados no están en estados reintentables para este flujo.",
-      });
+      buildAdminRedirect(
+        buildManualRecoveryRedirectParams({
+          profileIds,
+          templateKey,
+          sendError: "Los usuarios seleccionados no están en estados reintentables para este flujo.",
+        }),
+      );
     }
 
     if (recipients.length > MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE) {
-      buildAdminRedirect({
-        send_error: `La tanda elegible supera el máximo de ${MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE} correos.`,
-      });
+      buildAdminRedirect(
+        buildManualRecoveryRedirectParams({
+          profileIds,
+          templateKey,
+          sendError: `La tanda elegible supera el máximo de ${MAX_MANUAL_RECOVERY_SEND_BATCH_SIZE} correos.`,
+        }),
+      );
     }
 
     const result = await sendManualRecoveryBrevoBatch({
@@ -366,14 +652,22 @@ export async function sendBrevoRecoveryEmailsAction(formData: FormData) {
     });
 
     revalidatePath("/admin");
-    buildAdminRedirect({
-      send_notice: buildBrevoBatchNotice(result),
-      send_error: buildBrevoBatchError(result),
-    });
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds: [],
+        templateKey,
+        sendNotice: buildBrevoBatchNotice(result),
+        sendError: buildBrevoBatchError(result),
+      }),
+    );
   } catch (error) {
-    buildAdminRedirect({
-      send_error: error instanceof Error ? error.message : "No pudimos enviar la tanda con Brevo.",
-    });
+    buildAdminRedirect(
+      buildManualRecoveryRedirectParams({
+        profileIds,
+        templateKey,
+        sendError: error instanceof Error ? error.message : "No pudimos enviar la tanda con Brevo.",
+      }),
+    );
   }
 }
 
