@@ -8,12 +8,12 @@ const summaryCards = [
   {
     badge: "01",
     title: "Activá tu Pase",
-    body: "Registrate, confirmá tu Aporte y pasá a ser Jugador activo para competir en el torneo.",
+    body: "Registrate, completá tu Pase Solidario con Aporte confirmado y pasá a ser Jugador activo para competir por el premio del torneo.",
   },
   {
-    badge: "5-3-0",
-    title: "Sumá puntos",
-    body: "Cada partido cierra cuando empieza. Podés modificar tu pronóstico hasta ese momento.",
+    badge: "GR",
+    title: "Fase regular",
+    body: "Cada partido cierra cuando empieza. Hasta ese momento podés ajustar tu pronóstico desde el celular.",
     scores: [
       ["Resultado exacto", "5 pts"],
       ["Ganador o empate correcto", "3 pts"],
@@ -22,20 +22,25 @@ const summaryCards = [
   },
   {
     badge: "KO",
-    title: "Eliminación directa",
-    body: "En cruces mano a mano, además del marcador, tenés que elegir quién clasifica.",
-    extra: "Si hay penales, los penales solo definen el clasificado. No cambian el marcador del partido.",
+    title: "Cruces mano a mano",
+    body: "En eliminación directa tenés que pronosticar el marcador y también quién clasifica.",
+    extra: "El marcador válido puede incluir alargue. Los penales solo definen el clasificado y no cambian el resultado del partido.",
+    scores: [
+      ["Marcador exacto y clasificado", "5 pts"],
+      ["Clasificado correcto", "3 pts"],
+      ["Incorrecto", "0 pts"],
+    ] as const,
   },
   {
     badge: "11",
     title: "Armá tu Team",
-    body: "Para competir como Team necesitan mínimo 7 jugadores activos. Para el ranking grupal puntúan los mejores 11.",
+    body: "Para competir como Team necesitan mínimo 7 Jugadores activos. Si el Plantel tiene más de 11, para el ranking suman solo los mejores 11.",
   },
   {
-    badge: "$",
-    title: "Premios",
-    body: "Premio individual inicial de $300.000 ARS y creciendo con la recaudación.",
-    extra: "El segundo puesto recibe el 10% del pozo individual a repartir. El tercero recibe medalla o premio sorpresa.",
+    badge: "LATE",
+    title: "Ingreso tardío",
+    body: "Podés entrar aunque el torneo ya haya empezado, hasta el 3 de julio de 2026.",
+    extra: "Si entrás tarde, tu puntaje inicial se calcula por mediana de puntos de partidos cerrados. Los pronósticos especiales no entran en esa mediana.",
   },
 ] as const;
 
@@ -71,8 +76,8 @@ type RuleSection = {
 
 const ruleSections: readonly RuleSection[] = [
   {
-    title: "Participación",
-    body: "Para participar tenés que ser mayor de 18 años, registrarte y activar tu Pase Solidario con un Aporte confirmado. La participación implica la aceptación del reglamento.",
+    title: "Participación y causa",
+    body: "SoliProde es una iniciativa solidaria sin fines de lucro. Para participar tenés que ser mayor de 18 años, registrarte y activar tu Pase Solidario con un Aporte confirmado. La participación implica aceptar el reglamento vigente.",
   },
   {
     title: "Ingreso tardío",
@@ -80,7 +85,7 @@ const ruleSections: readonly RuleSection[] = [
   },
   {
     title: "Teams",
-    body: "Un Team necesita al menos 7 Jugadores activos para competir en ranking grupal. Puede tener más de 11 jugadores, pero puntúan los mejores 11. El Capitán crea el Team. El DT es quien más puntos tiene.",
+    body: "Un Team necesita al menos 7 Jugadores activos para competir en el ranking grupal. Puede tener un Plantel amplio, pero para el ranking suman solo los mejores 11. El Capitán crea el Team y el DT es quien más puntos tiene.",
   },
   {
     title: "Cambios de Team",
@@ -91,12 +96,26 @@ const ruleSections: readonly RuleSection[] = [
     body: "Los jugadores sin Team pueden quedar disponibles para recibir invitaciones. Igual siguen compitiendo en el ranking individual.",
   },
   {
+    title: "Fase regular",
+    body: "En la fase regular cada partido otorga 5 puntos por resultado exacto, 3 puntos por ganador o empate correcto y 0 puntos si no acertás.",
+  },
+  {
     title: "Eliminación directa y penales",
-    body: "En eliminación directa se pronostica marcador y clasificado. El marcador válido incluye alargue, pero no incluye penales. Si termina 1-1 y Argentina gana por penales, el resultado válido es 1-1 y clasifica Argentina.",
+    body: "En eliminación directa se pronostica marcador y clasificado. El marcador válido incluye alargue, pero no incluye penales. Si termina 1-1 y un equipo gana por penales, el resultado válido sigue siendo 1-1 y solo cambia el clasificado.",
     bullets: [
       "Acierta marcador exacto y clasificado: 5 pts",
       "Acierta clasificado: 3 pts",
       "No acierta clasificado: 0 pts",
+    ],
+  },
+  {
+    title: "Pronósticos especiales",
+    body: "Los pronósticos especiales suman puntos extra y tienen cierre propio según la instancia del torneo.",
+    bullets: [
+      "Campeón del Mundial: 20 pts. Cierra al inicio de octavos.",
+      "Subcampeón: 10 pts. Cierra al inicio de octavos.",
+      "¿Hasta dónde llega Argentina?: 10 pts. Cierre dinámico hasta octavos.",
+      "Premios oficiales: 7 pts cada uno. Cierran al inicio de cuartos.",
     ],
   },
   {
@@ -115,8 +134,12 @@ const ruleSections: readonly RuleSection[] = [
     body: "SoliProde tomará como válidos los resultados oficiales publicados por FIFA o por la fuente oficial definida por la organización.",
   },
   {
+    title: "Premio del torneo",
+    body: "El premio individual inicial es de $300.000 ARS y crece con la recaudación confirmada del torneo.",
+  },
+  {
     title: "Pagos y aportes",
-    body: "El usuario será Jugador activo únicamente cuando su Aporte esté confirmado. La organización podrá validar manualmente pagos pendientes, no identificados, duplicados o enviados por error.",
+    body: "Un usuario pasa a ser Jugador activo únicamente cuando su Aporte esté confirmado. La organización podrá revisar pagos pendientes, no identificados, duplicados o enviados por error.",
   },
   {
     title: "Casos especiales",
@@ -147,7 +170,7 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
     <PageStack>
       <SurfaceCard
         title="Cómo se juega"
-        description="Pronosticá partidos, sumá puntos, armá tu Team y ayudá a financiar una tesis universitaria."
+        description="Pronosticá partidos, sumá puntos, empujá a tu Team y participá en una iniciativa solidaria sin fines de lucro."
         tone="primary"
       >
         <div className="flex flex-wrap gap-2">
@@ -161,6 +184,9 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
             $300.000 inicial
           </span>
         </div>
+        <p className="mt-4 text-sm leading-6 text-white/88">
+          El juego ayuda a estudiantes universitarios a financiar su tesis final, sin sacar el foco del torneo, los pronósticos y el premio en juego.
+        </p>
       </SurfaceCard>
 
       <section className="grid gap-4">
@@ -169,7 +195,7 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
             Reglamento corto
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Lo esencial para entrar al torneo, competir con tu Team y entender cómo se reparten los puntos.
+            Lo esencial para entrar al torneo, competir con tu Team y entender cómo se reparten los puntos sin perderte en una pared de texto.
           </p>
         </div>
         <div className="grid gap-4">
@@ -232,13 +258,33 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
         </div>
       </SurfaceCard>
 
+      <SurfaceCard
+        title="Premio y Team"
+        description="Dos reglas rápidas para no perder de vista cómo se compite en SoliProde."
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-4">
+            <strong className="text-base text-[var(--color-ink)]">Premio del torneo</strong>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              El premio individual inicial es de $300.000 ARS y crece con la recaudación confirmada.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-4">
+            <strong className="text-base text-[var(--color-ink)]">Regla simple de Team</strong>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              Para competir necesitan mínimo 7 Jugadores activos. Si el Plantel tiene más de 11, para el ranking cuentan solo los mejores 11.
+            </p>
+          </div>
+        </div>
+      </SurfaceCard>
+
       <section id="reglas-completas" className="grid gap-4">
         <div>
           <h2 className="font-serif text-[2rem] font-bold uppercase leading-none text-[var(--color-ink)]">
             Reglas completas
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Abrí cada bloque para revisar participación, Teams, pagos, desempates y casos especiales.
+            Abrí cada bloque para revisar participación, scoring, Teams, pagos, desempates y casos especiales.
           </p>
         </div>
         <div className="grid gap-3">
