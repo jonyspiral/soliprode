@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
+import { AdminRebuildRankingsButton } from "@/app/admin/admin-rebuild-rankings-button";
 import {
   confirmParticipationAction,
   publishMatchResultAction,
   rejectParticipationAction,
-  rebuildRankingsAction,
   sendBrevoRecoveryEmailsAction,
   sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
@@ -669,19 +669,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <SurfaceCard
         title="Resultados y scoring"
         description="Publicá resultados finales, recalculá puntos y reconstruí el ranking oficial desde la misma jugada."
+        className="relative z-10"
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             Si ya hay resultados oficiales cargados, podés re-scorear los partidos finalizados y reconstruir el ranking general sin tocar KO, especiales ni mediana.
           </p>
-          <form action={rebuildRankingsAction}>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-            >
-              Recalcular ranking
-            </button>
-          </form>
+          <AdminRebuildRankingsButton />
         </div>
         {matchRows.length === 0 ? (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
