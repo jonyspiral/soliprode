@@ -4,18 +4,31 @@ import {
   confirmParticipationAction,
   publishMatchResultAction,
   rejectParticipationAction,
+  sendBrevoRecoveryEmailsAction,
 } from "@/app/admin/actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
+import { getBrevoAdminStatus } from "@/lib/admin/brevo";
 import { requireAdminUser } from "@/lib/admin/access";
+import {
+  MANUAL_RECOVERY_TEMPLATE_OPTIONS,
+  getDefaultManualRecoveryTemplateKey,
+} from "@/lib/admin/manual-recovery-email";
 import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
+import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
-import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
+
+type AdminPageProps = {
+  searchParams?: Promise<{
+    send_error?: string;
+    send_notice?: string;
+  }>;
+};
 
 type ProfileAdminRow = {
   id: string;
@@ -24,6 +37,9 @@ type ProfileAdminRow = {
   email: string | null;
   whatsapp: string | null;
   created_at: string;
+  avatar_url: string | null;
+  avatar_seed: string | null;
+  avatar_variant: string | null;
 };
 
 type ParticipationAdminRow = {
@@ -79,8 +95,11 @@ type RegisteredWithoutPassRow = {
   participation: ParticipationAdminRow | null;
   promoterLabel: string | null;
   groupLabel: string | null;
-  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo";
-  pendingPaymentLabel: string | null;
+  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo" | "Revisión manual";
+  paymentStatusLabel: string;
+  latestPaymentAttemptLabel: string | null;
+  paymentAttempt: PaymentAttemptAdminRow | null;
+  canCreateDraft: boolean;
 };
 
 function resolveNumericAmount(value: number | string | null) {
@@ -99,31 +118,244 @@ function resolveNumericAmount(value: number | string | null) {
   return 0;
 }
 
+function formatPaymentStatusValue(status: string | null | undefined) {
+  if (!status) {
+    return "pending";
+  }
+
+  return status.replaceAll("_", " ");
+}
+
+function formatPaymentProvider(provider: string | null | undefined) {
+  if (!provider) {
+    return "Sin provider";
+  }
+
+  if (provider === "mercadopago") {
+    return "Mercado Pago";
+  }
+
+  if (provider === "bank_transfer") {
+    return "Transferencia";
+  }
+
+  return provider.replaceAll("_", " ");
+}
+
+function formatPaymentAttemptLabel(attempt: PaymentAttemptAdminRow | null) {
+  if (!attempt) {
+    return null;
+  }
+
+  const date = new Date(attempt.created_at);
+  const formattedDate = Number.isFinite(date.getTime())
+    ? date.toLocaleString("es-AR")
+    : attempt.created_at;
+
+  return `${formatPaymentProvider(attempt.provider)} · ${formatPaymentStatusValue(attempt.status)} · ${formattedDate}`;
+}
+
 function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
   if (paymentStatus === "paid") {
     return {
       isActive: true,
-      isPending: false,
+      canCreateDraft: false,
       label: "Pase activo" as const,
     };
   }
 
-  if (paymentStatus && ["payment_started", "payment_pending", "manual_review"].includes(paymentStatus)) {
+  if (paymentStatus === "manual_review") {
     return {
       isActive: false,
-      isPending: true,
+      canCreateDraft: false,
+      label: "Revisión manual" as const,
+    };
+  }
+
+  if (paymentStatus && ["payment_started", "payment_pending"].includes(paymentStatus)) {
+    return {
+      isActive: false,
+      canCreateDraft: true,
       label: "Pago pendiente" as const,
     };
   }
 
   return {
     isActive: false,
-    isPending: false,
+    canCreateDraft: true,
     label: "Sin Pase" as const,
   };
 }
 
-export default async function AdminPage() {
+function buildOriginLabel(row: RegisteredWithoutPassRow) {
+  const parts = [];
+
+  if (row.groupLabel) {
+    parts.push(`Team: ${row.groupLabel}`);
+  }
+
+  if (row.promoterLabel) {
+    parts.push(`Promoter: ${row.promoterLabel}`);
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : "Sin promoter ni Team";
+}
+
+function DraftSelectionRow({ row }: { row: RegisteredWithoutPassRow }) {
+  const profile = row.profile;
+  const avatarModel = getPlayerAvatarModel(profile);
+  const label = getPlayerDisplayName(profile);
+  const hasEmail = Boolean(profile.email?.trim());
+
+  return (
+    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex gap-3">
+          <label className="mt-1 flex items-start">
+            <input
+              type="checkbox"
+              name="profile_id"
+              value={profile.id}
+              defaultChecked={hasEmail && row.canCreateDraft}
+              disabled={!hasEmail || !row.canCreateDraft}
+              className="mt-1 h-4 w-4 rounded border-[var(--color-line)]"
+            />
+          </label>
+          <PlayerAvatar
+            imageUrl={avatarModel.avatarUrl}
+            fallbackImageUrl={avatarModel.fallbackAvatarUrl}
+            label={label}
+            seed={avatarModel.avatarSeed}
+            size="md"
+            variant={avatarModel.avatarVariant}
+          />
+          <div className="grid gap-1">
+            <p className="font-semibold text-[var(--color-ink)]">{label}</p>
+            <p className="text-sm text-[var(--color-muted)]">
+              Nombre: {profile.full_name ?? "Pendiente"} · Nickname: {profile.public_alias ?? "Pendiente"}
+            </p>
+            <p className="text-sm text-[var(--color-muted)]">Email: {profile.email ?? "Sin email"}</p>
+            <p className="text-sm text-[var(--color-muted)]">
+              Alta: {new Date(profile.created_at).toLocaleDateString("es-AR")} · Estado: {row.stateLabel}
+            </p>
+            <p className="text-sm text-[var(--color-muted)]">
+              payment_status: {row.paymentStatusLabel}
+            </p>
+            {row.latestPaymentAttemptLabel ? (
+              <p className="text-sm text-[var(--color-muted)]">
+                Último intento: {row.latestPaymentAttemptLabel}
+              </p>
+            ) : null}
+            <p className="text-sm text-[var(--color-muted)]">{buildOriginLabel(row)}</p>
+            {!hasEmail ? (
+              <p className="text-sm text-[#93000a]">No se puede crear draft: el perfil no tiene email.</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="grid gap-2 lg:min-w-[190px]">
+          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            {row.stateLabel}
+          </span>
+          {row.stateLabel === "Pago pendiente" && row.participation ? (
+            <>
+              <button
+                type="submit"
+                name="participation_id"
+                value={row.participation.id}
+                formAction={confirmParticipationAction}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+              >
+                Confirmar pago
+              </button>
+              <button
+                type="submit"
+                name="participation_id"
+                value={row.participation.id}
+                formAction={rejectParticipationAction}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+              >
+                Rechazar pago
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/activar-pase"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+            >
+              Ver activación
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ManualReviewRow({ row }: { row: RegisteredWithoutPassRow }) {
+  const profile = row.profile;
+  const avatarModel = getPlayerAvatarModel(profile);
+  const label = getPlayerDisplayName(profile);
+
+  return (
+    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex gap-3">
+          <PlayerAvatar
+            imageUrl={avatarModel.avatarUrl}
+            fallbackImageUrl={avatarModel.fallbackAvatarUrl}
+            label={label}
+            seed={avatarModel.avatarSeed}
+            size="md"
+            variant={avatarModel.avatarVariant}
+          />
+          <div className="grid gap-1">
+            <p className="font-semibold text-[var(--color-ink)]">{label}</p>
+            <p className="text-sm text-[var(--color-muted)]">
+              Nombre: {profile.full_name ?? "Pendiente"} · Nickname: {profile.public_alias ?? "Pendiente"}
+            </p>
+            <p className="text-sm text-[var(--color-muted)]">Email: {profile.email ?? "Sin email"}</p>
+            <p className="text-sm text-[var(--color-muted)]">
+              payment_status: {row.paymentStatusLabel}
+              {row.latestPaymentAttemptLabel ? ` · Último intento: ${row.latestPaymentAttemptLabel}` : ""}
+            </p>
+            <p className="text-sm text-[var(--color-muted)]">{buildOriginLabel(row)}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 md:min-w-[190px]">
+          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            Revisión manual
+          </span>
+          {row.participation ? (
+            <>
+              <form action={confirmParticipationAction}>
+                <input type="hidden" name="participation_id" value={row.participation.id} />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+                >
+                  Confirmar pago
+                </button>
+              </form>
+              <form action={rejectParticipationAction}>
+                <input type="hidden" name="participation_id" value={row.participation.id} />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+                >
+                  Rechazar pago
+                </button>
+              </form>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   try {
     await withSupabaseTimeout(requireAdminUser(), "Supabase admin access check timed out");
   } catch (error) {
@@ -148,6 +380,8 @@ export default async function AdminPage() {
     );
   }
 
+  const params = searchParams ? await searchParams : undefined;
+
   let adminNotice: string | null = null;
   let profiles: ProfileAdminRow[] = [];
   let participations: ParticipationAdminRow[] = [];
@@ -164,7 +398,7 @@ export default async function AdminPage() {
       Promise.all([
         adminSupabase
           .from("profiles")
-          .select("id, full_name, public_alias, email, whatsapp, created_at")
+          .select("id, full_name, public_alias, email, whatsapp, created_at, avatar_url, avatar_seed, avatar_variant")
           .order("created_at", { ascending: false }),
         adminSupabase
           .from("participations")
@@ -174,7 +408,7 @@ export default async function AdminPage() {
           .from("payment_attempts")
           .select("id, participation_id, provider, status, created_at")
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(1000),
         adminSupabase.from("promoters").select("id, name, code"),
         adminSupabase.from("groups").select("id, name"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
@@ -213,6 +447,7 @@ export default async function AdminPage() {
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
   }
 
+  const brevoStatus = getBrevoAdminStatus();
   const promoterMap = new Map(promoters.map((promoter) => [promoter.id, promoter]));
   const groupMap = new Map(groups.map((group) => [group.id, group]));
   const participationsByProfile = new Map<string, ParticipationAdminRow[]>();
@@ -236,13 +471,7 @@ export default async function AdminPage() {
     const paymentState = resolveAdminPaymentState(participation?.payment_status);
     const promoter = participation?.promoter_id ? promoterMap.get(participation.promoter_id) ?? null : null;
     const group = participation?.group_id ? groupMap.get(participation.group_id) ?? null : null;
-    const pendingAttempt = participation ? paymentAttemptByParticipation.get(participation.id) ?? null : null;
-    const pendingPaymentLabel =
-      pendingAttempt?.provider === "bank_transfer"
-        ? "Transferencia pendiente"
-        : paymentState.isPending
-          ? "Checkout pendiente"
-          : null;
+    const paymentAttempt = participation ? paymentAttemptByParticipation.get(participation.id) ?? null : null;
 
     return {
       profile,
@@ -250,14 +479,18 @@ export default async function AdminPage() {
       promoterLabel: promoter ? `${promoter.name} (${promoter.code})` : null,
       groupLabel: group?.name ?? null,
       stateLabel: paymentState.label,
-      pendingPaymentLabel,
+      paymentStatusLabel: formatPaymentStatusValue(participation?.payment_status),
+      latestPaymentAttemptLabel: formatPaymentAttemptLabel(paymentAttempt),
+      paymentAttempt,
+      canCreateDraft: paymentState.canCreateDraft,
     };
   });
 
   const registeredCount = derivedRows.length;
   const activeRows = derivedRows.filter((row) => row.stateLabel === "Pase activo");
   const pendingRows = derivedRows.filter((row) => row.stateLabel === "Pago pendiente");
-  const withoutPassRows = derivedRows.filter((row) => row.stateLabel !== "Pase activo");
+  const manualReviewRows = derivedRows.filter((row) => row.stateLabel === "Revisión manual");
+  const withoutPassRows = derivedRows.filter((row) => row.canCreateDraft);
   const confirmedRevenue = activeRows.reduce(
     (sum, row) => sum + resolveNumericAmount(row.participation?.entry_price ?? null),
     0,
@@ -273,11 +506,14 @@ export default async function AdminPage() {
       />
 
       {adminNotice ? <InfoNotice tone="error" message={adminNotice} /> : null}
+      {params?.send_notice ? <InfoNotice tone="info" message={params.send_notice} /> : null}
+      {params?.send_error ? <InfoNotice tone="error" message={params.send_error} /> : null}
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Registrados" value={String(registeredCount)} detail="Perfiles creados" />
-        <StatCard label="Sin Pase" value={String(withoutPassRows.length)} detail="Aún no están activos" />
-        <StatCard label="Pagos pendientes" value={String(pendingRows.length)} detail="Esperan confirmación" />
+        <StatCard label="Sin Pase" value={String(withoutPassRows.length)} detail="Estados reintentables" />
+        <StatCard label="Pagos pendientes" value={String(pendingRows.length)} detail="Checkout iniciado o pendiente" />
+        <StatCard label="Revisión manual" value={String(manualReviewRows.length)} detail="Separados del envío manual" />
         <StatCard label="Jugadores activos" value={String(activeRows.length)} detail="payment_status = paid" />
         <StatCard label="Conversión" value={`${conversionRate}%`} detail="Registro → Pase activo" />
         <StatCard label="Recaudado" value={formatEntryPrice(confirmedRevenue)} detail="Solo participations paid" />
@@ -285,104 +521,105 @@ export default async function AdminPage() {
 
       <SurfaceCard
         title="Registrados sin Pase"
-        description="Bandeja operativa para detectar quién todavía no activó, quién está pendiente y quién ya pasó a competir."
+        description="Bandeja operativa para enviar tandas controladas por Brevo a registrados con estados reintentables."
       >
-        {withoutPassRows.length === 0 ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            No hay jugadores registrados sin Pase activo ahora mismo.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {withoutPassRows
-              .sort((left, right) => {
-                const leftPriority = left.stateLabel === "Pago pendiente" ? 0 : 1;
-                const rightPriority = right.stateLabel === "Pago pendiente" ? 0 : 1;
+        <form action={sendBrevoRecoveryEmailsAction} className="grid gap-4">
+          <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+            <div className="grid gap-1">
+              <p className="font-semibold text-[var(--color-ink)]">Envío Brevo</p>
+              {brevoStatus.configReady ? (
+                <p className="text-sm text-[var(--color-muted)]">
+                  Sender listo: {brevoStatus.senderName ?? "Sender"} &lt;{brevoStatus.senderEmail ?? "sin email"}&gt;.
+                  Tanda máxima: {brevoStatus.batchLimit} correos.
+                </p>
+              ) : (
+                <p className="text-sm text-[#93000a]">
+                  Faltan `BREVO_API_KEY`, `BREVO_SENDER_NAME` o `BREVO_SENDER_EMAIL`.
+                </p>
+              )}
+            </div>
 
-                if (leftPriority !== rightPriority) {
-                  return leftPriority - rightPriority;
-                }
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,260px)_auto] lg:items-end">
+              <label className="grid gap-1 text-sm text-[var(--color-muted)]">
+                <span className="font-semibold uppercase tracking-[0.08em]">Plantilla</span>
+                <select
+                  name="template_key"
+                  defaultValue={getDefaultManualRecoveryTemplateKey()}
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                >
+                  {MANUAL_RECOVERY_TEMPLATE_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-                return Date.parse(right.profile.created_at) - Date.parse(left.profile.created_at);
-              })
-              .map((row) => {
-                const profile = row.profile;
-                const avatarModel = getPlayerAvatarModel(profile);
-                const label = getPlayerDisplayName(profile);
+              <button
+                type="submit"
+                disabled={!brevoStatus.configReady || withoutPassRows.length === 0}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60 lg:w-fit"
+              >
+                Enviar tanda Brevo
+              </button>
+            </div>
 
-                return (
-                  <div
-                    key={profile.id}
-                    className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
-                  >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex gap-3">
-                        <PlayerAvatar
-                          imageUrl={avatarModel.avatarUrl}
-                          fallbackImageUrl={avatarModel.fallbackAvatarUrl}
-                          label={label}
-                          seed={avatarModel.avatarSeed}
-                          size="md"
-                          variant={avatarModel.avatarVariant}
-                        />
-                        <div className="grid gap-1">
-                          <p className="font-semibold text-[var(--color-ink)]">{label}</p>
-                          <p className="text-sm text-[var(--color-muted)]">
-                            {profile.full_name ?? "Nombre pendiente"} · {profile.email ?? "Sin email"}
-                          </p>
-                          <p className="text-sm text-[var(--color-muted)]">
-                            Alta: {new Date(profile.created_at).toLocaleDateString("es-AR")} · Estado: {row.stateLabel}
-                          </p>
-                          <p className="text-sm text-[var(--color-muted)]">
-                            {row.groupLabel ? `Team: ${row.groupLabel}` : "Todavía sin Team"} ·{" "}
-                            {row.promoterLabel ? `Promoter: ${row.promoterLabel}` : "Sin promoter"}
-                          </p>
-                          {row.pendingPaymentLabel ? (
-                            <p className="text-sm text-[var(--color-muted)]">{row.pendingPaymentLabel}</p>
-                          ) : null}
-                        </div>
-                      </div>
+            <div className="grid gap-3 rounded-lg border border-dashed border-[var(--color-line)] bg-white/70 p-4">
+              <label className="flex items-start gap-3 text-sm text-[var(--color-muted)]">
+                <input
+                  type="checkbox"
+                  name="confirm_brevo_send"
+                  value="yes"
+                  className="mt-1 h-4 w-4 rounded border-[var(--color-line)]"
+                />
+                <span>
+                  Confirmo que quiero enviar esta tanda ahora. La acción envía correos reales, excluye `manual_review` y corta por server-side si supera {brevoStatus.batchLimit}.
+                </span>
+              </label>
+            </div>
 
-                      <div className="grid gap-2 sm:min-w-[180px]">
-                        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                          {row.stateLabel}
-                        </span>
-                        {row.stateLabel === "Pago pendiente" && row.participation ? (
-                          <>
-                            <form action={confirmParticipationAction}>
-                              <input type="hidden" name="participation_id" value={row.participation.id} />
-                              <button
-                                type="submit"
-                                className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                              >
-                                Confirmar pago
-                              </button>
-                            </form>
-                            <form action={rejectParticipationAction}>
-                              <input type="hidden" name="participation_id" value={row.participation.id} />
-                              <button
-                                type="submit"
-                                className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-                              >
-                                Rechazar pago
-                              </button>
-                            </form>
-                          </>
-                        ) : (
-                          <Link
-                            href="/activar-pase"
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-                          >
-                            Ver activación
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <p className="text-sm text-[var(--color-muted)]">
+              Brevo deja logs de envío por destinatario para evitar duplicados accidentales dentro de las últimas 24 horas.
+            </p>
           </div>
-        )}
+
+          {withoutPassRows.length === 0 ? (
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              No hay jugadores en estados reintentables para este flujo ahora mismo.
+            </p>
+          ) : (
+            <div className="grid gap-4">
+              {withoutPassRows
+                .sort((left, right) => {
+                  const leftPriority = left.stateLabel === "Pago pendiente" ? 0 : 1;
+                  const rightPriority = right.stateLabel === "Pago pendiente" ? 0 : 1;
+
+                  if (leftPriority !== rightPriority) {
+                    return leftPriority - rightPriority;
+                  }
+
+                  return Date.parse(right.profile.created_at) - Date.parse(left.profile.created_at);
+                })
+                .map((row) => (
+                  <DraftSelectionRow key={row.profile.id} row={row} />
+                ))}
+            </div>
+          )}
+        </form>
       </SurfaceCard>
+
+      {manualReviewRows.length > 0 ? (
+        <SurfaceCard
+          title="Revisión manual"
+          description="Estos casos quedan separados del flujo de borradores y requieren resolución admin."
+        >
+          <div className="grid gap-4">
+            {manualReviewRows.map((row) => (
+              <ManualReviewRow key={row.profile.id} row={row} />
+            ))}
+          </div>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard
         title="Promoters"
@@ -523,15 +760,15 @@ export default async function AdminPage() {
 
       <SurfaceCard
         title="Qué sigue"
-        description="Con esta base ya podés seguir la conversión real y confirmar jugadores cuando un pago quede pendiente."
+        description="Con esta base ya podés seguir la conversión real, confirmar jugadores y operar recuperación manual con drafts o tandas controladas."
       >
         <div className="grid gap-3 text-sm leading-6 text-[var(--color-muted)]">
           <p>1. El jugador entra o se loguea y va directo a `/activar-pase`.</p>
           <p>2. Checkout Pro crea o reutiliza el intento trazable en `payment_attempts`.</p>
           <p>3. El webhook o la verificación server-side actualizan `participations.payment_status`.</p>
-          <p>4. Si queda pendiente, Admin puede verlo y confirmarlo sin romper ranking ni recaudación.</p>
-          <p>5. Hoy hay {predictionCount.toLocaleString("es-AR")} pronóstico(s) cargado(s) en total.</p>
-          <p>6. Transferencia manual, cuando está configurada, también entra por `payment_attempts` y requiere confirmación admin.</p>
+          <p>4. Si queda en estado reintentable, Admin puede enviar una tanda Brevo de hasta 40 correos.</p>
+          <p>5. `manual_review` queda separado para resolución admin antes de cualquier contacto.</p>
+          <p>6. Hoy hay {predictionCount.toLocaleString("es-AR")} pronóstico(s) cargado(s) en total.</p>
         </div>
       </SurfaceCard>
     </PageStack>
