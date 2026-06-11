@@ -77,22 +77,41 @@ type GroupRefRow = {
   name: string;
 };
 
-type MatchAdminRow = {
+type MatchTeamRef = {
+  code?: string | null;
+  fifa_code?: string | null;
+  name?: string | null;
+  short_name?: string | null;
+};
+
+type MatchQueryRow = {
   id: string;
-  phase: string;
+  phase: string | null;
+  round_name: string | null;
+  stage: string | null;
   group_name: string | null;
+  group_code: string | null;
   starts_at: string;
   status: string;
   score_home: number | null;
   score_away: number | null;
-  home_team: {
-    code: string;
-    name: string;
-  }[] | null;
-  away_team: {
-    code: string;
-    name: string;
-  }[] | null;
+  home_team: MatchTeamRef | MatchTeamRef[] | null;
+  away_team: MatchTeamRef | MatchTeamRef[] | null;
+};
+
+type MatchAdminRow = {
+  id: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeTeamCode: string;
+  awayTeamCode: string;
+  startsAt: string;
+  status: string;
+  stage: string | null;
+  roundName: string | null;
+  groupCode: string | null;
+  scoreHome: number | null;
+  scoreAway: number | null;
 };
 
 type PaymentAttemptAdminRow = {
@@ -188,6 +207,78 @@ function formatPaymentAttemptLabel(attempt: PaymentAttemptAdminRow | null) {
     : attempt.created_at;
 
   return `${formatPaymentProvider(attempt.provider)} · ${formatPaymentStatusValue(attempt.status)} · ${formattedDate}`;
+}
+
+function normalizeMatchTeamRef(team: MatchTeamRef | MatchTeamRef[] | null | undefined) {
+  if (!team) {
+    return null;
+  }
+
+  return Array.isArray(team) ? (team[0] ?? null) : team;
+}
+
+function resolveAdminTeamName(team: MatchTeamRef | MatchTeamRef[] | null | undefined, fallback: string) {
+  const normalized = normalizeMatchTeamRef(team);
+  return normalized?.name?.trim() || normalized?.short_name?.trim() || fallback;
+}
+
+function resolveAdminTeamCode(team: MatchTeamRef | MatchTeamRef[] | null | undefined, fallback: string) {
+  const normalized = normalizeMatchTeamRef(team);
+  return normalized?.code?.trim() || normalized?.fifa_code?.trim() || fallback;
+}
+
+function formatMatchDateTime(startsAt: string) {
+  const date = new Date(startsAt);
+
+  if (!Number.isFinite(date.getTime())) {
+    return startsAt;
+  }
+
+  const weekday = new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(date);
+  const day = new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(date);
+  const time = new Intl.DateTimeFormat("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(date);
+
+  const safeWeekday = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1).replace(".", "") : "";
+  return `${safeWeekday} ${day} · ${time}`;
+}
+
+function formatAdminMatchStatus(status: string | null | undefined) {
+  if (!status) {
+    return "pending";
+  }
+
+  return status.replaceAll("_", " ");
+}
+
+function formatAdminMatchMeta(match: Pick<MatchAdminRow, "stage" | "roundName" | "groupCode" | "startsAt">) {
+  const parts: string[] = [];
+
+  if (match.roundName?.trim()) {
+    parts.push(match.roundName.trim());
+  } else if (match.stage?.trim()) {
+    parts.push(match.stage.trim());
+  }
+
+  if (match.groupCode?.trim()) {
+    parts.push(`Zona ${match.groupCode.trim()}`);
+  }
+
+  parts.push(formatMatchDateTime(match.startsAt));
+
+  return parts.join(" · ");
 }
 
 function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
@@ -367,13 +458,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             `
               id,
               phase,
+              round_name,
+              stage,
               group_name,
+              group_code,
               starts_at,
               status,
               score_home,
               score_away,
-              home_team:teams!matches_home_team_id_fkey(code, name),
-              away_team:teams!matches_away_team_id_fkey(code, name)
+              home_team:teams!matches_home_team_id_fkey(code, fifa_code, name, short_name),
+              away_team:teams!matches_away_team_id_fkey(code, fifa_code, name, short_name)
             `,
           )
           .order("starts_at", { ascending: true })
@@ -389,7 +483,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     promoters = (adminResults[3].data ?? []) as PromoterRefRow[];
     groups = (adminResults[4].data ?? []) as GroupRefRow[];
     predictionCount = adminResults[5].count ?? 0;
-    matchRows = (adminResults[6].data ?? []) as MatchAdminRow[];
+    matchRows = ((adminResults[6].data ?? []) as MatchQueryRow[]).map((match) => ({
+      id: match.id,
+      homeTeamName: resolveAdminTeamName(match.home_team, "Equipo local"),
+      awayTeamName: resolveAdminTeamName(match.away_team, "Equipo visitante"),
+      homeTeamCode: resolveAdminTeamCode(match.home_team, "LOC"),
+      awayTeamCode: resolveAdminTeamCode(match.away_team, "VIS"),
+      startsAt: match.starts_at,
+      status: match.status,
+      stage: match.stage ?? match.phase ?? null,
+      roundName: match.round_name ?? null,
+      groupCode: match.group_code ?? match.group_name ?? null,
+      scoreHome: match.score_home,
+      scoreAway: match.score_away,
+    }));
     promotersSnapshot = adminResults[7];
   } catch {
     adminNotice =
@@ -583,9 +690,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <div className="grid gap-4">
             {matchRows.map((match) => {
-              const homeTeam = match.home_team?.[0];
-              const awayTeam = match.away_team?.[0];
-
               return (
                 <div
                   key={match.id}
@@ -594,20 +698,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div className="grid gap-1">
                       <p className="font-serif text-[1.35rem] font-bold uppercase text-[var(--color-primary)]">
-                        {homeTeam?.code ?? "LOC"} vs {awayTeam?.code ?? "VIS"}
-                      </p>
-                      <p className="text-sm text-[var(--color-ink)]">
-                        {homeTeam?.name ?? "Local"} vs {awayTeam?.name ?? "Visitante"}
+                        {match.homeTeamName} vs {match.awayTeamName}
                       </p>
                       <p className="text-sm text-[var(--color-muted)]">
-                        {match.phase}
-                        {match.group_name ? ` • Grupo ${match.group_name}` : ""} ·{" "}
-                        {new Date(match.starts_at).toLocaleString("es-AR")}
+                        {formatAdminMatchMeta(match)}
                       </p>
                       <p className="text-sm text-[var(--color-muted)]">
-                        Estado actual: {match.status}
-                        {match.score_home !== null && match.score_away !== null
-                          ? ` • ${match.score_home} - ${match.score_away}`
+                        Estado actual: {formatAdminMatchStatus(match.status)}
+                        {match.scoreHome !== null && match.scoreAway !== null
+                          ? ` · ${match.scoreHome} - ${match.scoreAway}`
                           : ""}
                       </p>
                     </div>
@@ -617,25 +716,25 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <div className="grid grid-cols-2 gap-3">
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {homeTeam?.code ?? "LOC"}
+                            {match.homeTeamCode}
                           </span>
                           <input
                             name="score_home"
                             type="number"
                             min="0"
-                            defaultValue={match.score_home ?? 0}
+                            defaultValue={match.scoreHome ?? 0}
                             className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
                           />
                         </label>
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {awayTeam?.code ?? "VIS"}
+                            {match.awayTeamCode}
                           </span>
                           <input
                             name="score_away"
                             type="number"
                             min="0"
-                            defaultValue={match.score_away ?? 0}
+                            defaultValue={match.scoreAway ?? 0}
                             className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
                           />
                         </label>
