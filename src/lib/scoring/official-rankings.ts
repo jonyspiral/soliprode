@@ -50,11 +50,31 @@ function buildPrimaryParticipationMap(rows: ParticipationRow[]) {
 type RankingPredictionRow = {
   profile_id: string;
   points: number;
-  match: {
-    starts_at: string;
-    status: string;
-  }[] | null;
+  match:
+    | {
+        starts_at: string;
+        status: string;
+      }
+    | {
+        starts_at: string;
+        status: string;
+      }[]
+    | null;
 };
+
+function normalizeRankingPredictionMatch(
+  match: RankingPredictionRow["match"],
+) {
+  if (!match) {
+    return null;
+  }
+
+  if (Array.isArray(match)) {
+    return match[0] ?? null;
+  }
+
+  return match;
+}
 
 function getOutcome(home: number, away: number) {
   if (home === away) {
@@ -119,7 +139,7 @@ export async function rebuildGeneralRankings() {
 
   for (const row of (rankingPredictions ?? []) as RankingPredictionRow[]) {
     const participation = paidMap.get(row.profile_id);
-    const match = row.match?.[0];
+    const match = normalizeRankingPredictionMatch(row.match);
 
     if (!participation || !match || match.status !== "finished") {
       continue;
