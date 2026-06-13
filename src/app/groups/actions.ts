@@ -436,7 +436,11 @@ export async function claimTeamPassInviteAction(formData: FormData) {
       });
     }
 
-    if (errorMessage === "team_invite_expired" || errorMessage === "team_invite_unavailable") {
+    if (
+      errorMessage === "team_invite_expired" ||
+      errorMessage === "team_invite_unavailable" ||
+      errorMessage === "team_invite_incompatible"
+    ) {
       redirectToTeamSurface(returnPath, {
         slot: inviteCode,
         error: "Ese cupo prepago ya no está disponible.",

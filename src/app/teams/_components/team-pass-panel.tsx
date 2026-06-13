@@ -128,6 +128,9 @@ export function TeamPassPanel({ canManage, teamId, summary }: TeamPassPanelProps
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             Los cupos vacíos no crean jugadores ni suman puntos. Cada invitado real activa su lugar con cuenta propia.
           </p>
+          <p className="text-sm font-medium leading-6 text-[var(--color-ink)]">
+            Mientras antes reclamen sus cupos, antes empiezan a sumar para el equipo.
+          </p>
         </div>
         {canManage && teamId ? (
           <div className="flex flex-wrap items-end gap-2">
@@ -170,18 +173,14 @@ export function TeamPassPanel({ canManage, teamId, summary }: TeamPassPanelProps
         </div>
         <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Cupos usados</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--color-ink)]">
-            {usedSlots}/{totalSlots || 0}
-          </p>
+          <p className="mt-1 text-2xl font-bold text-[var(--color-ink)]">{usedSlots}</p>
         </div>
         <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Jugadores activos</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--color-ink)]">
-            {activePlayers}/{totalSlots || 0}
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Jugadores activos reales</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--color-ink)]">{activePlayers}</p>
         </div>
         <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Cupos disponibles</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Cupos pendientes</p>
           <p className="mt-1 text-2xl font-bold text-[var(--color-ink)]">{pendingSlots}</p>
         </div>
       </div>

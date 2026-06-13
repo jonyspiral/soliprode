@@ -75,15 +75,16 @@ Cuando Mercado Pago confirma un `payment_attempt` con `checkout_kind = 'team_pas
 
 Cuando un usuario autenticado reclama un código `slot` válido:
 
-1. se valida que el cupo siga `pending`;
-2. se toma la participación principal real del usuario;
-3. si ya está `paid`, no consume el cupo;
-4. si no está `paid`, su `participation` pasa a:
+1. el claim corre en una única operación atómica server-side;
+2. se valida que el cupo siga `pending`;
+3. se toma la participación principal real del usuario;
+4. si ya está `paid`, no consume el cupo;
+5. si no está `paid`, su `participation` pasa a:
    - `payment_status = 'paid'`
    - `payment_provider = 'team_pass'`
    - `group_id = team_id del invite`
-5. el invite pasa a `claimed`;
-6. se recalcula `used_slots` del `team_pass`.
+6. el invite pasa a `claimed`;
+7. se recalcula `used_slots` del `team_pass`.
 
 ## UI activa
 
@@ -92,10 +93,12 @@ Cuando un usuario autenticado reclama un código `slot` válido:
 - ve resumen de:
   - `Pases comprados`
   - `Cupos usados`
-  - `Jugadores activos`
-  - `Cupos disponibles`
+  - `Jugadores activos reales`
+  - `Cupos pendientes`
 - puede abrir checkout para comprar cupos;
 - puede copiar o compartir links de invitación pendientes.
+- ve el mensaje:
+  - `Mientras antes reclamen sus cupos, antes empiezan a sumar para el equipo.`
 
 ### Invitado con cupo prepago
 
@@ -106,7 +109,8 @@ Cuando un usuario autenticado reclama un código `slot` válido:
 
 ### Admin
 
-- ve resumen de compras, usados y pendientes en `/admin`.
+- ve resumen de compras, usados, pendientes y jugadores activos reales en `/admin`.
+- ve también códigos y links individuales de invitación.
 
 ## Restricciones explícitas
 
@@ -119,3 +123,17 @@ Cuando un usuario autenticado reclama un código `slot` válido:
 ## Nota operativa de Supabase
 
 Si el proyecto tiene activado el modelo nuevo de Data API donde las tablas nuevas no quedan expuestas automáticamente, `team_passes` y `team_invites` pueden requerir habilitación explícita en Data API además de sus `GRANT` y RLS.
+
+## Checklist de producción
+
+- aplicar `018_team_pass_prepaid_slots.sql` en Supabase productivo;
+- verificar exposición/Data API de `team_passes` y `team_invites` si aplica;
+- verificar variables de entorno y webhook de Mercado Pago;
+- probar un pago controlado de `team_pass`;
+- probar claim con:
+  - usuario nuevo,
+  - usuario existente no `paid`,
+  - usuario ya `paid`,
+  - slot inexistente,
+  - slot expirado,
+  - reclamo paralelo.

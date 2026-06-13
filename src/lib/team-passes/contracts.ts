@@ -24,9 +24,18 @@ export type AdminTeamPassSummary = {
   teamName: string;
   purchasedByProfileId: string;
   purchasedByLabel: string;
+  activePlayers: number;
   totalSlots: number;
   usedSlots: number;
   pendingSlots: number;
   status: string;
   createdAt: string;
+  invites: Array<{
+    id: string;
+    code: string;
+    status: "pending" | "claimed" | "expired";
+    inviteUrl: string;
+    claimedByProfileId: string | null;
+    claimedAt: string | null;
+  }>;
 };

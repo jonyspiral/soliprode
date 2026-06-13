@@ -327,81 +327,57 @@ export async function claimTeamPassInvite(input: {
   profileId: string;
 }) {
   const service = createServiceRoleSupabaseClient();
-  const invite = await getTeamPassInviteByCode(input.code);
-
-  if (!invite) {
-    throw new Error("team_invite_not_found");
-  }
-
-  if (invite.status !== "pending") {
-    throw new Error("team_invite_unavailable");
-  }
-
-  if (invite.expires_at && new Date(invite.expires_at).getTime() <= Date.now()) {
-    await service.from("team_invites").update({ status: "expired" }).eq("id", invite.id);
-    throw new Error("team_invite_expired");
-  }
-
   const participation = await getPrimaryParticipation(input.profileId);
 
   if (!participation) {
     throw new Error("missing_participation");
   }
-
-  if (participation.payment_status === "paid") {
-    throw new Error("already_paid");
-  }
-
   const now = new Date().toISOString();
 
-  const { error: participationUpdateError } = await service
-    .from("participations")
-    .update({
-      payment_status: "paid",
-      payment_provider: "team_pass",
-      group_id: invite.team_id,
-      paid_at: now,
-      activated_at: now,
-      eligible_from: now,
-      entry_price: 0,
-      price_snapshot_at: now,
-      price_valid_until: invite.expires_at,
-      entry_baseline_points: 0,
-    })
-    .eq("id", participation.id);
+  const { data, error } = await service.rpc("claim_team_pass_invite", {
+    p_code: input.code,
+    p_profile_id: input.profileId,
+    p_participation_id: participation.id,
+    p_now: now,
+  });
 
-  if (participationUpdateError) {
-    throw participationUpdateError;
+  if (error) {
+    throw error;
   }
 
-  const { error: inviteUpdateError } = await service
-    .from("team_invites")
-    .update({
-      claimed_by_profile_id: input.profileId,
-      claimed_participation_id: participation.id,
-      status: "claimed",
-      claimed_at: now,
-    })
-    .eq("id", invite.id)
-    .eq("status", "pending");
+  const result = (Array.isArray(data) ? data[0] : data) as
+    | {
+        result_code?: string | null;
+        invite_id?: string | null;
+        team_id?: string | null;
+        participation_id?: string | null;
+      }
+    | null;
+  const resultCode =
+    result && typeof result.result_code === "string" ? result.result_code : null;
 
-  if (inviteUpdateError) {
-    throw inviteUpdateError;
+  if (!resultCode || resultCode !== "claimed") {
+    throw new Error(resultCode ?? "team_invite_claim_failed");
   }
 
-  await refreshTeamPassUsage(invite.team_pass_id);
   await rebuildGeneralRankings();
 
   return {
-    inviteId: invite.id,
-    teamId: invite.team_id,
-    participationId: participation.id,
+    inviteId: typeof result?.invite_id === "string" ? result.invite_id : "",
+    teamId: typeof result?.team_id === "string" ? result.team_id : "",
+    participationId: typeof result?.participation_id === "string" ? result.participation_id : participation.id,
   };
 }
 
 export async function getAdminTeamPassSummaries(limit = 20) {
   const service = createServiceRoleSupabaseClient();
-  const [{ data: passRows, error: passError }, { data: groupRows, error: groupError }, { data: profileRows, error: profileError }] =
+  const [
+    { data: passRows, error: passError },
+    { data: groupRows, error: groupError },
+    { data: profileRows, error: profileError },
+    { data: inviteRows, error: inviteError },
+    { data: activeParticipationRows, error: activeParticipationError },
+  ] =
     await Promise.all([
       service
         .from("team_passes")
@@ -414,6 +390,14 @@ export async function getAdminTeamPassSummaries(limit = 20) {
       service
         .from("profiles")
         .select("id, public_alias, full_name"),
+      service
+        .from("team_invites")
+        .select("id, team_pass_id, team_id, code, purchased_by_profile_id, claimed_by_profile_id, claimed_participation_id, status, created_at, claimed_at, expires_at")
+        .order("created_at", { ascending: false }),
+      service
+        .from("participations")
+        .select("group_id")
+        .eq("payment_status", "paid"),
     ]);
 
   if (passError) {
@@ -428,6 +412,14 @@ export async function getAdminTeamPassSummaries(limit = 20) {
     throw profileError;
   }
 
+  if (inviteError) {
+    throw inviteError;
+  }
+
+  if (activeParticipationError) {
+    throw activeParticipationError;
+  }
+
   const groups = new Map(((groupRows ?? []) as GroupRow[]).map((row) => [row.id, row]));
   const profiles = new Map(
     ((profileRows ?? []) as Array<{ id: string; public_alias: string | null; full_name: string | null }>).map((row) => [
@@ -435,6 +427,22 @@ export async function getAdminTeamPassSummaries(limit = 20) {
       row.public_alias?.trim() || row.full_name?.trim() || "Capitán",
     ]),
   );
+  const activePlayersByTeam = new Map<string, number>();
+  const invitesByPassId = new Map<string, TeamInviteRow[]>();
+
+  for (const participation of (activeParticipationRows ?? []) as Array<{ group_id: string | null }>) {
+    if (!participation.group_id) {
+      continue;
+    }
+
+    activePlayersByTeam.set(participation.group_id, (activePlayersByTeam.get(participation.group_id) ?? 0) + 1);
+  }
+
+  for (const invite of (inviteRows ?? []) as TeamInviteRow[]) {
+    const existing = invitesByPassId.get(invite.team_pass_id) ?? [];
+    existing.push(invite);
+    invitesByPassId.set(invite.team_pass_id, existing);
+  }
 
   return ((passRows ?? []) as TeamPassRow[]).map((pass) => ({
     id: pass.id,
@@ -442,11 +450,20 @@ export async function getAdminTeamPassSummaries(limit = 20) {
     teamName: groups.get(pass.team_id)?.name ?? "Team",
     purchasedByProfileId: pass.purchased_by_profile_id,
     purchasedByLabel: profiles.get(pass.purchased_by_profile_id) ?? "Capitán",
+    activePlayers: activePlayersByTeam.get(pass.team_id) ?? 0,
     totalSlots: Number(pass.total_slots ?? 0),
     usedSlots: Number(pass.used_slots ?? 0),
     pendingSlots: Math.max(0, Number(pass.total_slots ?? 0) - Number(pass.used_slots ?? 0)),
     status: pass.status,
     createdAt: pass.created_at,
+    invites: (invitesByPassId.get(pass.id) ?? []).map((invite) => ({
+      id: invite.id,
+      code: invite.code,
+      status: (invite.status as "pending" | "claimed" | "expired") ?? "pending",
+      inviteUrl: buildTeamPassInviteUrl(invite.code),
+      claimedByProfileId: invite.claimed_by_profile_id,
+      claimedAt: invite.claimed_at,
+    })),
   })) satisfies AdminTeamPassSummary[];
 }
 

@@ -688,8 +688,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     Capitán: {row.purchasedByLabel} · Estado: {row.status.replaceAll("_", " ")}
                   </p>
                   <p className="text-sm text-[var(--color-muted)]">
-                    Comprado: {new Date(row.createdAt).toLocaleDateString("es-AR")}
+                    Comprado: {new Date(row.createdAt).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
                   </p>
+                  <p className="text-sm text-[var(--color-muted)]">Jugadores activos reales: {row.activePlayers}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
@@ -704,6 +705,25 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Pendientes</p>
                     <p className="text-lg font-bold text-[var(--color-ink)]">{row.pendingSlots}</p>
                   </div>
+                </div>
+                <div className="grid gap-2 md:min-w-[320px]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                    Códigos y links
+                  </p>
+                  {row.invites.length > 0 ? (
+                    row.invites.map((invite) => (
+                      <div key={invite.id} className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs text-[var(--color-muted)]">
+                        <p className="font-semibold text-[var(--color-ink)]">
+                          {invite.code} · {invite.status.replaceAll("_", " ")}
+                        </p>
+                        <p>{invite.inviteUrl}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs text-[var(--color-muted)]">
+                      Sin invitaciones asociadas.
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
