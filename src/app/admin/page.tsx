@@ -28,6 +28,8 @@ import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
+import { getAdminTeamPassSummaries } from "@/lib/team-passes/service";
+import type { AdminTeamPassSummary } from "@/lib/team-passes/contracts";
 
 type AdminPageProps = {
   searchParams?: Promise<{
@@ -431,6 +433,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let matchRows: MatchAdminRow[] = [];
   let paymentAttempts: PaymentAttemptAdminRow[] = [];
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
+  let teamPassRows: AdminTeamPassSummary[] = [];
 
   try {
     const adminSupabase = createServiceRoleSupabaseClient();
@@ -473,6 +476,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           .order("starts_at", { ascending: true })
           .limit(12),
         getPromotersAdminSnapshot(),
+        getAdminTeamPassSummaries(12),
       ]),
       "Supabase admin query timed out",
     );
@@ -498,6 +502,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       scoreAway: match.score_away,
     }));
     promotersSnapshot = adminResults[7];
+    teamPassRows = adminResults[8];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -662,6 +667,50 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             No pudimos cargar el resumen de Promoters en este momento.
+          </p>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Pases de equipo"
+        description="Resumen operativo de cupos prepagos comprados por capitanes, sin convertir invitaciones pendientes en jugadores."
+      >
+        {teamPassRows.length > 0 ? (
+          <div className="grid gap-3">
+            {teamPassRows.map((row) => (
+              <div
+                key={row.id}
+                className="flex flex-col gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="grid gap-1">
+                  <p className="font-semibold text-[var(--color-ink)]">{row.teamName}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Capitán: {row.purchasedByLabel} · Estado: {row.status.replaceAll("_", " ")}
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Comprado: {new Date(row.createdAt).toLocaleDateString("es-AR")}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Comprados</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.totalSlots}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Usados</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.usedSlots}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Pendientes</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.pendingSlots}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay pases de equipo comprados.
           </p>
         )}
       </SurfaceCard>

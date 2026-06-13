@@ -4,6 +4,11 @@ import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { rebuildGeneralRankings } from "@/lib/scoring/official-rankings";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import {
+  assertTeamPassPurchaseAccess,
+  buildTeamPassAmount,
+  finalizeApprovedTeamPassPurchase,
+} from "@/lib/team-passes/service";
+import {
   createMercadoPagoPreference,
   getMercadoPagoNotificationUrl,
   getMercadoPagoPayment,
@@ -105,6 +110,44 @@ function isAttemptStillUsable(attempt: PaymentAttemptRow) {
   }
 
   return new Date(attempt.expires_at).getTime() > Date.now();
+}
+
+function buildCheckoutItemTitle(checkoutKind: "individual_pass" | "team_pass") {
+  return checkoutKind === "team_pass" ? "Pase de equipo SoliProde" : "Pase Solidario SoliProde";
+}
+
+function readAttemptMetadata(attempt: PaymentAttemptRow) {
+  const raw =
+    attempt.raw_provider_response && typeof attempt.raw_provider_response === "object"
+      ? (attempt.raw_provider_response as Record<string, unknown>)
+      : null;
+  const soliprode =
+    raw?.soliprode && typeof raw.soliprode === "object"
+      ? (raw.soliprode as Record<string, unknown>)
+      : null;
+  const checkoutKind =
+    soliprode?.checkout_kind === "team_pass" || attempt.external_reference.startsWith("team-pass:")
+      ? "team_pass"
+      : "individual_pass";
+  const slotQuantityRaw = soliprode?.team_slots_quantity;
+  const targetGroupIdRaw = soliprode?.target_group_id;
+  const teamSlotsQuantity =
+    typeof slotQuantityRaw === "number"
+      ? Math.max(1, Math.round(slotQuantityRaw))
+      : typeof slotQuantityRaw === "string" && /^\d+$/.test(slotQuantityRaw)
+        ? Math.max(1, Number(slotQuantityRaw))
+        : 1;
+  const targetGroupId = typeof targetGroupIdRaw === "string" && targetGroupIdRaw.trim() ? targetGroupIdRaw.trim() : null;
+
+  return {
+    checkoutKind,
+    teamSlotsQuantity,
+    targetGroupId,
+  };
+}
+
+export function getCheckoutKindForAttempt(attempt: PaymentAttemptLookup | PaymentAttemptRow) {
+  return readAttemptMetadata(attempt as PaymentAttemptRow).checkoutKind;
 }
 
 export async function getParticipationForProfile(profileId: string) {
@@ -216,6 +259,12 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       currency,
       status: "created",
       expires_at: expiresAt,
+      raw_provider_response: {
+        soliprode: {
+          checkout_kind: "individual_pass",
+          team_slots_quantity: 1,
+        },
+      },
     })
     .select(PAYMENT_ATTEMPT_SELECT)
     .single();
@@ -282,6 +331,141 @@ export async function createMercadoPagoCheckoutForParticipation(input: {
       ...participation,
       entry_price: persistedEntryPrice,
     },
+    paymentAttempt: updatedAttempt as PaymentAttemptRow,
+    checkoutUrl,
+  };
+}
+
+export async function createMercadoPagoCheckoutForTeamPass(input: {
+  profileId: string;
+  email: string | null;
+  teamId: string;
+  slotQuantity: number;
+}) {
+  const { group, participation } = await assertTeamPassPurchaseAccess({
+    profileId: input.profileId,
+    teamId: input.teamId,
+    slotQuantity: input.slotQuantity,
+  });
+  const service = createServiceRoleSupabaseClient();
+
+  const { data: existingAttemptRows, error: existingAttemptError } = await service
+    .from("payment_attempts")
+    .select(PAYMENT_ATTEMPT_SELECT)
+    .eq("profile_id", input.profileId)
+    .eq("provider", "mercadopago")
+    .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (existingAttemptError) {
+    throw existingAttemptError;
+  }
+
+  const existingAttempt =
+    ((existingAttemptRows ?? []) as PaymentAttemptRow[]).find((attempt) => {
+      const metadata = readAttemptMetadata(attempt);
+      return (
+        metadata.checkoutKind === "team_pass" &&
+        metadata.targetGroupId === group.id &&
+        metadata.teamSlotsQuantity === input.slotQuantity
+      );
+    }) ?? null;
+
+  if (existingAttempt && isAttemptStillUsable(existingAttempt)) {
+    return {
+      participation,
+      paymentAttempt: existingAttempt,
+      checkoutUrl: existingAttempt.checkout_url,
+    };
+  }
+
+  const amount = await buildTeamPassAmount(input.slotQuantity);
+  const currency = entryConfig.currency;
+  const externalReference = `team-pass:${group.id}:${participation.id}:${crypto.randomUUID()}`;
+  const expiresAt = entryConfig.priceValidUntil;
+
+  const { data: insertedAttempt, error: insertError } = await service
+    .from("payment_attempts")
+    .insert({
+      participation_id: participation.id,
+      profile_id: input.profileId,
+      provider: "mercadopago",
+      external_reference: externalReference,
+      amount,
+      currency,
+      status: "created",
+      expires_at: expiresAt,
+      raw_provider_response: {
+        soliprode: {
+          checkout_kind: "team_pass",
+          target_group_id: group.id,
+          team_slots_quantity: input.slotQuantity,
+        },
+      },
+    })
+    .select(PAYMENT_ATTEMPT_SELECT)
+    .single();
+
+  if (insertError || !insertedAttempt) {
+    throw insertError ?? new Error("payment_attempt_insert_failed");
+  }
+
+  const preference = await createMercadoPagoPreference({
+    items: [
+      {
+        title: buildCheckoutItemTitle("team_pass"),
+        quantity: input.slotQuantity,
+        currency_id: currency,
+        unit_price: entryConfig.initialPrice,
+      },
+    ],
+    payer: {
+      email: input.email,
+    },
+    external_reference: externalReference,
+    back_urls: {
+      success: buildReturnUrl("success", externalReference),
+      pending: buildReturnUrl("pending", externalReference),
+      failure: buildReturnUrl("failure", externalReference),
+    },
+    notification_url: getMercadoPagoNotificationUrl(),
+    auto_return: "approved",
+  });
+
+  const checkoutUrl = resolveMercadoPagoCheckoutUrl(preference);
+  const nextRawProviderResponse =
+    typeof preference === "object" && preference
+      ? {
+          ...preference,
+          soliprode: {
+            checkout_kind: "team_pass",
+            target_group_id: group.id,
+            team_slots_quantity: input.slotQuantity,
+          },
+        }
+      : preference;
+
+  const { data: updatedAttempt, error: updateAttemptError } = await service
+    .from("payment_attempts")
+    .update({
+      provider_preference_id: preference.id,
+      checkout_url: checkoutUrl,
+      init_point: preference.init_point,
+      sandbox_init_point: preference.sandbox_init_point,
+      status: "payment_started",
+      raw_provider_response: nextRawProviderResponse,
+    })
+    .eq("id", insertedAttempt.id)
+    .select(PAYMENT_ATTEMPT_SELECT)
+    .single();
+
+  if (updateAttemptError || !updatedAttempt) {
+    throw updateAttemptError ?? new Error("payment_attempt_update_failed");
+  }
+
+  return {
+    participation,
     paymentAttempt: updatedAttempt as PaymentAttemptRow,
     checkoutUrl,
   };
@@ -487,6 +671,28 @@ async function applyAttemptAndParticipationState(
     .eq("id", attempt.id);
 
   if (safeAttemptStatus === "paid") {
+    const metadata = readAttemptMetadata(attempt);
+
+    if (metadata.checkoutKind === "team_pass") {
+      if (!metadata.targetGroupId) {
+        throw new Error("team_pass_missing_group");
+      }
+
+      await finalizeApprovedTeamPassPurchase({
+        paymentAttemptId: attempt.id,
+        profileId: attempt.profile_id,
+        teamId: metadata.targetGroupId,
+        slotQuantity: metadata.teamSlotsQuantity,
+        expiresAt: attempt.expires_at ?? null,
+      });
+
+      return {
+        attemptStatus: safeAttemptStatus,
+        participationStatus: participation?.payment_status ?? "paid",
+        approved: true,
+      };
+    }
+
     if (participation?.payment_status === "paid") {
       return {
         attemptStatus: safeAttemptStatus,

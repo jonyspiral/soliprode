@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { createGroupAction, joinGroupAction } from "@/app/groups/actions";
-import type { TeamInviteContext } from "@/app/teams/_page-state";
+import { claimTeamPassInviteAction, createGroupAction, joinGroupAction } from "@/app/groups/actions";
+import type { TeamInviteContext, TeamPassInviteContext } from "@/app/teams/_page-state";
 import type { TeamsScreenData } from "@/app/teams/_screen-data";
 import type { TeamMember } from "@/app/teams/_mock";
 import { RankingIcon, SoccerBallIcon, TrophyIcon } from "@/components/app-icons";
@@ -8,6 +8,8 @@ import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { TeamInviteActions } from "@/app/teams/_components/team-invite-actions";
 import { TeamInviteJoinPanel } from "@/app/teams/_components/team-invite-join-panel";
 import { GroupAvatarPanel } from "@/app/teams/_components/group-avatar-panel";
+import { TeamPassPanel } from "@/app/teams/_components/team-pass-panel";
+import type { TeamPassSummary } from "@/lib/team-passes/contracts";
 
 type TeamsScreenProps = {
   authStatus: "guest" | "member";
@@ -16,7 +18,10 @@ type TeamsScreenProps = {
   currentParticipationStatus: string | null;
   data: TeamsScreenData;
   inviteContext: TeamInviteContext | null;
+  teamPassInviteContext: TeamPassInviteContext | null;
+  teamPassSummary: TeamPassSummary | null;
   inviteCodePrefill?: string;
+  teamPassCodePrefill?: string;
   errorMessage?: string | null;
   noticeMessage?: string | null;
   prizePoolLabel: string;
@@ -75,11 +80,13 @@ function TeamAccessPanel({
   routeBase,
   loginReturnPath,
   inviteCodePrefill,
+  teamPassInviteContext,
   inviteContext,
   noticeMessage,
   prizePoolLabel,
   errorMessage,
   inviteCode,
+  teamPassCodePrefill,
 }: {
   authStatus: "guest" | "member";
   hasCurrentTeam: boolean;
@@ -87,11 +94,13 @@ function TeamAccessPanel({
   routeBase: "/groups" | "/teams";
   loginReturnPath: string;
   inviteCodePrefill: string;
+  teamPassInviteContext: TeamPassInviteContext | null;
   inviteContext: TeamInviteContext | null;
   noticeMessage: string | null | undefined;
   prizePoolLabel: string;
   errorMessage: string | null | undefined;
   inviteCode: string | null;
+  teamPassCodePrefill: string;
 }) {
   if (authStatus === "guest") {
     return (
@@ -117,6 +126,76 @@ function TeamAccessPanel({
             Crear cuenta
           </Link>
         </div>
+      </article>
+    );
+  }
+
+  if (teamPassInviteContext?.status === "ready") {
+    return (
+      <article className="teams-support-card teams-support-card-ops">
+        <div className="teams-support-header">
+          <span className="teams-chip teams-chip-gold">Cupo prepago</span>
+          <span className="teams-inline-meta">Listo para activar</span>
+        </div>
+        <h2 className="teams-support-title">Ya tenés un lugar pago en {teamPassInviteContext.targetGroupName ?? "este Team"}.</h2>
+        <p className="teams-support-copy">
+          Este cupo no crea un bot ni un jugador automático. Lo activás con tu cuenta real y entrás al Team al instante.
+        </p>
+        <form action={claimTeamPassInviteAction} className="grid gap-3">
+          <input type="hidden" name="return_to" value={loginReturnPath} />
+          <input type="hidden" name="team_pass_code" value={teamPassCodePrefill} />
+          <button type="submit" className="teams-button-primary">
+            Activar mi cupo prepago
+          </button>
+        </form>
+      </article>
+    );
+  }
+
+  if (teamPassInviteContext?.status === "claimed") {
+    return (
+      <article className="teams-support-card teams-support-card-ops">
+        <div className="teams-support-header">
+          <span className="teams-chip teams-chip-outline">Cupo prepago</span>
+          <span className="teams-inline-meta">Ya reclamado</span>
+        </div>
+        <h2 className="teams-support-title">Ese cupo prepago ya fue usado.</h2>
+        <p className="teams-support-copy">
+          Si todavía querés entrar a {teamPassInviteContext.targetGroupName ?? "ese Team"}, pedile al Capitán un nuevo link o usá el código abierto del Team.
+        </p>
+      </article>
+    );
+  }
+
+  if (teamPassInviteContext?.status === "expired" || teamPassInviteContext?.status === "missing") {
+    return (
+      <article className="teams-support-card teams-support-card-ops">
+        <div className="teams-support-header">
+          <span className="teams-chip teams-chip-outline">Cupo prepago</span>
+          <span className="teams-inline-meta">No disponible</span>
+        </div>
+        <h2 className="teams-support-title">Ese cupo prepago ya no está disponible.</h2>
+        <p className="teams-support-copy">
+          Pedile al Capitán un nuevo link o activá tu Pase Solidario por el flujo normal.
+        </p>
+        <Link href="/activar-pase" className="teams-button-primary">
+          Activar mi Pase
+        </Link>
+      </article>
+    );
+  }
+
+  if (teamPassInviteContext?.status === "already-paid") {
+    return (
+      <article className="teams-support-card teams-support-card-ops">
+        <div className="teams-support-header">
+          <span className="teams-chip teams-chip-outline">Cupo prepago</span>
+          <span className="teams-inline-meta">Tu Pase ya está activo</span>
+        </div>
+        <h2 className="teams-support-title">Tu cuenta ya compite con un Pase activo.</h2>
+        <p className="teams-support-copy">
+          No hace falta reclamar este cupo. Si querés entrar al Team, usá el código o link normal del Capitán.
+        </p>
       </article>
     );
   }
@@ -221,7 +300,10 @@ export function TeamsScreen({
   currentParticipationStatus,
   data,
   inviteContext,
+  teamPassInviteContext,
+  teamPassSummary,
   inviteCodePrefill = "",
+  teamPassCodePrefill = "",
   errorMessage,
   noticeMessage,
   prizePoolLabel,
@@ -231,7 +313,11 @@ export function TeamsScreen({
   const participationLabel =
     currentParticipationStatus === "paid" ? "Aporte confirmado" : "Pendiente de activar";
   const hasRanking = data.ranking.length > 0;
-  const loginReturnPath = inviteContext?.code ? `/groups?code=${inviteContext.code}` : routeBase;
+  const loginReturnPath = inviteContext?.code
+    ? `/groups?code=${inviteContext.code}`
+    : teamPassInviteContext?.code
+      ? `/groups?slot=${teamPassInviteContext.code}`
+      : routeBase;
 
   return (
     <div className="teams-screen">
@@ -325,6 +411,8 @@ export function TeamsScreen({
             routeBase={routeBase}
             loginReturnPath={loginReturnPath}
             inviteCodePrefill={inviteCodePrefill}
+            teamPassCodePrefill={teamPassCodePrefill}
+            teamPassInviteContext={teamPassInviteContext}
             inviteContext={inviteContext}
             noticeMessage={noticeMessage}
             prizePoolLabel={prizePoolLabel}
@@ -356,6 +444,14 @@ export function TeamsScreen({
           <p className="teams-summary-copy">No suman sin Aporte confirmado.</p>
         </article>
       </section>
+
+      {hasCurrentTeam && (
+        <TeamPassPanel
+          canManage={Boolean(data.canEditAvatar && data.groupId)}
+          teamId={data.groupId ?? null}
+          summary={teamPassSummary}
+        />
+      )}
 
       <section className="teams-content-grid">
         <div className="teams-main-column">
