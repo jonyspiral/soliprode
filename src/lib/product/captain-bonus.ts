@@ -101,12 +101,32 @@ export function buildCaptainBonusLink(baseUrl: string, promoterCode?: string | n
   return new URL(href, baseUrl).toString();
 }
 
+export function buildCaptainBonusCampaignLink(baseUrl: string, code: string) {
+  return new URL(`/groups/captain-bonus?code=${encodeURIComponent(code)}`, baseUrl).toString();
+}
+
 export function buildCaptainBonusInviteLink(baseUrl: string, code: string) {
-  return new URL(`/captain-bonus?code=${encodeURIComponent(code)}`, baseUrl).toString();
+  return buildCaptainBonusCampaignLink(baseUrl, code);
 }
 
 export function buildCaptainBonusTeamInviteLink(baseUrl: string, inviteCode: string) {
   return new URL(`/groups?code=${encodeURIComponent(inviteCode)}`, baseUrl).toString();
+}
+
+export function buildCaptainBonusCampaignMessage(input: {
+  claimUrl: string;
+}) {
+  return [
+    "Te invito a ser Capitán Bonificado en SoliProde.",
+    "",
+    "Entrá desde este link, reclamá tu pase de capitán y armá tu Team para competir con tus amigos:",
+    "",
+    input.claimUrl,
+    "",
+    "El pase de capitán queda bonificado. Después invitás a tu equipo y empiezan a sumar con sus pronósticos.",
+    "",
+    "Cupos limitados.",
+  ].join("\n");
 }
 
 export function buildCaptainBonusCaptainMessage(input: {

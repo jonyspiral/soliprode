@@ -3,21 +3,15 @@
 import { useState } from "react";
 
 type CaptainBonusShareActionsProps = {
-  captainMessage: string;
-  captainWhatsappHref: string | null;
-  captainBonusLink: string;
-  teamInviteLink: string | null;
-  teamMessage: string | null;
-  teamMessageUnavailableText?: string | null;
+  claimUrl: string;
+  inviteMessage: string;
+  whatsappHref: string;
 };
 
 export function CaptainBonusShareActions({
-  captainMessage,
-  captainWhatsappHref,
-  captainBonusLink,
-  teamInviteLink,
-  teamMessage,
-  teamMessageUnavailableText = null,
+  claimUrl,
+  inviteMessage,
+  whatsappHref,
 }: CaptainBonusShareActionsProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -35,63 +29,52 @@ export function CaptainBonusShareActions({
     }
   }
 
+  async function inviteByWhatsapp() {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "SoliProde",
+          text: inviteMessage,
+          url: claimUrl,
+        });
+        showFeedback("Invitación compartida.");
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    window.open(whatsappHref, "_blank", "noopener,noreferrer");
+    showFeedback("Abriendo WhatsApp.");
+  }
+
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap gap-2">
-        {captainWhatsappHref ? (
-          <a
-            href={captainWhatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-          >
-            Abrir WhatsApp: mensaje para él
-          </a>
-        ) : null}
         <button
           type="button"
-          onClick={() => void copyText(captainMessage, "Mensaje para él copiado")}
-          className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+          onClick={() => void inviteByWhatsapp()}
+          className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
         >
-          Copiar mensaje para él
+          Invitar por WhatsApp
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (teamMessage) {
-              void copyText(teamMessage, "Mensaje para el Team copiado");
-            }
-          }}
-          disabled={!teamMessage}
+          onClick={() => void copyText(inviteMessage, "Mensaje copiado")}
           className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]"
         >
-          Copiar mensaje para reenviar al Team
+          Copiar mensaje
+        </button>
+        <button
+          type="button"
+          onClick={() => void copyText(claimUrl, "Link copiado")}
+          className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+        >
+          Copiar link
         </button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => void copyText(captainBonusLink, "Link de Capitán Bonificado copiado")}
-          className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-        >
-          Copiar link de Capitán Bonificado
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (teamInviteLink) {
-              void copyText(teamInviteLink, "Link de invitación al Team copiado");
-            }
-          }}
-          disabled={!teamInviteLink}
-          className="inline-flex items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-        >
-          Copiar link de invitación al Team
-        </button>
-      </div>
-      {!teamMessage && teamMessageUnavailableText ? (
-        <p className="text-xs text-[var(--color-muted)]">{teamMessageUnavailableText}</p>
-      ) : null}
       {feedback ? <p className="text-xs text-[var(--color-muted)]">{feedback}</p> : null}
     </div>
   );

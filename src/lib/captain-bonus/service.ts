@@ -1,46 +1,44 @@
 import { randomBytes } from "node:crypto";
 import {
-  buildCaptainBonusCaptainMessage,
-  buildCaptainBonusInviteLink,
-  buildCaptainBonusTeamInviteLink,
-  buildCaptainBonusTeamMessage,
+  buildCaptainBonusCampaignLink,
+  buildCaptainBonusCampaignMessage,
   captainBonusConfig,
   countsForCaptainBonusProgress,
-  formatCaptainBonusDeadline,
   resolveCaptainBonusStatus,
 } from "@/lib/product/captain-bonus";
 import { getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
-import { CURRENT_PRIZE_POOL_LABEL } from "@/lib/product/home-display";
-import { normalizeWhatsappForLink } from "@/lib/promoters/admin";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 const CAPTAIN_BONUS_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-type CaptainBonusInviteRow = {
+type CaptainBonusCampaignRow = {
   id: string;
   code: string;
-  invited_name: string | null;
-  invited_phone: string | null;
-  status: "pending" | "claimed" | "expired" | "revoked";
+  name: string;
+  total_slots: number;
+  claimed_slots: number;
+  status: "active" | "exhausted" | "expired" | "cancelled";
   created_by_profile_id: string | null;
-  claimed_by_profile_id: string | null;
-  claimed_participation_id: string | null;
-  claimed_group_id: string | null;
-  deadline: string;
-  required_members: number;
+  expires_at: string | null;
   created_at: string;
-  claimed_at: string | null;
-  expired_at: string | null;
-  revoked_at: string | null;
+  cancelled_at: string | null;
   notes: string | null;
+};
+
+type CaptainBonusCampaignClaimRow = {
+  id: string;
+  campaign_id: string;
+  profile_id: string;
+  participation_id: string;
+  group_id: string | null;
+  claimed_at: string;
 };
 
 type ParticipationRow = {
   id: string;
   profile_id: string;
   group_id: string | null;
-  promoter_id: string | null;
   payment_status: string;
   payment_source: string | null;
   prize_eligible: boolean | null;
@@ -52,44 +50,42 @@ type ProfileRow = {
   id: string;
   full_name: string | null;
   public_alias: string | null;
-  whatsapp: string | null;
 };
 
 type GroupRow = {
   id: string;
-  name: string;
   invite_code: string | null;
+  name: string;
   owner_profile_id: string | null;
 };
 
-export type AdminCaptainBonusInviteSummary = {
-  id: string;
-  code: string;
-  invitedName: string | null;
-  invitedPhone: string | null;
-  status: "pending" | "claimed" | "expired" | "revoked";
-  createdAt: string;
-  deadline: string;
-  deadlineLabel: string;
-  requiredMembers: number;
-  claimedByLabel: string | null;
-  claimedGroupName: string | null;
-  claimedGroupInviteCode: string | null;
-  activeMembers: number | null;
-  missingMembers: number | null;
+export type AdminCaptainBonusCampaignClaimSummary = {
+  claimedAt: string;
+  claimedAtLabel: string;
+  claimedByLabel: string;
+  groupName: string | null;
+  groupInviteCode: string | null;
   progressStatus: "pending" | "completed" | "expired" | null;
-  captainBonusLink: string;
-  captainMessage: string;
-  teamInviteLink: string | null;
-  teamMessage: string | null;
-  teamMessageUnavailableText: string | null;
-  whatsappHref: string | null;
-  notes: string | null;
 };
 
-function isCaptainBonusActiveParticipation(row: Pick<ParticipationRow, "payment_status" | "payment_source"> | null | undefined) {
-  return row?.payment_status === "granted" && row.payment_source === "captain_bonus";
-}
+export type AdminCaptainBonusCampaignSummary = {
+  availableSlots: number;
+  claimUrl: string;
+  code: string;
+  createdAt: string;
+  createdAtLabel: string;
+  expiresAt: string | null;
+  expiresAtLabel: string | null;
+  id: string;
+  inviteMessage: string;
+  name: string;
+  notes: string | null;
+  claimedSlots: number;
+  claims: AdminCaptainBonusCampaignClaimSummary[];
+  status: "active" | "exhausted" | "expired" | "cancelled";
+  totalSlots: number;
+  whatsappHref: string;
+};
 
 function buildCaptainBonusCode() {
   const bytes = randomBytes(8);
@@ -102,7 +98,7 @@ async function buildUniqueCaptainBonusCode() {
   while (true) {
     const candidate = buildCaptainBonusCode();
     const { data: existing } = await service
-      .from("captain_bonus_invites")
+      .from("captain_bonus_campaigns")
       .select("id")
       .eq("code", candidate)
       .maybeSingle();
@@ -113,75 +109,115 @@ async function buildUniqueCaptainBonusCode() {
   }
 }
 
-export async function createCaptainBonusInvite(input: {
+function isCaptainBonusActiveParticipation(
+  row: Pick<ParticipationRow, "payment_status" | "payment_source"> | null | undefined,
+) {
+  return row?.payment_status === "granted" && row.payment_source === "captain_bonus";
+}
+
+function normalizeCampaignStatus(campaign: Pick<CaptainBonusCampaignRow, "status" | "claimed_slots" | "total_slots" | "expires_at">) {
+  if (campaign.status === "cancelled") {
+    return "cancelled" as const;
+  }
+
+  if (campaign.expires_at && new Date(campaign.expires_at).getTime() <= Date.now()) {
+    return "expired" as const;
+  }
+
+  if (campaign.claimed_slots >= campaign.total_slots || campaign.status === "exhausted") {
+    return "exhausted" as const;
+  }
+
+  return "active" as const;
+}
+
+function formatAdminDateTime(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("es-AR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+}
+
+export async function createCaptainBonusCampaign(input: {
   adminProfileId: string;
-  invitedName: string | null;
-  invitedPhone: string | null;
+  expiresAt: string | null;
+  name: string;
   notes: string | null;
+  totalSlots: number;
 }) {
   const service = createServiceRoleSupabaseClient();
   const code = await buildUniqueCaptainBonusCode();
 
   const { data, error } = await service
-    .from("captain_bonus_invites")
+    .from("captain_bonus_campaigns")
     .insert({
       code,
-      invited_name: input.invitedName,
-      invited_phone: input.invitedPhone,
-      status: "pending",
+      name: input.name,
+      total_slots: input.totalSlots,
+      claimed_slots: 0,
+      status: "active",
       created_by_profile_id: input.adminProfileId,
-      deadline: captainBonusConfig.deadlineAt,
-      required_members: captainBonusConfig.requiredMembers,
+      expires_at: input.expiresAt,
       notes: input.notes,
     })
     .select("*")
     .single();
 
   if (error || !data) {
-    throw error ?? new Error("captain_bonus_invite_create_failed");
+    throw error ?? new Error("captain_bonus_campaign_create_failed");
   }
 
-  return data as CaptainBonusInviteRow;
+  return data as CaptainBonusCampaignRow;
 }
 
-export async function revokeCaptainBonusInvite(inviteId: string) {
+export async function cancelCaptainBonusCampaign(campaignId: string) {
   const service = createServiceRoleSupabaseClient();
-  const { data: invite, error: inviteError } = await service
-    .from("captain_bonus_invites")
+  const { data: campaign, error: campaignError } = await service
+    .from("captain_bonus_campaigns")
     .select("id, status")
-    .eq("id", inviteId)
+    .eq("id", campaignId)
     .maybeSingle();
 
-  if (inviteError) {
-    throw inviteError;
+  if (campaignError) {
+    throw campaignError;
   }
 
-  if (!invite) {
+  if (!campaign) {
     throw new Error("captain_bonus_not_found");
   }
 
-  if (invite.status !== "pending") {
-    throw new Error("captain_bonus_revoke_forbidden");
+  if (campaign.status === "cancelled") {
+    return;
   }
 
   const { error } = await service
-    .from("captain_bonus_invites")
+    .from("captain_bonus_campaigns")
     .update({
-      status: "revoked",
-      revoked_at: new Date().toISOString(),
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
     })
-    .eq("id", inviteId)
-    .eq("status", "pending");
+    .eq("id", campaignId);
 
   if (error) {
     throw error;
   }
 }
 
-export async function getCaptainBonusInviteByCode(code: string) {
+export async function getCaptainBonusCampaignByCode(code: string) {
   const service = createServiceRoleSupabaseClient();
   const { data, error } = await service
-    .from("captain_bonus_invites")
+    .from("captain_bonus_campaigns")
     .select("*")
     .eq("code", code)
     .maybeSingle();
@@ -190,17 +226,17 @@ export async function getCaptainBonusInviteByCode(code: string) {
     throw error;
   }
 
-  return (data as CaptainBonusInviteRow | null) ?? null;
+  return (data as CaptainBonusCampaignRow | null) ?? null;
 }
 
-export async function claimCaptainBonusInvite(input: {
+export async function claimCaptainBonusCampaign(input: {
   code: string;
   profileId: string;
 }) {
   const service = createServiceRoleSupabaseClient();
   const { data: participationRows, error: participationError } = await service
     .from("participations")
-    .select("id, profile_id, group_id, promoter_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at")
+    .select("id, profile_id, group_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at")
     .eq("profile_id", input.profileId)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -215,12 +251,11 @@ export async function claimCaptainBonusInvite(input: {
     throw new Error("missing_participation");
   }
 
-  const now = new Date().toISOString();
-  const { data, error } = await service.rpc("claim_captain_bonus_invite", {
+  const { data, error } = await service.rpc("claim_captain_bonus_campaign", {
     p_code: input.code,
     p_profile_id: input.profileId,
     p_participation_id: participation.id,
-    p_now: now,
+    p_now: new Date().toISOString(),
   });
 
   if (error) {
@@ -228,7 +263,7 @@ export async function claimCaptainBonusInvite(input: {
   }
 
   const result = (Array.isArray(data) ? data[0] : data) as
-    | { result_code?: string | null; invite_id?: string | null; participation_id?: string | null; group_id?: string | null }
+    | { campaign_id?: string | null; group_id?: string | null; participation_id?: string | null; result_code?: string | null }
     | null;
   const resultCode = result?.result_code ?? null;
 
@@ -239,9 +274,9 @@ export async function claimCaptainBonusInvite(input: {
   await syncCaptainBonusStateForProfile(input.profileId);
 
   return {
-    inviteId: result?.invite_id ?? null,
-    participationId: result?.participation_id ?? participation.id,
+    campaignId: result?.campaign_id ?? null,
     groupId: result?.group_id ?? null,
+    participationId: result?.participation_id ?? participation.id,
   };
 }
 
@@ -272,7 +307,7 @@ export async function syncCaptainBonusStateForProfile(profileId: string) {
   const service = createServiceRoleSupabaseClient();
   const { data: participationRows, error: participationError } = await service
     .from("participations")
-    .select("id, profile_id, group_id, promoter_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at")
+    .select("id, profile_id, group_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at")
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -296,24 +331,22 @@ export async function syncCaptainBonusStateForProfile(profileId: string) {
       })
       .eq("id", participation.id);
 
-    if (participation.id) {
-      await service
-        .from("captain_bonus_invites")
-        .update({ claimed_group_id: null })
-        .eq("claimed_participation_id", participation.id);
-    }
+    await service
+      .from("captain_bonus_campaign_claims")
+      .update({ group_id: null })
+      .eq("participation_id", participation.id);
 
     return {
-      status: "pending" as const,
       activeMembers: 1,
-      requiredMembers: captainBonusConfig.requiredMembers,
       missingMembers: captainBonusConfig.requiredMembers - 1,
+      requiredMembers: captainBonusConfig.requiredMembers,
+      status: "pending" as const,
     };
   }
 
   const { data: groupParticipations, error: groupParticipationsError } = await service
     .from("participations")
-    .select("id, profile_id, group_id, payment_status, created_at")
+    .select("id, profile_id, group_id, payment_status, payment_source, created_at")
     .eq("group_id", participation.group_id)
     .order("created_at", { ascending: false });
 
@@ -346,44 +379,52 @@ export async function syncCaptainBonusStateForProfile(profileId: string) {
     .eq("id", participation.id);
 
   await service
-    .from("captain_bonus_invites")
-    .update({
-      claimed_group_id: participation.group_id,
-    })
-    .eq("claimed_participation_id", participation.id);
+    .from("captain_bonus_campaign_claims")
+    .update({ group_id: participation.group_id })
+    .eq("participation_id", participation.id);
 
   return {
-    status: status.status,
     activeMembers,
-    requiredMembers: status.requiredMembers,
     missingMembers: status.missingMembers,
+    requiredMembers: status.requiredMembers,
+    status: status.status,
   };
 }
 
-export async function getAdminCaptainBonusInviteSummaries(baseUrl: string) {
+export async function getAdminCaptainBonusCampaignSummaries(baseUrl: string) {
   const service = createServiceRoleSupabaseClient();
   const [
-    { data: invites, error: invitesError },
-    { data: profiles, error: profilesError },
-    { data: groups, error: groupsError },
-    { data: participations, error: participationsError },
+    { data: campaignRows, error: campaignError },
+    { data: claimRows, error: claimError },
+    { data: profileRows, error: profileError },
+    { data: groupRows, error: groupError },
+    { data: participationRows, error: participationError },
   ] = await Promise.all([
-    service.from("captain_bonus_invites").select("*").order("created_at", { ascending: false }),
-    service.from("profiles").select("id, full_name, public_alias, whatsapp"),
+    service.from("captain_bonus_campaigns").select("*").order("created_at", { ascending: false }),
+    service.from("captain_bonus_campaign_claims").select("*").order("claimed_at", { ascending: false }),
+    service.from("profiles").select("id, full_name, public_alias"),
     service.from("groups").select("id, name, invite_code, owner_profile_id"),
-    service.from("participations").select("id, profile_id, group_id, promoter_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at"),
+    service.from("participations").select("id, profile_id, group_id, payment_status, payment_source, prize_eligible, captain_bonus_completed_at, created_at"),
   ]);
 
-  if (invitesError) throw invitesError;
-  if (profilesError) throw profilesError;
-  if (groupsError) throw groupsError;
-  if (participationsError) throw participationsError;
+  if (campaignError) throw campaignError;
+  if (claimError) throw claimError;
+  if (profileError) throw profileError;
+  if (groupError) throw groupError;
+  if (participationError) throw participationError;
 
-  const profileMap = new Map(((profiles ?? []) as ProfileRow[]).map((row) => [row.id, row]));
-  const groupMap = new Map(((groups ?? []) as GroupRow[]).map((row) => [row.id, row]));
+  const profiles = new Map(((profileRows ?? []) as ProfileRow[]).map((row) => [row.id, row]));
+  const groups = new Map(((groupRows ?? []) as GroupRow[]).map((row) => [row.id, row]));
+  const claimsByCampaign = new Map<string, CaptainBonusCampaignClaimRow[]>();
   const participationsByProfile = new Map<string, ParticipationRow[]>();
 
-  for (const row of (participations ?? []) as ParticipationRow[]) {
+  for (const row of (claimRows ?? []) as CaptainBonusCampaignClaimRow[]) {
+    const existing = claimsByCampaign.get(row.campaign_id) ?? [];
+    existing.push(row);
+    claimsByCampaign.set(row.campaign_id, existing);
+  }
+
+  for (const row of (participationRows ?? []) as ParticipationRow[]) {
     const existing = participationsByProfile.get(row.profile_id) ?? [];
     existing.push(row);
     participationsByProfile.set(row.profile_id, existing);
@@ -408,57 +449,49 @@ export async function getAdminCaptainBonusInviteSummaries(baseUrl: string) {
     activeMembersByGroup.set(primary.group_id, (activeMembersByGroup.get(primary.group_id) ?? 0) + 1);
   }
 
-  return ((invites ?? []) as CaptainBonusInviteRow[]).map((invite) => {
-    const claimedProfile = invite.claimed_by_profile_id ? profileMap.get(invite.claimed_by_profile_id) ?? null : null;
-    const claimedGroup = invite.claimed_group_id ? groupMap.get(invite.claimed_group_id) ?? null : null;
-    const activeMembers = claimedGroup ? activeMembersByGroup.get(claimedGroup.id) ?? 0 : null;
-    const status = activeMembers !== null ? resolveCaptainBonusStatus({ activeMembers, requiredMembers: invite.required_members, deadlineAt: invite.deadline }) : null;
-    const captainBonusLink = buildCaptainBonusInviteLink(baseUrl, invite.code);
-    const displayName =
-      invite.invited_name?.trim() ||
-      getPlayerDisplayName(claimedProfile) ||
-      "Jugador";
-    const captainMessage = buildCaptainBonusCaptainMessage({
-      captainBonusLink,
-      deadlineLabel: formatCaptainBonusDeadline(invite.deadline),
-      missingMembers: status?.missingMembers ?? Math.max(0, invite.required_members - 1),
-      name: displayName,
-      prizePoolLabel: CURRENT_PRIZE_POOL_LABEL,
+  return ((campaignRows ?? []) as CaptainBonusCampaignRow[]).map((campaign) => {
+    const claimUrl = buildCaptainBonusCampaignLink(baseUrl, campaign.code);
+    const inviteMessage = buildCaptainBonusCampaignMessage({ claimUrl });
+    const claims = (claimsByCampaign.get(campaign.id) ?? []).map((claim) => {
+      const claimedProfile = profiles.get(claim.profile_id) ?? null;
+      const claimedGroup = claim.group_id ? groups.get(claim.group_id) ?? null : null;
+      const activeMembers = claimedGroup ? activeMembersByGroup.get(claimedGroup.id) ?? 0 : null;
+      const progressStatus =
+        activeMembers !== null
+          ? resolveCaptainBonusStatus({ activeMembers, requiredMembers: captainBonusConfig.requiredMembers }).status
+          : null;
+
+      return {
+        claimedAt: claim.claimed_at,
+        claimedAtLabel: formatAdminDateTime(claim.claimed_at) ?? claim.claimed_at,
+        claimedByLabel: claimedProfile ? getPlayerDisplayName(claimedProfile) : "Capitán",
+        groupName: claimedGroup?.name ?? null,
+        groupInviteCode: claimedGroup?.invite_code ?? null,
+        progressStatus,
+      } satisfies AdminCaptainBonusCampaignClaimSummary;
     });
-    const teamInviteLink =
-      claimedGroup?.invite_code ? buildCaptainBonusTeamInviteLink(baseUrl, claimedGroup.invite_code) : null;
-    const teamMessage = teamInviteLink
-      ? buildCaptainBonusTeamMessage({
-          deadlineLabel: formatCaptainBonusDeadline(invite.deadline),
-          prizePoolLabel: CURRENT_PRIZE_POOL_LABEL,
-          teamInviteLink,
-        })
-      : null;
-    const whatsappDigits = normalizeWhatsappForLink(invite.invited_phone ?? claimedProfile?.whatsapp ?? null);
+
+    const status = normalizeCampaignStatus(campaign);
+    const claimedSlots = claims.length;
+    const availableSlots = Math.max(0, campaign.total_slots - claimedSlots);
 
     return {
-      id: invite.id,
-      code: invite.code,
-      invitedName: invite.invited_name,
-      invitedPhone: invite.invited_phone,
-      status: invite.status,
-      createdAt: invite.created_at,
-      deadline: invite.deadline,
-      deadlineLabel: formatCaptainBonusDeadline(invite.deadline),
-      requiredMembers: invite.required_members,
-      claimedByLabel: claimedProfile ? getPlayerDisplayName(claimedProfile) : null,
-      claimedGroupName: claimedGroup?.name ?? null,
-      claimedGroupInviteCode: claimedGroup?.invite_code ?? null,
-      activeMembers,
-      missingMembers: status?.missingMembers ?? null,
-      progressStatus: status?.status ?? null,
-      captainBonusLink,
-      captainMessage,
-      teamInviteLink,
-      teamMessage,
-      teamMessageUnavailableText: teamInviteLink ? null : "Disponible cuando el Capitán cree su Team.",
-      whatsappHref: whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(captainMessage)}` : null,
-      notes: invite.notes,
-    } satisfies AdminCaptainBonusInviteSummary;
+      availableSlots,
+      claimUrl,
+      code: campaign.code,
+      createdAt: campaign.created_at,
+      createdAtLabel: formatAdminDateTime(campaign.created_at) ?? campaign.created_at,
+      expiresAt: campaign.expires_at,
+      expiresAtLabel: formatAdminDateTime(campaign.expires_at),
+      id: campaign.id,
+      inviteMessage,
+      name: campaign.name,
+      notes: campaign.notes,
+      claimedSlots,
+      claims,
+      status,
+      totalSlots: campaign.total_slots,
+      whatsappHref: `https://wa.me/?text=${encodeURIComponent(inviteMessage)}`,
+    } satisfies AdminCaptainBonusCampaignSummary;
   });
 }

@@ -18,7 +18,7 @@ import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import { getBrevoAdminStatus } from "@/lib/admin/brevo";
 import { requireAdminUser } from "@/lib/admin/access";
-import { getAdminCaptainBonusInviteSummaries, type AdminCaptainBonusInviteSummary } from "@/lib/captain-bonus/service";
+import { getAdminCaptainBonusCampaignSummaries, type AdminCaptainBonusCampaignSummary } from "@/lib/captain-bonus/service";
 import {
   MANUAL_RECOVERY_TEMPLATE_OPTIONS,
   buildManualRecoveryTemplateContent,
@@ -29,7 +29,6 @@ import {
 import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { formatEntryPrice } from "@/lib/product/entry-config";
-import { formatCaptainBonusDeadline } from "@/lib/product/captain-bonus";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
 import { getBaseUrl } from "@/lib/payments/config";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
@@ -450,8 +449,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let paymentAttempts: PaymentAttemptAdminRow[] = [];
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
   let teamPassRows: AdminTeamPassSummary[] = [];
-  let captainBonusInviteRows: AdminCaptainBonusInviteSummary[] = [];
-  let captainBonusActiveRows: AdminCaptainBonusInviteSummary[] = [];
+  let captainBonusCampaignRows: AdminCaptainBonusCampaignSummary[] = [];
   const baseUrl = getBaseUrl();
 
   try {
@@ -496,7 +494,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           .limit(12),
         getPromotersAdminSnapshot(),
         getAdminTeamPassSummaries(12),
-        getAdminCaptainBonusInviteSummaries(baseUrl),
+        getAdminCaptainBonusCampaignSummaries(baseUrl),
       ]),
       "Supabase admin query timed out",
     );
@@ -523,7 +521,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     }));
     promotersSnapshot = adminResults[7];
     teamPassRows = adminResults[8];
-    captainBonusInviteRows = adminResults[9];
+    captainBonusCampaignRows = adminResults[9];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -546,8 +544,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       paymentAttemptByParticipation.set(attempt.participation_id, attempt);
     }
   }
-
-  captainBonusActiveRows = captainBonusInviteRows.filter((row) => row.status === "claimed");
 
   const derivedRows = profiles.map<RegisteredWithoutPassRow>((profile) => {
     const participation =
@@ -759,32 +755,45 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </SurfaceCard>
 
       <SurfaceCard
-        title="Invitaciones de Capitán Bonificado"
-        description={`Creá, compartí y operá invitaciones reales del Pase Capitán Bonificado. Cierre vigente: ${formatCaptainBonusDeadline()}.`}
+        title="Campañas de Capitán Bonificado"
+        description="Creá una invitación con cupos, compartila por WhatsApp y dejá que los capitanes reclamen su pase. La selección de contactos se hace dentro de WhatsApp."
       >
         <div className="grid gap-4">
           <form action={createCaptainBonusInviteAction} className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
             <div className="grid gap-1">
-              <p className="font-semibold text-[var(--color-ink)]">Crear invitación Capitán Bonificado</p>
+              <p className="font-semibold text-[var(--color-ink)]">Crear invitación</p>
               <p className="text-sm text-[var(--color-muted)]">
-                Genera un link único para otorgar el pase, activar al capitán y luego compartir su Team real.
+                Cada campaña genera un link único con cupos limitados para que distintos capitanes reclamen su pase.
               </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               <label className="grid gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Nombre</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Nombre de campaña</span>
                 <input
-                  name="invited_name"
+                  name="campaign_name"
                   className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                  placeholder="Nombre del invitado"
+                  placeholder="Capitanes Bonificados UADE"
+                  minLength={3}
+                  required
                 />
               </label>
               <label className="grid gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Teléfono</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Cupos</span>
                 <input
-                  name="invited_phone"
+                  name="total_slots"
+                  type="number"
+                  min="1"
                   className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                  placeholder="54911..."
+                  placeholder="10"
+                  required
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Vencimiento opcional</span>
+                <input
+                  name="expires_at"
+                  type="datetime-local"
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
                 />
               </label>
               <label className="grid gap-1">
@@ -792,7 +801,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <input
                   name="notes"
                   className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                  placeholder="Contexto interno opcional"
+                  placeholder="Campaña para amigos de Avril"
                 />
               </label>
             </div>
@@ -800,57 +809,63 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               type="submit"
               className="inline-flex w-fit items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
             >
-              Crear invitación Capitán Bonificado
+              Crear invitación
             </button>
           </form>
 
-        {captainBonusInviteRows.length > 0 ? (
+        {captainBonusCampaignRows.length > 0 ? (
           <div className="grid gap-3">
-            {captainBonusInviteRows.map((row) => (
+            {captainBonusCampaignRows.map((row) => (
               <div
                 key={row.id}
                 className="grid gap-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
               >
                 <div className="grid gap-1">
-                  <p className="font-semibold text-[var(--color-ink)]">
-                    {row.invitedName ?? row.claimedByLabel ?? "Invitación sin nombre"}
+                  <p className="font-semibold text-[var(--color-ink)]">{row.name}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Estado: {row.status.replaceAll("_", " ")} · Reclamados: {row.claimedSlots} / {row.totalSlots} · Disponibles: {row.availableSlots}
                   </p>
                   <p className="text-sm text-[var(--color-muted)]">
-                    Teléfono: {row.invitedPhone ?? "Sin teléfono"} · Estado: {row.status.replaceAll("_", " ")}
+                    Creada: {row.createdAtLabel}
+                    {row.expiresAtLabel ? ` · Vencimiento: ${row.expiresAtLabel}` : " · Sin vencimiento manual"}
                   </p>
-                  <p className="text-sm text-[var(--color-muted)]">
-                    Creada: {new Date(row.createdAt).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })} · Deadline: {row.deadlineLabel}
-                  </p>
-                  <p className="text-sm text-[var(--color-muted)] break-all">{row.captainBonusLink}</p>
-                  {row.claimedByLabel ? (
-                    <p className="text-sm text-[var(--color-muted)]">
-                      Reclamada por: {row.claimedByLabel}
-                      {row.claimedGroupName ? ` · Team: ${row.claimedGroupName}` : ""}
-                      {typeof row.activeMembers === "number" && typeof row.missingMembers === "number"
-                        ? ` · Progreso: ${row.activeMembers}/${row.requiredMembers} · Faltan ${row.missingMembers}`
-                        : ""}
-                    </p>
-                  ) : null}
+                  <p className="text-sm text-[var(--color-muted)] break-all">{row.claimUrl}</p>
                   {row.notes ? (
                     <p className="text-sm text-[var(--color-muted)]">Notas: {row.notes}</p>
                   ) : null}
                 </div>
                 <CaptainBonusShareActions
-                  captainMessage={row.captainMessage}
-                  captainWhatsappHref={row.whatsappHref}
-                  captainBonusLink={row.captainBonusLink}
-                  teamInviteLink={row.teamInviteLink}
-                  teamMessage={row.teamMessage}
-                  teamMessageUnavailableText={row.teamMessageUnavailableText}
+                  claimUrl={row.claimUrl}
+                  inviteMessage={row.inviteMessage}
+                  whatsappHref={row.whatsappHref}
                 />
-                {row.status === "pending" ? (
+                {row.claims.length > 0 ? (
+                  <details className="rounded-lg border border-[var(--color-line)] bg-white px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-[var(--color-ink)]">
+                      Ver reclamados ({row.claims.length})
+                    </summary>
+                    <div className="mt-3 grid gap-2 text-sm text-[var(--color-muted)]">
+                      {row.claims.map((claim) => (
+                        <div key={`${row.id}-${claim.claimedAt}-${claim.claimedByLabel}`} className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2">
+                          <p className="font-semibold text-[var(--color-ink)]">{claim.claimedByLabel}</p>
+                          <p>
+                            Claim: {claim.claimedAtLabel}
+                            {claim.groupName ? ` · Team: ${claim.groupName}` : " · Todavía sin Team"}
+                            {claim.progressStatus ? ` · Progreso: ${claim.progressStatus}` : ""}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+                {row.status === "active" ? (
                   <form action={revokeCaptainBonusInviteAction}>
-                    <input type="hidden" name="invite_id" value={row.id} />
+                    <input type="hidden" name="campaign_id" value={row.id} />
                     <button
                       type="submit"
                       className="inline-flex w-fit items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
                     >
-                      Revocar invitación
+                      Cancelar campaña
                     </button>
                   </form>
                 ) : null}
@@ -859,52 +874,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
         ) : (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Todavía no hay invitaciones de Capitán Bonificado creadas.
+            Todavía no hay campañas de Capitán Bonificado creadas.
           </p>
         )}
         </div>
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Capitanes Bonificados activos"
-        description="Seguimiento de los capitanes que ya reclamaron su pase y están armando un Team real."
-      >
-        {captainBonusActiveRows.length > 0 ? (
-          <div className="grid gap-3">
-            {captainBonusActiveRows.map((row) => (
-              <div
-                key={`active-${row.id}`}
-                className="grid gap-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
-              >
-                <div className="grid gap-1">
-                  <p className="font-semibold text-[var(--color-ink)]">{row.claimedByLabel ?? row.invitedName ?? "Capitán"}</p>
-                  <p className="text-sm text-[var(--color-muted)]">
-                    {row.claimedGroupName ?? "Todavía sin Team"} · Estado: {row.status.replaceAll("_", " ")}
-                  </p>
-                  <p className="text-sm text-[var(--color-muted)]">
-                    {typeof row.activeMembers === "number"
-                      ? `${row.activeMembers}/${row.requiredMembers} integrantes activos`
-                      : "Todavía sin integrantes activos"}
-                    {typeof row.missingMembers === "number" ? ` · Faltan ${row.missingMembers}` : ""}
-                    {row.progressStatus ? ` · Progreso: ${row.progressStatus}` : ""}
-                  </p>
-                </div>
-                <CaptainBonusShareActions
-                  captainMessage={row.captainMessage}
-                  captainWhatsappHref={row.whatsappHref}
-                  captainBonusLink={row.captainBonusLink}
-                  teamInviteLink={row.teamInviteLink}
-                  teamMessage={row.teamMessage}
-                  teamMessageUnavailableText={row.teamMessageUnavailableText}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Todavía no hay capitanes bonificados activos.
-          </p>
-        )}
       </SurfaceCard>
 
       <SurfaceCard

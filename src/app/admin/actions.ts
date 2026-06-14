@@ -20,8 +20,8 @@ import {
   type ManualRecoveryTemplateKey,
 } from "@/lib/admin/manual-recovery-email";
 import {
-  createCaptainBonusInvite,
-  revokeCaptainBonusInvite,
+  cancelCaptainBonusCampaign,
+  createCaptainBonusCampaign,
   syncCaptainBonusStateForGroup,
 } from "@/lib/captain-bonus/service";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
@@ -411,45 +411,72 @@ function readOptionalTextField(formData: FormData, key: string) {
 
 export async function createCaptainBonusInviteAction(formData: FormData) {
   const adminUser = await requireAdminUser();
+  const campaignName = readOptionalTextField(formData, "campaign_name");
+  const totalSlots = readStrictNonNegativeInteger(formData.get("total_slots"));
+  const expiresAtRaw = readOptionalTextField(formData, "expires_at");
+
+  if (!campaignName || campaignName.length < 3) {
+    buildAdminRedirect({
+      send_error: "El nombre de campaña necesita al menos 3 caracteres.",
+    });
+  }
+
+  if (!totalSlots || totalSlots < 1) {
+    buildAdminRedirect({
+      send_error: "Indicá una cantidad válida de cupos.",
+    });
+  }
+
+  let expiresAt: string | null = null;
+  if (expiresAtRaw) {
+    const parsed = new Date(expiresAtRaw);
+    if (!Number.isFinite(parsed.getTime())) {
+      buildAdminRedirect({
+        send_error: "La fecha de vencimiento no es válida.",
+      });
+    }
+    expiresAt = parsed.toISOString();
+  }
 
   try {
-    await createCaptainBonusInvite({
+    await createCaptainBonusCampaign({
       adminProfileId: adminUser.user.id,
-      invitedName: readOptionalTextField(formData, "invited_name"),
-      invitedPhone: readOptionalTextField(formData, "invited_phone"),
+      expiresAt,
+      name: campaignName ?? "",
       notes: readOptionalTextField(formData, "notes"),
+      totalSlots: totalSlots ?? 0,
     });
 
     revalidatePath("/admin");
     buildAdminRedirect({
-      ranking_notice: "Invitación de Capitán Bonificado creada.",
+      ranking_notice: "Campaña de Capitán Bonificado creada.",
     });
   } catch (error) {
     buildAdminRedirect({
-      send_error: error instanceof Error ? error.message : "No pudimos crear la invitación de Capitán Bonificado.",
+      send_error: error instanceof Error ? error.message : "No pudimos crear la campaña de Capitán Bonificado.",
     });
   }
 }
 
 export async function revokeCaptainBonusInviteAction(formData: FormData) {
   await requireAdminUser();
-  const inviteId = readOptionalTextField(formData, "invite_id");
+  const campaignId = readOptionalTextField(formData, "campaign_id");
 
-  if (!inviteId) {
+  if (!campaignId) {
     buildAdminRedirect({
-      send_error: "Falta la invitación a revocar.",
+      send_error: "Falta la campaña a cancelar.",
     });
   }
 
   try {
-    await revokeCaptainBonusInvite(inviteId ?? "");
+    await cancelCaptainBonusCampaign(campaignId ?? "");
     revalidatePath("/admin");
     buildAdminRedirect({
-      ranking_notice: "Invitación de Capitán Bonificado revocada.",
+      ranking_notice: "Campaña de Capitán Bonificado cancelada.",
     });
   } catch (error) {
     buildAdminRedirect({
-      send_error: error instanceof Error ? error.message : "No pudimos revocar la invitación.",
+      send_error: error instanceof Error ? error.message : "No pudimos cancelar la campaña.",
     });
   }
 }
