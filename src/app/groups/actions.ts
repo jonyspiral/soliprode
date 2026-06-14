@@ -10,6 +10,7 @@ import {
   parseEmojiAvatarChoice,
   parsePresetAvatarReference,
 } from "@/lib/avatar/identity";
+import { syncCaptainBonusStateForGroup, syncCaptainBonusStateForProfile } from "@/lib/captain-bonus/service";
 import { normalizeInviteCode } from "@/lib/groups/competition";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { claimTeamPassInvite } from "@/lib/team-passes/service";
@@ -304,6 +305,7 @@ export async function createGroupAction(formData: FormData) {
     });
   }
 
+  await syncCaptainBonusStateForProfile(user.id);
   revalidateGroupSurfaces();
   redirectToTeamSurface(returnPath, {
     notice: "Team creado. Ya quedó como tu Team principal.",
@@ -395,6 +397,7 @@ export async function joinGroupAction(formData: FormData) {
     });
   }
 
+  await syncCaptainBonusStateForGroup(targetGroupId);
   revalidateGroupSurfaces();
   redirectToTeamSurface(returnPath, {
     notice: `${targetGroupName} ya quedó como tu Team principal.`,
@@ -414,11 +417,12 @@ export async function claimTeamPassInviteAction(formData: FormData) {
   }
 
   try {
-    await claimTeamPassInvite({
+    const claimResult = await claimTeamPassInvite({
       code: inviteCode,
       profileId: user.id,
     });
 
+    await syncCaptainBonusStateForGroup(claimResult.teamId);
     revalidateGroupSurfaces();
     redirectToTeamSurface(returnPath, {
       notice: "Tu cupo prepago quedó activo. Ya entraste al Team con tu cuenta real.",

@@ -101,6 +101,10 @@ export function buildCaptainBonusLink(baseUrl: string, promoterCode?: string | n
   return new URL(href, baseUrl).toString();
 }
 
+export function buildCaptainBonusInviteLink(baseUrl: string, code: string) {
+  return new URL(`/captain-bonus?code=${encodeURIComponent(code)}`, baseUrl).toString();
+}
+
 export function buildCaptainBonusTeamInviteLink(baseUrl: string, inviteCode: string) {
   return new URL(`/groups?code=${encodeURIComponent(inviteCode)}`, baseUrl).toString();
 }

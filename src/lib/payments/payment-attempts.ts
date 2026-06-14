@@ -1,4 +1,5 @@
 import { entryConfig } from "@/lib/product/entry-config";
+import { syncCaptainBonusStateForGroup } from "@/lib/captain-bonus/service";
 import { resolveOnlineEligibleFrom } from "@/lib/participations/eligibility";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { rebuildGeneralRankings } from "@/lib/scoring/official-rankings";
@@ -22,6 +23,7 @@ type ParticipationRow = {
   activated_at: string | null;
   id: string;
   profile_id: string;
+  group_id: string | null;
   payment_status: string;
   entry_price: number | null;
   entry_baseline_points: number | null;
@@ -200,7 +202,7 @@ export async function getParticipationForProfile(profileId: string) {
   const { data, error } = await service
     .from("participations")
     .select(
-      "id, profile_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
+      "id, profile_id, group_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
     )
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
@@ -220,7 +222,7 @@ async function getPaidCheckoutGuard(profileId: string): Promise<PaidCheckoutGuar
       service
         .from("participations")
         .select(
-          "id, profile_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
+          "id, profile_id, group_id, payment_status, entry_price, entry_baseline_points, payment_started_at, payment_submitted_at, activated_at, created_at",
         )
         .eq("profile_id", profileId)
         .eq("payment_status", "paid")
@@ -677,7 +679,7 @@ async function applyAttemptAndParticipationState(
   const { data: participationRows, error: participationError } = await service
     .from("participations")
     .select(
-      "id, payment_status, entry_price, payment_started_at, payment_submitted_at, activated_at, created_at",
+      "id, group_id, payment_status, entry_price, payment_started_at, payment_submitted_at, activated_at, created_at",
     )
     .eq("id", attempt.participation_id)
     .limit(1);
@@ -689,6 +691,7 @@ async function applyAttemptAndParticipationState(
   const participation = ((participationRows ?? [])[0] as Pick<
     ParticipationRow,
     | "id"
+    | "group_id"
     | "payment_status"
     | "entry_price"
     | "payment_started_at"
@@ -774,6 +777,10 @@ async function applyAttemptAndParticipationState(
         entry_baseline_points: 0,
       })
       .eq("id", attempt.participation_id);
+
+    if (participation?.group_id) {
+      await syncCaptainBonusStateForGroup(participation.group_id);
+    }
 
     await rebuildGeneralRankings();
 

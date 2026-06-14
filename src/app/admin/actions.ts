@@ -19,6 +19,11 @@ import {
   type ManualRecoveryRecipient,
   type ManualRecoveryTemplateKey,
 } from "@/lib/admin/manual-recovery-email";
+import {
+  createCaptainBonusInvite,
+  revokeCaptainBonusInvite,
+  syncCaptainBonusStateForGroup,
+} from "@/lib/captain-bonus/service";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { resolveManualEligibleFrom } from "@/lib/participations/eligibility";
 import {
@@ -311,7 +316,7 @@ export async function confirmParticipationAction(formData: FormData) {
   const now = new Date().toISOString();
   const { data: participation, error: participationError } = await supabase
     .from("participations")
-    .select("id, payment_started_at, payment_submitted_at")
+    .select("id, group_id, payment_started_at, payment_submitted_at")
     .eq("id", participationId)
     .maybeSingle();
 
@@ -349,6 +354,7 @@ export async function confirmParticipationAction(formData: FormData) {
     approvedAt: now,
   });
 
+  await syncCaptainBonusStateForGroup(participation.group_id);
   await rebuildGeneralRankings();
 
   revalidatePath("/admin");
@@ -391,6 +397,61 @@ export async function rejectParticipationAction(formData: FormData) {
   revalidatePath("/matches");
   revalidatePath("/rankings");
   revalidatePath("/activar-pase");
+}
+
+function readOptionalTextField(formData: FormData, key: string) {
+  const rawValue = formData.get(key);
+  if (typeof rawValue !== "string") {
+    return null;
+  }
+
+  const trimmed = rawValue.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export async function createCaptainBonusInviteAction(formData: FormData) {
+  const adminUser = await requireAdminUser();
+
+  try {
+    await createCaptainBonusInvite({
+      adminProfileId: adminUser.user.id,
+      invitedName: readOptionalTextField(formData, "invited_name"),
+      invitedPhone: readOptionalTextField(formData, "invited_phone"),
+      notes: readOptionalTextField(formData, "notes"),
+    });
+
+    revalidatePath("/admin");
+    buildAdminRedirect({
+      ranking_notice: "Invitación de Capitán Bonificado creada.",
+    });
+  } catch (error) {
+    buildAdminRedirect({
+      send_error: error instanceof Error ? error.message : "No pudimos crear la invitación de Capitán Bonificado.",
+    });
+  }
+}
+
+export async function revokeCaptainBonusInviteAction(formData: FormData) {
+  await requireAdminUser();
+  const inviteId = readOptionalTextField(formData, "invite_id");
+
+  if (!inviteId) {
+    buildAdminRedirect({
+      send_error: "Falta la invitación a revocar.",
+    });
+  }
+
+  try {
+    await revokeCaptainBonusInvite(inviteId ?? "");
+    revalidatePath("/admin");
+    buildAdminRedirect({
+      ranking_notice: "Invitación de Capitán Bonificado revocada.",
+    });
+  } catch (error) {
+    buildAdminRedirect({
+      send_error: error instanceof Error ? error.message : "No pudimos revocar la invitación.",
+    });
+  }
 }
 
 function readSelectedProfileIds(formData: FormData) {
