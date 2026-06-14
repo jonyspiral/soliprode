@@ -184,6 +184,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   });
   const communityFeed = await getHomeCommunityFeed();
 
+  if (participationStatus === "granted") {
+    return (
+      <PageStack>
+        <HomeLanding entryPrice={entryConfig.initialPrice} heroState={heroState} />
+        <SurfaceCard
+          title="Pase Capitán Bonificado"
+          description="Tu pase ya está activo. Ahora te toca completar el Team para quedar habilitado a premios."
+        >
+          <div className="grid gap-3">
+            <p className="text-sm leading-6 text-[var(--color-muted)]">
+              Entrá a tu Team, compartí la invitación y sumá jugadores reales activos antes del cierre de campaña.
+            </p>
+            <Link
+              href="/groups"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Ir a mi Team
+            </Link>
+          </div>
+        </SurfaceCard>
+      </PageStack>
+    );
+  }
+
   if (!participationActive) {
     return (
       <PageStack>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { claimTeamPassInviteAction, createGroupAction, joinGroupAction } from "@/app/groups/actions";
-import type { TeamInviteContext, TeamPassInviteContext } from "@/app/teams/_page-state";
+import type { CaptainBonusState, TeamInviteContext, TeamPassInviteContext } from "@/app/teams/_page-state";
 import type { TeamsScreenData } from "@/app/teams/_screen-data";
 import type { TeamMember } from "@/app/teams/_mock";
 import { RankingIcon, SoccerBallIcon, TrophyIcon } from "@/components/app-icons";
@@ -20,6 +20,7 @@ type TeamsScreenProps = {
   inviteContext: TeamInviteContext | null;
   teamPassInviteContext: TeamPassInviteContext | null;
   teamPassSummary: TeamPassSummary | null;
+  captainBonusState: CaptainBonusState | null;
   inviteCodePrefill?: string;
   teamPassCodePrefill?: string;
   errorMessage?: string | null;
@@ -82,11 +83,13 @@ function TeamAccessPanel({
   inviteCodePrefill,
   teamPassInviteContext,
   inviteContext,
+  captainBonusState,
   noticeMessage,
   prizePoolLabel,
   errorMessage,
   inviteCode,
   teamPassCodePrefill,
+  teamName,
 }: {
   authStatus: "guest" | "member";
   hasCurrentTeam: boolean;
@@ -96,12 +99,16 @@ function TeamAccessPanel({
   inviteCodePrefill: string;
   teamPassInviteContext: TeamPassInviteContext | null;
   inviteContext: TeamInviteContext | null;
+  captainBonusState: CaptainBonusState | null;
   noticeMessage: string | null | undefined;
   prizePoolLabel: string;
   errorMessage: string | null | undefined;
   inviteCode: string | null;
   teamPassCodePrefill: string;
+  teamName: string;
 }) {
+  const canUseTeamFlow = currentParticipationStatus === "paid" || currentParticipationStatus === "granted";
+
   if (authStatus === "guest") {
     return (
       <article className="teams-support-card teams-support-card-cta">
@@ -200,7 +207,7 @@ function TeamAccessPanel({
     );
   }
 
-  if (currentParticipationStatus !== "paid") {
+  if (!canUseTeamFlow) {
     return (
       <article className="teams-support-card teams-support-card-ops">
         <div className="teams-support-header">
@@ -238,13 +245,63 @@ function TeamAccessPanel({
         />
       ) : null}
 
+      {captainBonusState ? (
+        <div className="rounded-xl border border-[#d9c46f] bg-[#fff9df] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+            Pase Capitán Bonificado
+          </p>
+          {captainBonusState.status === "completed" ? (
+            <>
+              <h3 className="mt-2 font-serif text-[1.55rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+                Objetivo cumplido
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                Tu Team ya tiene {captainBonusState.requiredMembers} integrantes activos. Ya estás habilitado para competir por premios.
+              </p>
+            </>
+          ) : captainBonusState.status === "expired" ? (
+            <>
+              <h3 className="mt-2 font-serif text-[1.55rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+                El plazo para habilitar premios terminó
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                Podés seguir jugando y aparecer en el ranking general, pero este Team no participa por premios.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="mt-2 font-serif text-[1.55rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+                Tu pase está activo, pero todavía no estás habilitado para premios.
+              </h3>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--color-ink)]">
+                Progreso del Team:
+              </p>
+              <p className="font-serif text-[2rem] font-bold leading-none text-[var(--color-primary)]">
+                {captainBonusState.activeMembers} / {captainBonusState.requiredMembers} integrantes activos
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                Te faltan {captainBonusState.missingMembers} jugadores antes del {captainBonusState.deadlineLabel}.
+              </p>
+              <p className="text-sm leading-6 text-[var(--color-muted)]">
+                Mientras antes entren, antes empiezan a sumar para el equipo.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
       {hasCurrentTeam && inviteCode ? (
         <div className="teams-invite-box">
           <h3 className="teams-invite-title">Invitá jugadores al Team</h3>
           <p className="teams-support-copy">
             Sumá gente al Plantel. Entran todos. Puntúan los mejores 11.
           </p>
-          <TeamInviteActions inviteCode={inviteCode} prizePoolLabel={prizePoolLabel} />
+          <TeamInviteActions
+            inviteCode={inviteCode}
+            prizePoolLabel={prizePoolLabel}
+            teamName={captainBonusState?.teamName ?? teamName}
+            variant={captainBonusState ? "captain-bonus" : "default"}
+          />
         </div>
       ) : null}
 
@@ -302,6 +359,7 @@ export function TeamsScreen({
   inviteContext,
   teamPassInviteContext,
   teamPassSummary,
+  captainBonusState,
   inviteCodePrefill = "",
   teamPassCodePrefill = "",
   errorMessage,
@@ -311,7 +369,11 @@ export function TeamsScreen({
 }: TeamsScreenProps) {
   const rosterCount = data.starters.length + data.bench.length + data.registered.length;
   const participationLabel =
-    currentParticipationStatus === "paid" ? "Aporte confirmado" : "Pendiente de activar";
+    currentParticipationStatus === "paid"
+      ? "Aporte confirmado"
+      : currentParticipationStatus === "granted"
+        ? "Pase Capitán Bonificado"
+        : "Pendiente de activar";
   const hasRanking = data.ranking.length > 0;
   const loginReturnPath = inviteContext?.code
     ? `/groups?code=${inviteContext.code}`
@@ -414,10 +476,12 @@ export function TeamsScreen({
             teamPassCodePrefill={teamPassCodePrefill}
             teamPassInviteContext={teamPassInviteContext}
             inviteContext={inviteContext}
+            captainBonusState={captainBonusState}
             noticeMessage={noticeMessage}
             prizePoolLabel={prizePoolLabel}
             errorMessage={errorMessage}
             inviteCode={data.inviteCode}
+            teamName={data.teamName}
           />
         </aside>
       </section>

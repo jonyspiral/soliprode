@@ -11,6 +11,12 @@ import {
   getTeamPassInviteByCode,
   getTeamPassSummaryForGroup,
 } from "@/lib/team-passes/service";
+import {
+  countsForCaptainBonusProgress,
+  formatCaptainBonusDeadline,
+  isCaptainBonusParticipationStatus,
+  resolveCaptainBonusStatus,
+} from "@/lib/product/captain-bonus";
 import type { TeamPassSummary } from "@/lib/team-passes/contracts";
 import {
   buildTeamsScreenDataFromSnapshot,
@@ -33,11 +39,21 @@ export type TeamsPageState = {
   inviteContext: TeamInviteContext | null;
   teamPassInviteContext: TeamPassInviteContext | null;
   teamPassSummary: TeamPassSummary | null;
+  captainBonusState: CaptainBonusState | null;
   inviteCodePrefill: string;
   teamPassCodePrefill: string;
   errorMessage: string | null;
   noticeMessage: string | null;
   prizePoolLabel: string;
+};
+
+export type CaptainBonusState = {
+  activeMembers: number;
+  deadlineLabel: string;
+  missingMembers: number;
+  requiredMembers: number;
+  status: "pending" | "completed" | "expired";
+  teamName: string;
 };
 
 export type TeamInviteContext = {
@@ -240,6 +256,29 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
           activePlayers: snapshot.currentGroup.activeCount,
         })
       : null;
+    const captainBonusState =
+      userId &&
+      snapshot.currentGroup &&
+      snapshot.currentGroup.ownerProfileId === userId &&
+      isCaptainBonusParticipationStatus(snapshot.currentParticipationStatus)
+        ? (() => {
+            const activeMembers = snapshot.currentGroup.members.filter((member) =>
+              countsForCaptainBonusProgress(member.paymentStatus),
+            ).length;
+            const status = resolveCaptainBonusStatus({
+              activeMembers,
+            });
+
+            return {
+              activeMembers,
+              deadlineLabel: formatCaptainBonusDeadline(),
+              missingMembers: status.missingMembers,
+              requiredMembers: status.requiredMembers,
+              status: status.status,
+              teamName: snapshot.currentGroup.name,
+            } satisfies CaptainBonusState;
+          })()
+        : null;
 
     return {
       authStatus,
@@ -250,6 +289,7 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       inviteContext,
       teamPassInviteContext,
       teamPassSummary,
+      captainBonusState,
       inviteCodePrefill,
       teamPassCodePrefill,
       errorMessage,
@@ -280,6 +320,7 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
         inviteCode: teamPassCodePrefill,
       }),
       teamPassSummary: null,
+      captainBonusState: null,
       inviteCodePrefill,
       teamPassCodePrefill,
       errorMessage,

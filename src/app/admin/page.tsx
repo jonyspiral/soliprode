@@ -9,6 +9,7 @@ import {
   sendBrevoRecoveryEmailsAction,
   sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
+import { CaptainBonusShareActions } from "@/components/admin/captain-bonus-share-actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
@@ -25,7 +26,20 @@ import {
 import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identity";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { formatEntryPrice } from "@/lib/product/entry-config";
+import { CURRENT_PRIZE_POOL_LABEL } from "@/lib/product/home-display";
+import {
+  buildCaptainBonusCaptainMessage,
+  buildCaptainBonusLink,
+  buildCaptainBonusTeamInviteLink,
+  buildCaptainBonusTeamMessage,
+  countsForCaptainBonusProgress,
+  formatCaptainBonusDeadline,
+  isCaptainBonusParticipationStatus,
+  resolveCaptainBonusStatus,
+} from "@/lib/product/captain-bonus";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
+import { getBaseUrl } from "@/lib/payments/config";
+import { normalizeWhatsappForLink } from "@/lib/promoters/admin";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 import { getAdminTeamPassSummaries } from "@/lib/team-passes/service";
@@ -76,7 +90,24 @@ type PromoterRefRow = {
 
 type GroupRefRow = {
   id: string;
+  invite_code: string | null;
   name: string;
+  owner_profile_id: string | null;
+};
+
+type CaptainBonusAdminRow = {
+  activeMembers: number;
+  captainBonusLink: string;
+  captainMessage: string;
+  deadlineLabel: string;
+  missingMembers: number;
+  profileLabel: string;
+  requiredMembers: number;
+  status: "pending" | "completed" | "expired";
+  teamInviteLink: string;
+  teamMessage: string;
+  teamName: string;
+  whatsappHref: string | null;
 };
 
 type MatchTeamRef = {
@@ -129,7 +160,7 @@ type RegisteredWithoutPassRow = {
   participation: ParticipationAdminRow | null;
   promoterLabel: string | null;
   groupLabel: string | null;
-  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo" | "Revisión manual";
+  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo" | "Revisión manual" | "Capitán bonificado";
   paymentStatusLabel: string;
   latestPaymentAttemptLabel: string | null;
   paymentAttempt: PaymentAttemptAdminRow | null;
@@ -292,6 +323,14 @@ function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
     };
   }
 
+  if (paymentStatus === "granted") {
+    return {
+      isActive: false,
+      canCreateDraft: false,
+      label: "Capitán bonificado" as const,
+    };
+  }
+
   if (paymentStatus === "manual_review") {
     return {
       isActive: false,
@@ -434,6 +473,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let paymentAttempts: PaymentAttemptAdminRow[] = [];
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
   let teamPassRows: AdminTeamPassSummary[] = [];
+  let captainBonusRows: CaptainBonusAdminRow[] = [];
 
   try {
     const adminSupabase = createServiceRoleSupabaseClient();
@@ -453,7 +493,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           .order("created_at", { ascending: false })
           .limit(1000),
         adminSupabase.from("promoters").select("id, name, code"),
-        adminSupabase.from("groups").select("id, name"),
+        adminSupabase.from("groups").select("id, name, invite_code, owner_profile_id"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
         adminSupabase
           .from("matches")
@@ -509,6 +549,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const brevoStatus = getBrevoAdminStatus();
+  const baseUrl = getBaseUrl();
   const promoterMap = new Map(promoters.map((promoter) => [promoter.id, promoter]));
   const groupMap = new Map(groups.map((group) => [group.id, group]));
   const participationsByProfile = new Map<string, ParticipationAdminRow[]>();
@@ -525,6 +566,75 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       paymentAttemptByParticipation.set(attempt.participation_id, attempt);
     }
   }
+
+  const primaryParticipationRows = Array.from(participationsByProfile.values())
+    .map((rows) => pickPrimaryParticipation(rows).participation)
+    .filter((row): row is ParticipationAdminRow => Boolean(row));
+  const profilesMap = new Map(profiles.map((profile) => [profile.id, profile]));
+  const bonusActiveMembersByGroup = new Map<string, number>();
+
+  for (const participation of primaryParticipationRows) {
+    if (!participation.group_id || !countsForCaptainBonusProgress(participation.payment_status)) {
+      continue;
+    }
+
+    bonusActiveMembersByGroup.set(
+      participation.group_id,
+      (bonusActiveMembersByGroup.get(participation.group_id) ?? 0) + 1,
+    );
+  }
+
+  captainBonusRows = primaryParticipationRows
+    .filter((participation) => isCaptainBonusParticipationStatus(participation.payment_status) && participation.group_id)
+    .map((participation) => {
+      const group = participation.group_id ? groupMap.get(participation.group_id) ?? null : null;
+      const profile = profilesMap.get(participation.profile_id) ?? null;
+
+      if (!group || group.owner_profile_id !== participation.profile_id || !group.invite_code) {
+        return null;
+      }
+
+      const activeMembers = bonusActiveMembersByGroup.get(group.id) ?? 0;
+      const status = resolveCaptainBonusStatus({ activeMembers });
+      const captainBonusLink = buildCaptainBonusLink(
+        baseUrl,
+        participation.promoter_id ? promoterMap.get(participation.promoter_id)?.code ?? null : null,
+      );
+      const teamInviteLink = buildCaptainBonusTeamInviteLink(baseUrl, group.invite_code);
+      const profileLabel = getPlayerDisplayName(profile);
+      const captainMessage = buildCaptainBonusCaptainMessage({
+        captainBonusLink,
+        deadlineLabel: formatCaptainBonusDeadline(),
+        missingMembers: status.missingMembers,
+        name: profile?.full_name?.trim() || profileLabel,
+        prizePoolLabel: CURRENT_PRIZE_POOL_LABEL,
+      });
+      const teamMessage = buildCaptainBonusTeamMessage({
+        deadlineLabel: formatCaptainBonusDeadline(),
+        prizePoolLabel: CURRENT_PRIZE_POOL_LABEL,
+        teamInviteLink,
+      });
+      const whatsappDigits = normalizeWhatsappForLink(profile?.whatsapp ?? null);
+      const whatsappHref = whatsappDigits
+        ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(captainMessage)}`
+        : null;
+
+      return {
+        activeMembers,
+        captainBonusLink,
+        captainMessage,
+        deadlineLabel: formatCaptainBonusDeadline(),
+        missingMembers: status.missingMembers,
+        profileLabel,
+        requiredMembers: status.requiredMembers,
+        status: status.status,
+        teamInviteLink,
+        teamMessage,
+        teamName: group.name,
+        whatsappHref,
+      } satisfies CaptainBonusAdminRow;
+    })
+    .filter((row): row is CaptainBonusAdminRow => Boolean(row));
 
   const derivedRows = profiles.map<RegisteredWithoutPassRow>((profile) => {
     const participation =
@@ -731,6 +841,43 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <p className="text-sm leading-6 text-[var(--color-muted)]">
             Todavía no hay pases de equipo comprados.
+          </p>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Capitanes bonificados"
+        description={`Seguimiento comercial del Pase Capitán Bonificado. Cierre vigente: ${formatCaptainBonusDeadline()}.`}
+      >
+        {captainBonusRows.length > 0 ? (
+          <div className="grid gap-3">
+            {captainBonusRows.map((row) => (
+              <div
+                key={`${row.teamName}-${row.profileLabel}`}
+                className="grid gap-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
+              >
+                <div className="grid gap-1">
+                  <p className="font-semibold text-[var(--color-ink)]">{row.profileLabel}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    {row.teamName} · {row.activeMembers} / {row.requiredMembers} integrantes activos
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Estado: {row.status} · Faltan {row.missingMembers} antes del {row.deadlineLabel}
+                  </p>
+                </div>
+                <CaptainBonusShareActions
+                  captainMessage={row.captainMessage}
+                  captainWhatsappHref={row.whatsappHref}
+                  captainBonusLink={row.captainBonusLink}
+                  teamInviteLink={row.teamInviteLink}
+                  teamMessage={row.teamMessage}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay capitanes bonificados pendientes para operar.
           </p>
         )}
       </SurfaceCard>

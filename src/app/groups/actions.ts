@@ -259,7 +259,7 @@ export async function createGroupAction(formData: FormData) {
 
   const currentParticipation = participation!;
 
-  if (currentParticipation.payment_status !== "paid") {
+  if (!["paid", "granted"].includes(currentParticipation.payment_status)) {
     redirect("/activar-pase");
   }
 
@@ -332,7 +332,7 @@ export async function joinGroupAction(formData: FormData) {
 
   const currentParticipation = participation!;
 
-  if (currentParticipation.payment_status !== "paid") {
+  if (!["paid", "granted"].includes(currentParticipation.payment_status)) {
     redirect("/activar-pase");
   }
 
