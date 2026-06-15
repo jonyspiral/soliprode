@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  AdminResultsScoringPanel,
+  type MatchAdminRow,
+  type MatchSummaryCounts,
+} from "@/app/admin/admin-results-scoring-panel";
 import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
-import { AdminRebuildRankingsButton } from "@/app/admin/admin-rebuild-rankings-button";
 import {
   confirmParticipationAction,
   createCaptainBonusInviteAction,
@@ -106,21 +110,6 @@ type MatchQueryRow = {
   score_away: number | null;
   home_team: MatchTeamRef | MatchTeamRef[] | null;
   away_team: MatchTeamRef | MatchTeamRef[] | null;
-};
-
-type MatchAdminRow = {
-  id: string;
-  homeTeamName: string;
-  awayTeamName: string;
-  homeTeamCode: string;
-  awayTeamCode: string;
-  startsAt: string;
-  status: string;
-  stage: string | null;
-  roundName: string | null;
-  groupCode: string | null;
-  scoreHome: number | null;
-  scoreAway: number | null;
 };
 
 type PaymentAttemptAdminRow = {
@@ -234,60 +223,6 @@ function resolveAdminTeamName(team: MatchTeamRef | MatchTeamRef[] | null | undef
 function resolveAdminTeamCode(team: MatchTeamRef | MatchTeamRef[] | null | undefined, fallback: string) {
   const normalized = normalizeMatchTeamRef(team);
   return normalized?.code?.trim() || normalized?.fifa_code?.trim() || fallback;
-}
-
-function formatMatchDateTime(startsAt: string) {
-  const date = new Date(startsAt);
-
-  if (!Number.isFinite(date.getTime())) {
-    return startsAt;
-  }
-
-  const weekday = new Intl.DateTimeFormat("es-AR", {
-    weekday: "short",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-  const day = new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-  const time = new Intl.DateTimeFormat("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-
-  const safeWeekday = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1).replace(".", "") : "";
-  return `${safeWeekday} ${day} · ${time}`;
-}
-
-function formatAdminMatchStatus(status: string | null | undefined) {
-  if (!status) {
-    return "pending";
-  }
-
-  return status.replaceAll("_", " ");
-}
-
-function formatAdminMatchMeta(match: Pick<MatchAdminRow, "stage" | "roundName" | "groupCode" | "startsAt">) {
-  const parts: string[] = [];
-
-  if (match.roundName?.trim()) {
-    parts.push(match.roundName.trim());
-  } else if (match.stage?.trim()) {
-    parts.push(match.stage.trim());
-  }
-
-  if (match.groupCode?.trim()) {
-    parts.push(`Zona ${match.groupCode.trim()}`);
-  }
-
-  parts.push(formatMatchDateTime(match.startsAt));
-
-  return parts.join(" · ");
 }
 
 function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
@@ -450,6 +385,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
   let teamPassRows: AdminTeamPassSummary[] = [];
   let captainBonusCampaignRows: AdminCaptainBonusCampaignSummary[] = [];
+  let matchSummaryCounts: MatchSummaryCounts = {
+    total: 0,
+    withResult: 0,
+    withoutResult: 0,
+    finished: 0,
+    scheduled: 0,
+    byStage: {},
+    byStatus: {},
+  };
   const baseUrl = getBaseUrl();
 
   try {
@@ -490,8 +434,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               away_team:teams!matches_away_team_id_fkey(code, fifa_code, name, short_name)
             `,
           )
-          .order("starts_at", { ascending: true })
-          .limit(12),
+          .order("starts_at", { ascending: true }),
         getPromotersAdminSnapshot(),
         getAdminTeamPassSummaries(12),
         getAdminCaptainBonusCampaignSummaries(baseUrl),
@@ -505,20 +448,81 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     promoters = (adminResults[3].data ?? []) as PromoterRefRow[];
     groups = (adminResults[4].data ?? []) as GroupRefRow[];
     predictionCount = adminResults[5].count ?? 0;
-    matchRows = ((adminResults[6].data ?? []) as MatchQueryRow[]).map((match) => ({
-      id: match.id,
-      homeTeamName: resolveAdminTeamName(match.home_team, "Equipo local"),
-      awayTeamName: resolveAdminTeamName(match.away_team, "Equipo visitante"),
-      homeTeamCode: resolveAdminTeamCode(match.home_team, "LOC"),
-      awayTeamCode: resolveAdminTeamCode(match.away_team, "VIS"),
-      startsAt: match.starts_at,
-      status: match.status,
-      stage: match.stage ?? match.phase ?? null,
-      roundName: match.round_name ?? null,
-      groupCode: match.group_code ?? match.group_name ?? null,
-      scoreHome: match.score_home,
-      scoreAway: match.score_away,
-    }));
+    matchRows = ((adminResults[6].data ?? []) as MatchQueryRow[])
+      .map((match) => {
+        const homeTeamName = resolveAdminTeamName(match.home_team, "Equipo pendiente");
+        const awayTeamName = resolveAdminTeamName(match.away_team, "Equipo pendiente");
+        const homeTeamCode = resolveAdminTeamCode(match.home_team, "TBD");
+        const awayTeamCode = resolveAdminTeamCode(match.away_team, "TBD");
+        const groupCode = match.group_code ?? match.group_name ?? null;
+        const stage = match.stage ?? match.phase ?? null;
+        const roundName = match.round_name ?? null;
+        const hasResult = match.score_home !== null && match.score_away !== null;
+
+        return {
+          id: match.id,
+          homeTeamName,
+          awayTeamName,
+          homeTeamCode,
+          awayTeamCode,
+          startsAt: match.starts_at,
+          status: match.status,
+          stage,
+          roundName,
+          groupCode,
+          scoreHome: match.score_home,
+          scoreAway: match.score_away,
+          hasResult,
+          searchIndex: [homeTeamName, awayTeamName, homeTeamCode, awayTeamCode, groupCode ?? ""]
+            .join(" ")
+            .toLowerCase(),
+        };
+      })
+      .sort((a, b) => {
+        const startsAtDiff = new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+
+        if (startsAtDiff !== 0) {
+          return startsAtDiff;
+        }
+
+        return a.id.localeCompare(b.id);
+      });
+    matchSummaryCounts = matchRows.reduce<MatchSummaryCounts>(
+      (summary, match) => {
+        summary.total += 1;
+
+        if (match.hasResult) {
+          summary.withResult += 1;
+        } else {
+          summary.withoutResult += 1;
+        }
+
+        if (match.status === "finished") {
+          summary.finished += 1;
+        }
+
+        if (match.status === "scheduled") {
+          summary.scheduled += 1;
+        }
+
+        summary.byStatus[match.status] = (summary.byStatus[match.status] ?? 0) + 1;
+
+        if (match.stage) {
+          summary.byStage[match.stage] = (summary.byStage[match.stage] ?? 0) + 1;
+        }
+
+        return summary;
+      },
+      {
+        total: 0,
+        withResult: 0,
+        withoutResult: 0,
+        finished: 0,
+        scheduled: 0,
+        byStage: {},
+        byStatus: {},
+      },
+    );
     promotersSnapshot = adminResults[7];
     teamPassRows = adminResults[8];
     captainBonusCampaignRows = adminResults[9];
@@ -885,81 +889,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         description="Publicá resultados finales, recalculá puntos y reconstruí el ranking oficial desde la misma jugada."
         className="relative z-10"
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Si ya hay resultados oficiales cargados, podés re-scorear los partidos finalizados y reconstruir el ranking general sin tocar KO, especiales ni mediana.
-          </p>
-          <AdminRebuildRankingsButton />
-        </div>
-        {matchRows.length === 0 ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Todavía no hay partidos cargados para operar.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {matchRows.map((match) => {
-              return (
-                <div
-                  key={match.id}
-                  className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="grid gap-1">
-                      <p className="font-serif text-[1.35rem] font-bold uppercase text-[var(--color-primary)]">
-                        {match.homeTeamName} vs {match.awayTeamName}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        {formatAdminMatchMeta(match)}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        Estado actual: {formatAdminMatchStatus(match.status)}
-                        {match.scoreHome !== null && match.scoreAway !== null
-                          ? ` · ${match.scoreHome} - ${match.scoreAway}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <form action={publishMatchResultAction} className="grid gap-3 sm:min-w-[260px]">
-                      <input type="hidden" name="match_id" value={match.id} />
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {match.homeTeamCode}
-                          </span>
-                          <input
-                            name="score_home"
-                            type="number"
-                            min="0"
-                            defaultValue={match.scoreHome ?? 0}
-                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {match.awayTeamCode}
-                          </span>
-                          <input
-                            name="score_away"
-                            type="number"
-                            min="0"
-                            defaultValue={match.scoreAway ?? 0}
-                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                          />
-                        </label>
-                      </div>
-                      <button
-                        type="submit"
-                        className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                      >
-                        Publicar resultado y recalcular
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <AdminResultsScoringPanel
+          matches={matchRows}
+          publishMatchResultAction={publishMatchResultAction}
+          summaryCounts={matchSummaryCounts}
+        />
       </SurfaceCard>
 
       <SurfaceCard
