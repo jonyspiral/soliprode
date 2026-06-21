@@ -25,13 +25,26 @@ import {
   syncCaptainBonusStateForGroup,
 } from "@/lib/captain-bonus/service";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
-import { resolveManualEligibleFrom } from "@/lib/participations/eligibility";
 import {
   publishMatchResultAndScore,
   rebuildFinishedMatchScoresAndRankings,
   rebuildGeneralRankings,
 } from "@/lib/scoring/official-rankings";
-import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceRoleSupabaseClient } from "@/lib/supabase/server";
+
+type AdminPaymentActionResult = {
+  ok: boolean;
+  code?: string;
+  message: string;
+};
+
+type ManualPaymentRpcResult = {
+  ok?: boolean;
+  code?: string;
+  participation_id?: string;
+  transitioned?: boolean;
+  message?: string;
+};
 
 function readStrictNonNegativeInteger(rawValue: FormDataEntryValue | null) {
   if (typeof rawValue !== "string") {
@@ -253,143 +266,104 @@ function buildManualRecoveryRedirectParams(params: {
   };
 }
 
-async function updateLatestPendingAttemptForParticipation(params: {
-  participationId: string;
-  nextStatus: "paid" | "rejected";
-  approvedAt?: string | null;
-}) {
-  const supabase = createServiceRoleSupabaseClient();
-  const { data: attemptRows, error: attemptError } = await supabase
-    .from("payment_attempts")
-    .select("id, raw_provider_response")
-    .eq("participation_id", params.participationId)
-    .in("status", ["created", "payment_started", "payment_pending", "manual_review"])
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (attemptError) {
-    throw attemptError;
-  }
-
-  const attempt = ((attemptRows ?? [])[0] as { id: string; raw_provider_response: unknown } | undefined) ?? null;
-
-  if (!attempt) {
-    return;
-  }
-
-  const nextRaw =
-    typeof attempt.raw_provider_response === "object" && attempt.raw_provider_response
-      ? {
-          ...(attempt.raw_provider_response as Record<string, unknown>),
-          admin_resolved_at: new Date().toISOString(),
-          admin_resolution: params.nextStatus,
-        }
-      : {
-          admin_resolved_at: new Date().toISOString(),
-          admin_resolution: params.nextStatus,
-        };
-
-  const { error: updateAttemptError } = await supabase
-    .from("payment_attempts")
-    .update({
-      status: params.nextStatus,
-      approved_at: params.approvedAt ?? null,
-      raw_provider_response: nextRaw,
-    })
-    .eq("id", attempt.id);
-
-  if (updateAttemptError) {
-    throw updateAttemptError;
-  }
-}
-
 export async function confirmParticipationAction(formData: FormData) {
   await requireAdminUser();
 
   const participationId = String(formData.get("participation_id") ?? "").trim();
 
   if (!participationId) {
-    throw new Error("Missing participation_id");
+    return {
+      ok: false,
+      code: "missing_participation_id",
+      message: "Falta el identificador de la participación.",
+    } satisfies AdminPaymentActionResult;
   }
 
-  const supabase = createServiceRoleSupabaseClient();
-  const now = new Date().toISOString();
-  const { data: participation, error: participationError } = await supabase
-    .from("participations")
-    .select("id, group_id, payment_started_at, payment_submitted_at")
-    .eq("id", participationId)
-    .maybeSingle();
-
-  if (participationError || !participation) {
-    throw new Error("No pudimos encontrar la participación a confirmar.");
-  }
-
-  const activatedAt = now;
-  const eligibleFrom = resolveManualEligibleFrom(
-    {
-      payment_submitted_at: participation.payment_submitted_at,
-      payment_started_at: participation.payment_started_at,
-      activated_at: activatedAt,
-    },
-    now,
-  );
-
-  const { error } = await supabase
-    .from("participations")
-    .update({
-      payment_status: "paid",
-      paid_at: now,
-      activated_at: activatedAt,
-      eligible_from: eligibleFrom,
-    })
-    .eq("id", participationId);
-
-  if (error) {
-    throw new Error("No pudimos confirmar la participación.");
-  }
-
-  await updateLatestPendingAttemptForParticipation({
-    participationId,
-    nextStatus: "paid",
-    approvedAt: now,
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("confirm_manual_participation_payment", {
+    p_participation_id: participationId,
   });
 
-  await syncCaptainBonusStateForGroup(participation.group_id);
-  await rebuildGeneralRankings();
+  if (error) {
+    return {
+      ok: false,
+      code: error.code,
+      message: error.message === "forbidden" ? "No tenés permisos para confirmar pagos." : error.message,
+    } satisfies AdminPaymentActionResult;
+  }
+
+  const result = (data ?? {}) as ManualPaymentRpcResult;
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      code: result.code,
+      message: result.message ?? "No pudimos confirmar la participación.",
+    } satisfies AdminPaymentActionResult;
+  }
+
+  if (result.transitioned) {
+    const service = createServiceRoleSupabaseClient();
+    const { data: participation } = await service
+      .from("participations")
+      .select("group_id")
+      .eq("id", participationId)
+      .maybeSingle();
+
+    await syncCaptainBonusStateForGroup((participation as { group_id: string | null } | null)?.group_id ?? null);
+    await rebuildGeneralRankings();
+  }
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
   revalidatePath("/groups");
   revalidatePath("/matches");
   revalidatePath("/rankings");
+
+  return {
+    ok: true,
+    code: result.code,
+    message: result.message ?? "Pago confirmado. Participación habilitada.",
+  } satisfies AdminPaymentActionResult;
 }
 
 export async function rejectParticipationAction(formData: FormData) {
   await requireAdminUser();
 
   const participationId = String(formData.get("participation_id") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
 
   if (!participationId) {
-    throw new Error("Missing participation_id");
+    return {
+      ok: false,
+      code: "missing_participation_id",
+      message: "Falta el identificador de la participación.",
+    } satisfies AdminPaymentActionResult;
   }
 
-  const supabase = createServiceRoleSupabaseClient();
-  const { error } = await supabase
-    .from("participations")
-    .update({
-      payment_status: "rejected",
-    })
-    .eq("id", participationId)
-    .neq("payment_status", "paid");
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("reject_manual_participation_payment", {
+    p_participation_id: participationId,
+    p_reason: reason || null,
+  });
 
   if (error) {
-    throw new Error("No pudimos rechazar la participación.");
+    return {
+      ok: false,
+      code: error.code,
+      message: error.message === "forbidden" ? "No tenés permisos para rechazar pagos." : error.message,
+    } satisfies AdminPaymentActionResult;
   }
 
-  await updateLatestPendingAttemptForParticipation({
-    participationId,
-    nextStatus: "rejected",
-  });
+  const result = (data ?? {}) as ManualPaymentRpcResult;
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      code: result.code,
+      message: result.message ?? "No pudimos rechazar la participación.",
+    } satisfies AdminPaymentActionResult;
+  }
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
@@ -397,6 +371,20 @@ export async function rejectParticipationAction(formData: FormData) {
   revalidatePath("/matches");
   revalidatePath("/rankings");
   revalidatePath("/activar-pase");
+
+  return {
+    ok: true,
+    code: result.code,
+    message: result.message ?? "Pago rechazado. El jugador puede volver a iniciar el pago.",
+  } satisfies AdminPaymentActionResult;
+}
+
+export async function confirmParticipationFormAction(formData: FormData) {
+  await confirmParticipationAction(formData);
+}
+
+export async function rejectParticipationFormAction(formData: FormData) {
+  await rejectParticipationAction(formData);
 }
 
 function readOptionalTextField(formData: FormData, key: string) {

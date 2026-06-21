@@ -18,6 +18,11 @@ import {
   type MercadoPagoPaymentInfo,
 } from "@/lib/payments/mercadopago";
 import { getBaseUrl } from "@/lib/payments/config";
+import {
+  isDowngradeFromPaidAttempt,
+  mapMercadoPagoStatusToAttemptStatus,
+  shouldPreserveManualPaidAttempt,
+} from "@/lib/payments/payment-status-priority";
 
 type ParticipationRow = {
   activated_at: string | null;
@@ -77,22 +82,6 @@ function normalizeProviderApprovedAt(value: string | null | undefined) {
   const parsed = new Date(value);
 
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
-}
-
-function mapMercadoPagoStatus(status: string | null | undefined) {
-  switch (status) {
-    case "approved":
-      return "paid";
-    case "in_process":
-    case "pending":
-      return "payment_pending";
-    case "rejected":
-    case "cancelled":
-    case "charged_back":
-      return "rejected";
-    default:
-      return "manual_review";
-  }
 }
 
 function buildReturnUrl(kind: "success" | "pending" | "failure", externalReference: string) {
@@ -669,7 +658,7 @@ async function applyAttemptAndParticipationState(
     };
   }
 
-  const nextAttemptStatus = mapMercadoPagoStatus(paymentInfo.status);
+  const nextAttemptStatus = mapMercadoPagoStatusToAttemptStatus(paymentInfo.status);
   const amountMatchesAttempt = Number(paymentInfo.transaction_amount) === Number(attempt.amount);
   const externalReferenceMatches = paymentInfo.external_reference === attempt.external_reference;
   const approvedAt = normalizeProviderApprovedAt(paymentInfo.approved_at);
@@ -711,6 +700,24 @@ async function applyAttemptAndParticipationState(
   }
 
   const metadata = readAttemptMetadata(attempt);
+
+  if (
+    shouldPreserveManualPaidAttempt({
+      currentAttemptStatus: attempt.status,
+      currentParticipationStatus: participation?.payment_status,
+      nextAttemptStatus: safeAttemptStatus,
+    }) ||
+    isDowngradeFromPaidAttempt({
+      currentAttemptStatus: attempt.status,
+      nextAttemptStatus: safeAttemptStatus,
+    })
+  ) {
+    return {
+      attemptStatus: "paid",
+      participationStatus: "paid",
+      approved: true,
+    };
+  }
 
   await service
     .from("payment_attempts")
@@ -834,7 +841,7 @@ function isApprovedPaymentForAttempt(
   }
 
   return (
-    mapMercadoPagoStatus(paymentInfo.status) === "paid" &&
+    mapMercadoPagoStatusToAttemptStatus(paymentInfo.status) === "paid" &&
     Number(paymentInfo.transaction_amount) === Number(attempt.amount) &&
     paymentInfo.external_reference === attempt.external_reference
   );

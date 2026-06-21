@@ -7,15 +7,16 @@ import {
 } from "@/app/admin/admin-results-scoring-panel";
 import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
 import {
-  confirmParticipationAction,
+  confirmParticipationFormAction,
   createCaptainBonusInviteAction,
   publishMatchResultAction,
-  rejectParticipationAction,
+  rejectParticipationFormAction,
   revokeCaptainBonusInviteAction,
   sendBrevoRecoveryEmailsAction,
   sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
 import { CaptainBonusShareActions } from "@/components/admin/captain-bonus-share-actions";
+import { PaymentReviewActions } from "@/components/admin/payment-review-actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
@@ -315,26 +316,7 @@ function ManualReviewRow({ row }: { row: RegisteredWithoutPassRow }) {
             Revisión manual
           </span>
           {row.participation ? (
-            <>
-              <form action={confirmParticipationAction}>
-                <input type="hidden" name="participation_id" value={row.participation.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                >
-                  Confirmar pago
-                </button>
-              </form>
-              <form action={rejectParticipationAction}>
-                <input type="hidden" name="participation_id" value={row.participation.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-                >
-                  Rechazar pago
-                </button>
-              </form>
-            </>
+            <PaymentReviewActions participationId={row.participation.id} participantName={label} />
           ) : null}
         </div>
       </div>
@@ -623,8 +605,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         initialTestProof={params?.test_proof ?? null}
         sendRealAction={sendBrevoRecoveryEmailsAction}
         sendTestAction={sendBrevoRecoveryTestAction}
-        confirmParticipationAction={confirmParticipationAction}
-        rejectParticipationAction={rejectParticipationAction}
+        confirmParticipationAction={confirmParticipationFormAction}
+        rejectParticipationAction={rejectParticipationFormAction}
       />
 
       {manualReviewRows.length > 0 ? (
