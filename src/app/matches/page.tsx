@@ -19,8 +19,14 @@ type MatchRow = {
   status: string;
   venue: string | null;
   city: string | null;
-  home_team_id: string;
-  away_team_id: string;
+  home_slot_rule: string | null;
+  away_slot_rule: string | null;
+  home_slot_label: string | null;
+  away_slot_label: string | null;
+  bracket_position: string | null;
+  bracket_side: string | null;
+  home_team_id: string | null;
+  away_team_id: string | null;
   home_team:
     | {
         id: string;
@@ -146,7 +152,7 @@ function normalizeRelatedTeam(team: MatchRow["home_team"] | MatchRow["away_team"
   return Array.isArray(team) ? (team[0] ?? null) : team;
 }
 
-function fallbackTeam(teamId: string): MatchBoardItem["home_team"] {
+function fallbackTeam(teamId: string): NonNullable<MatchBoardItem["home_team"]> {
   return {
     id: teamId,
     name: "Equipo",
@@ -166,6 +172,31 @@ function isDynamicServerUsageError(error: unknown) {
   );
 }
 
+function normalizeMatchRow(match: MatchRow): MatchBoardItem {
+  const homeTeam = normalizeRelatedTeam(match.home_team);
+  const awayTeam = normalizeRelatedTeam(match.away_team);
+
+  return {
+    id: match.id,
+    stage: match.stage,
+    round_name: match.round_name,
+    group_code: match.group_code,
+    starts_at: match.starts_at,
+    prediction_closes_at: match.prediction_closes_at,
+    status: match.status,
+    venue: match.venue,
+    city: match.city,
+    home_slot_rule: match.home_slot_rule,
+    away_slot_rule: match.away_slot_rule,
+    home_slot_label: match.home_slot_label,
+    away_slot_label: match.away_slot_label,
+    bracket_position: match.bracket_position,
+    bracket_side: match.bracket_side,
+    home_team: homeTeam ?? (match.home_team_id ? fallbackTeam(match.home_team_id) : null),
+    away_team: awayTeam ?? (match.away_team_id ? fallbackTeam(match.away_team_id) : null),
+  };
+}
+
 async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
   const directMatchQuery = supabase
     .from("matches")
@@ -180,6 +211,12 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
         status,
         venue,
         city,
+        home_slot_rule,
+        away_slot_rule,
+        home_slot_label,
+        away_slot_label,
+        bracket_position,
+        bracket_side,
         home_team_id,
         away_team_id,
         home_team:teams!matches_home_team_id_fkey(
@@ -209,40 +246,26 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
       console.error("[matches] direct join query failed", directError);
     }
   } else if (directRows) {
-    const normalizedMatches = (directRows as MatchRow[]).map((match) => {
-      const homeTeam = normalizeRelatedTeam(match.home_team);
-      const awayTeam = normalizeRelatedTeam(match.away_team);
+    const rawMatches = directRows as MatchRow[];
+    const normalizedMatches = rawMatches.map(normalizeMatchRow);
 
-      return {
-        id: match.id,
-        stage: match.stage,
-        round_name: match.round_name,
-        group_code: match.group_code,
-        starts_at: match.starts_at,
-        prediction_closes_at: match.prediction_closes_at,
-        status: match.status,
-        venue: match.venue,
-        city: match.city,
-        home_team: homeTeam ?? fallbackTeam(match.home_team_id),
-        away_team: awayTeam ?? fallbackTeam(match.away_team_id),
-      };
-    });
-
-    const hasMissingTeams = normalizedMatches.some(
-      (match) => match.home_team.fifa_code === "TBD" || match.away_team.fifa_code === "TBD",
+    const hasBrokenTeamJoin = rawMatches.some(
+      (match) =>
+        (match.home_team_id && !normalizeRelatedTeam(match.home_team)) ||
+        (match.away_team_id && !normalizeRelatedTeam(match.away_team)),
     );
 
-    if (!hasMissingTeams) {
+    if (!hasBrokenTeamJoin) {
       return { matches: normalizedMatches, usedFallback: false };
     }
 
-    console.warn("[matches] direct join returned matches with missing teams, switching to two-step fallback");
+    console.warn("[matches] direct join returned unresolved team references, switching to two-step fallback");
   }
 
   const { data: baseMatchRows, error: baseMatchError } = await supabase
     .from("matches")
     .select(
-      "id, stage, round_name, group_code, starts_at, prediction_closes_at, status, venue, city, home_team_id, away_team_id",
+      "id, stage, round_name, group_code, starts_at, prediction_closes_at, status, venue, city, home_slot_rule, away_slot_rule, home_slot_label, away_slot_label, bracket_position, bracket_side, home_team_id, away_team_id",
     )
     .order("starts_at", { ascending: true });
 
@@ -250,7 +273,13 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
     throw baseMatchError;
   }
 
-  const teamIds = [...new Set(((baseMatchRows ?? []) as MatchRow[]).flatMap((match) => [match.home_team_id, match.away_team_id]))];
+  const teamIds = [
+    ...new Set(
+      ((baseMatchRows ?? []) as MatchRow[])
+        .flatMap((match) => [match.home_team_id, match.away_team_id])
+        .filter((teamId): teamId is string => Boolean(teamId)),
+    ),
+  ];
   const { data: teamRows, error: teamError } = teamIds.length
     ? await supabase
         .from("teams")
@@ -265,10 +294,10 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
   const teamMap = new Map(((teamRows ?? []) as TeamRow[]).map((team) => [team.id, team]));
 
   const matches = ((baseMatchRows ?? []) as MatchRow[]).map((match) => {
-    const homeTeam = teamMap.get(match.home_team_id);
-    const awayTeam = teamMap.get(match.away_team_id);
+    const homeTeam = match.home_team_id ? teamMap.get(match.home_team_id) : null;
+    const awayTeam = match.away_team_id ? teamMap.get(match.away_team_id) : null;
 
-    if (!homeTeam || !awayTeam) {
+    if ((match.home_team_id && !homeTeam) || (match.away_team_id && !awayTeam)) {
       console.warn("[matches] missing team data for match", {
         matchId: match.id,
         homeTeamId: match.home_team_id,
@@ -276,19 +305,11 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
       });
     }
 
-    return {
-      id: match.id,
-      stage: match.stage,
-      round_name: match.round_name,
-      group_code: match.group_code,
-      starts_at: match.starts_at,
-      prediction_closes_at: match.prediction_closes_at,
-      status: match.status,
-      venue: match.venue,
-      city: match.city,
-      home_team: homeTeam ?? fallbackTeam(match.home_team_id),
-      away_team: awayTeam ?? fallbackTeam(match.away_team_id),
-    };
+    return normalizeMatchRow({
+      ...match,
+      home_team: homeTeam ?? null,
+      away_team: awayTeam ?? null,
+    });
   });
 
   return { matches, usedFallback: true };

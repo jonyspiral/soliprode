@@ -31,6 +31,7 @@ export type SavePredictionActionResult =
         | "INVALID_SCORE"
         | "PROFILE_MISSING"
         | "MATCH_NOT_FOUND"
+        | "MATCH_NOT_READY"
         | "MATCH_CLOSED"
         | "UNKNOWN";
       message: string;
@@ -76,7 +77,7 @@ export async function savePredictionAction({
         supabase.from("profiles").select("id").eq("id", user.id).maybeSingle(),
         supabase
           .from("matches")
-          .select("id, status, prediction_closes_at")
+          .select("id, status, prediction_closes_at, home_team_id, away_team_id")
           .eq("id", normalizedMatchId)
           .maybeSingle(),
       ]),
@@ -134,6 +135,14 @@ export async function savePredictionAction({
     };
   }
 
+  if (!matchRow.home_team_id || !matchRow.away_team_id) {
+    return {
+      ok: false,
+      error: "MATCH_NOT_READY",
+      message: "Este cruce todavía no tiene equipos definidos.",
+    };
+  }
+
   const isOpen =
     matchRow.status === "scheduled" &&
     new Date(matchRow.prediction_closes_at).getTime() > Date.now();
@@ -171,6 +180,8 @@ export async function savePredictionAction({
           id: string;
           status: string;
           prediction_closes_at: string;
+          home_team_id: string | null;
+          away_team_id: string | null;
         }
       | null = null;
 
@@ -180,7 +191,7 @@ export async function savePredictionAction({
         service.from("profiles").select("id").eq("id", user.id).maybeSingle(),
         service
           .from("matches")
-          .select("id, status, prediction_closes_at")
+          .select("id, status, prediction_closes_at, home_team_id, away_team_id")
           .eq("id", normalizedMatchId)
           .maybeSingle(),
       ]);
@@ -219,6 +230,10 @@ export async function savePredictionAction({
       matchExists: Boolean(liveMatch),
       matchStatus: liveMatch?.status ?? matchRow.status,
       matchPredictionClosesAt: liveMatch?.prediction_closes_at ?? matchRow.prediction_closes_at,
+      matchHasResolvedTeams: Boolean(
+        (liveMatch?.home_team_id ?? matchRow.home_team_id) &&
+          (liveMatch?.away_team_id ?? matchRow.away_team_id),
+      ),
       observedAt: nowIso,
       payload,
     });
