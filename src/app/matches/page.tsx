@@ -664,6 +664,39 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </nav>
       ) : null}
 
+      {!dataNotice && matches.length > 0 ? (
+        <section className="overflow-hidden rounded-[1.1rem] border border-[rgba(0,71,171,0.12)] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] px-4 py-3 shadow-[0_8px_18px_rgba(0,50,125,0.05)]">
+          <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                Ahora empieza lo fuerte
+              </p>
+              <p className="text-[13px] leading-5 text-[var(--color-ink)] md:max-w-[44rem]">
+                En eliminatorias tambi&eacute;n pronostic&aacute;s qu&eacute; equipo clasifica. Marcador exacto + clasificado correcto suma 5 pts; clasificado correcto suma 3 pts.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 md:min-w-[20rem] md:items-end">
+              <div className="rounded-xl border border-[rgba(0,71,171,0.14)] bg-white/80 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                  Pronto: Pron&oacute;sticos Especiales
+                </p>
+                <p className="mt-1 text-[12px] leading-4 text-[var(--color-muted)]">
+                  Campe&oacute;n 20 pts · Subcampe&oacute;n 10 pts · Argentina 10 pts · Premios FIFA 7 pts
+                </p>
+              </div>
+
+              <Link
+                href="/reglamento"
+                className="inline-flex min-h-9 items-center justify-center self-start rounded-full border border-[rgba(0,71,171,0.14)] bg-white px-3 py-2 text-[12px] font-semibold text-[var(--color-primary)] md:self-auto"
+              >
+                Ver reglamento
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {!dataNotice && matches.length > 0 && currentTab === "upcoming" ? (
         <SurfaceCard
           title="Próximos partidos para pronosticar"
