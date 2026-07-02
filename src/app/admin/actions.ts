@@ -29,6 +29,7 @@ import {
   publishMatchResultAndScore,
   rebuildFinishedMatchScoresAndRankings,
   rebuildGeneralRankings,
+  resolveSpecialQuestion,
 } from "@/lib/scoring/official-rankings";
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
@@ -785,6 +786,26 @@ export async function publishMatchResultAction(formData: FormData) {
   revalidatePath("/groups");
   revalidatePath("/matches");
   revalidatePath("/rankings");
+  revalidatePath("/dashboard");
+}
+
+export async function resolveSpecialQuestionAction(formData: FormData) {
+  await requireAdminUser();
+
+  const questionCode = String(formData.get("question_code") ?? "").trim();
+  const winningOptionId = String(formData.get("winning_option_id") ?? "").trim();
+
+  if (!questionCode || !winningOptionId) {
+    throw new Error("Resolución especial inválida.");
+  }
+
+  await resolveSpecialQuestion(questionCode, winningOptionId);
+
+  revalidatePath("/admin");
+  revalidatePath("/groups");
+  revalidatePath("/matches");
+  revalidatePath("/rankings");
+  revalidatePath("/profile");
   revalidatePath("/dashboard");
 }
 

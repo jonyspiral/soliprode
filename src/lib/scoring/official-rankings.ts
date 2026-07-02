@@ -25,6 +25,23 @@ type ParticipationRow = {
   eligible_from: string | null;
 };
 
+type RankingSpecialPredictionRow = {
+  profile_id: string;
+  points: number;
+};
+
+type ResolvableSpecialQuestionRow = {
+  id: string;
+  code: string;
+  points: number;
+};
+
+type ResolvableSpecialOptionRow = {
+  id: string;
+  question_id: string;
+  value: string;
+};
+
 function buildPrimaryParticipationMap(rows: ParticipationRow[]) {
   const rowsByProfile = new Map<string, ParticipationRow[]>();
 
@@ -108,7 +125,11 @@ function scorePrediction(
 export async function rebuildGeneralRankings() {
   const service = createServiceRoleSupabaseClient();
 
-  const [{ data: participations, error: participationError }, { data: rankingPredictions, error: predictionError }] =
+  const [
+    { data: participations, error: participationError },
+    { data: rankingPredictions, error: predictionError },
+    { data: rankingSpecialPredictions, error: rankingSpecialPredictionError },
+  ] =
     await Promise.all([
       service
         .from("participations")
@@ -118,6 +139,7 @@ export async function rebuildGeneralRankings() {
       service
         .from("predictions")
         .select("profile_id, points, match:matches!inner(starts_at, status)"),
+      service.from("special_predictions").select("profile_id, points"),
     ]);
 
   if (participationError) {
@@ -126,6 +148,10 @@ export async function rebuildGeneralRankings() {
 
   if (predictionError) {
     throw predictionError;
+  }
+
+  if (rankingSpecialPredictionError) {
+    throw rankingSpecialPredictionError;
   }
 
   const paidMap = buildPrimaryParticipationMap((participations ?? []) as ParticipationRow[]);
@@ -142,6 +168,14 @@ export async function rebuildGeneralRankings() {
     const match = normalizeRankingPredictionMatch(row.match);
 
     if (!participation || !match || match.status !== "finished") {
+      continue;
+    }
+
+    totals.set(row.profile_id, (totals.get(row.profile_id) ?? 0) + (row.points ?? 0));
+  }
+
+  for (const row of (rankingSpecialPredictions ?? []) as RankingSpecialPredictionRow[]) {
+    if (!paidMap.has(row.profile_id)) {
       continue;
     }
 
@@ -355,4 +389,81 @@ export async function publishMatchResultAndScore(input: {
   await rebuildGeneralRankings();
 
   return match as MatchRow;
+}
+
+export async function resolveSpecialQuestion(questionCode: string, winningOptionId: string) {
+  const service = createServiceRoleSupabaseClient();
+  const normalizedQuestionCode = questionCode.trim();
+  const normalizedWinningOptionId = winningOptionId.trim();
+
+  if (!normalizedQuestionCode || !normalizedWinningOptionId) {
+    throw new Error("special_question_resolution_invalid_input");
+  }
+
+  const { data: question, error: questionError } = await service
+    .from("special_prediction_questions")
+    .select("id, code, points")
+    .eq("code", normalizedQuestionCode)
+    .maybeSingle();
+
+  if (questionError || !question) {
+    throw questionError ?? new Error("special_question_not_found");
+  }
+
+  const { data: option, error: optionError } = await service
+    .from("special_prediction_options")
+    .select("id, question_id, value")
+    .eq("id", normalizedWinningOptionId)
+    .eq("question_id", question.id)
+    .maybeSingle();
+
+  if (optionError || !option) {
+    throw optionError ?? new Error("special_option_not_found");
+  }
+
+  const resolvedQuestion = question as ResolvableSpecialQuestionRow;
+  const resolvedOption = option as ResolvableSpecialOptionRow;
+
+  const { error: updateQuestionError } = await service
+    .from("special_prediction_questions")
+    .update({
+      result_value: resolvedOption.value,
+      status: "resolved",
+    })
+    .eq("id", resolvedQuestion.id);
+
+  if (updateQuestionError) {
+    throw updateQuestionError;
+  }
+
+  const { data: predictions, error: predictionError } = await service
+    .from("special_predictions")
+    .select("id, option_id")
+    .eq("question_id", resolvedQuestion.id);
+
+  if (predictionError) {
+    throw predictionError;
+  }
+
+  for (const prediction of (predictions ?? []) as Array<{ id: string; option_id: string }>) {
+    const points = prediction.option_id === resolvedOption.id ? resolvedQuestion.points : 0;
+    const { error: updatePredictionError } = await service
+      .from("special_predictions")
+      .update({ points })
+      .eq("id", prediction.id);
+
+    if (updatePredictionError) {
+      throw updatePredictionError;
+    }
+  }
+
+  await rebuildGeneralRankings();
+
+  return {
+    questionId: resolvedQuestion.id,
+    questionCode: resolvedQuestion.code,
+    winningOptionId: resolvedOption.id,
+    resultValue: resolvedOption.value,
+    updatedPredictions: (predictions ?? []).length,
+  };
 }

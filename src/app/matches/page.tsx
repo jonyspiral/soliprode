@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { PredictionBoard, type MatchBoardItem } from "@/components/matches/prediction-board";
+import { SpecialPredictionBoard } from "@/components/matches/special-prediction-board";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { formatZoneLabel, normalizeZoneCode, NO_ZONE_KEY } from "@/lib/fixture/zone-labels";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import type {
+  SpecialPredictionOption,
+  SpecialPredictionPick,
+  SpecialPredictionQuestion,
+} from "@/lib/special-predictions/contracts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -84,6 +90,12 @@ type PredictionRow = {
   locked_at: string | null;
   points: number;
 };
+
+type SpecialPredictionQuestionRow = Omit<SpecialPredictionQuestion, "options">;
+
+type SpecialPredictionOptionRow = SpecialPredictionOption;
+
+type SpecialPredictionRow = SpecialPredictionPick;
 
 type MatchesPageProps = {
   searchParams?: Promise<{
@@ -431,10 +443,51 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
   return { matches, usedFallback: true };
 }
 
+async function loadSpecialQuestions(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  const [{ data: questionRows, error: questionError }, { data: optionRows, error: optionError }] =
+    await Promise.all([
+      supabase
+        .from("special_prediction_questions")
+        .select("id, code, title, description, points, closes_at, status, result_value, created_at")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("special_prediction_options")
+        .select("id, question_id, value, label, sort_order, active")
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+  if (questionError) {
+    throw questionError;
+  }
+
+  if (optionError) {
+    throw optionError;
+  }
+
+  const optionsByQuestion = ((optionRows ?? []) as SpecialPredictionOptionRow[]).reduce<
+    Map<string, SpecialPredictionOptionRow[]>
+  >((acc, option) => {
+    const existing = acc.get(option.question_id) ?? [];
+    existing.push(option);
+    acc.set(option.question_id, existing);
+    return acc;
+  }, new Map());
+
+  return ((questionRows ?? []) as SpecialPredictionQuestionRow[]).map((question) => ({
+    ...question,
+    options: optionsByQuestion.get(question.id) ?? [],
+  }));
+}
+
 export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const params = searchParams ? await searchParams : undefined;
   let matches: MatchBoardItem[] = [];
   let predictions: PredictionRow[] = [];
+  let specialQuestions: SpecialPredictionQuestion[] = [];
+  let specialPredictions: SpecialPredictionRow[] = [];
   let currentUserId: string | null = null;
   let participationStatus = "pending";
   let dataNotice: string | null = null;
@@ -463,14 +516,35 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           .eq("profile_id", currentUserId)
       : Promise.resolve({ data: [], error: null });
 
-    const [{ matches: loadedMatches }, { data: participationRows }, { data: predictionRows }] =
+    const specialPredictionQuery = currentUserId
+      ? supabase
+          .from("special_predictions")
+          .select("id, profile_id, question_id, option_id, points, locked_at, created_at, updated_at")
+          .eq("profile_id", currentUserId)
+      : Promise.resolve({ data: [], error: null });
+
+    const [
+      { matches: loadedMatches },
+      specialQuestionRows,
+      { data: participationRows },
+      { data: predictionRows },
+      { data: specialPredictionRows },
+    ] =
       await withSupabaseTimeout(
-        Promise.all([loadMatchesWithTeams(supabase), participationQuery, predictionQuery]),
+        Promise.all([
+          loadMatchesWithTeams(supabase),
+          loadSpecialQuestions(supabase),
+          participationQuery,
+          predictionQuery,
+          specialPredictionQuery,
+        ]),
         "Supabase matches query timed out",
       );
 
     matches = loadedMatches;
+    specialQuestions = specialQuestionRows;
     predictions = (predictionRows ?? []) as PredictionRow[];
+    specialPredictions = (specialPredictionRows ?? []) as SpecialPredictionRow[];
     participationStatus =
       pickPrimaryParticipation(
         (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
@@ -485,6 +559,8 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   }
 
   const participationActive = participationStatus === "paid";
+  const hasSpecialQuestions = specialQuestions.length > 0;
+  const hasPredictionContent = matches.length > 0 || hasSpecialQuestions;
   const requestedTab = normalizeMatchesTab(params?.tab);
   const availableTabs = getAvailableTabs(matches);
   const defaultTab = pickDefaultTab(matches);
@@ -526,11 +602,12 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
       : currentTab === "group_stage" && hasGroupStageHistory
         ? "Fase de grupos finalizada. Podés revisar tus pronósticos anteriores."
         : currentTab === "specials"
-          ? "Pronto vas a poder cargar campeón, subcampeón, goleador y otras predicciones especiales."
+          ? "Guardá campeón, subcampeón, recorrido de Argentina y premios FIFA antes del cierre."
           : currentTab === "round_of_32"
             ? "Estos son los partidos activos para cargar tus pronósticos."
             : `Revisá los partidos de ${selectedTabLabel.toLowerCase()} y preparate para la próxima ronda.`;
-  const heroTitle = currentTab === "upcoming" ? "Pronosticá lo que viene" : `Pronosticá ${selectedTabLabel.toLowerCase()}`;
+  const heroTitle =
+    currentTab === "upcoming" ? "Pronosticá lo que viene" : `Pronosticá ${selectedTabLabel.toLowerCase()}`;
 
   return (
     <PageStack>
@@ -565,10 +642,10 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length === 0 ? (
+      {!dataNotice && !hasPredictionContent ? (
         <SurfaceCard
-          title="Todavía no hay partidos cargados"
-          description="Cuando esté el fixture, vas a poder cargar tus pronósticos acá."
+          title="Todavía no hay pronósticos cargados"
+          description="Cuando terminemos de cargar fixture y especiales, vas a poder jugar desde acá."
         >
           <Link
             href="/dashboard"
@@ -579,7 +656,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length > 0 ? (
+      {!dataNotice && hasPredictionContent ? (
         <nav
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
           aria-label="Instancias del fixture"
@@ -664,7 +741,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </nav>
       ) : null}
 
-      {!dataNotice && matches.length > 0 ? (
+      {!dataNotice && hasPredictionContent ? (
         <section className="overflow-hidden rounded-[1.1rem] border border-[rgba(0,71,171,0.12)] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] px-4 py-3 shadow-[0_8px_18px_rgba(0,50,125,0.05)]">
           <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
             <div className="min-w-0 space-y-1.5">
@@ -679,7 +756,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
             <div className="flex flex-col gap-2 md:min-w-[20rem] md:items-end">
               <div className="rounded-xl border border-[rgba(0,71,171,0.14)] bg-white/80 px-3 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
-                  Pronto: Pron&oacute;sticos Especiales
+                  Pron&oacute;sticos Especiales
                 </p>
                 <p className="mt-1 text-[12px] leading-4 text-[var(--color-muted)]">
                   Campe&oacute;n 20 pts · Subcampe&oacute;n 10 pts · Argentina 10 pts · Premios FIFA 7 pts
@@ -799,14 +876,23 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length > 0 && currentTab === "specials" ? (
+      {!dataNotice && currentTab === "specials" ? (
         <SurfaceCard
-          title="Especiales"
-          description="Pronto vas a poder cargar campeón, subcampeón, goleador y otras predicciones especiales."
+          title="Pronósticos especiales"
+          description="Campeón, subcampeón, Argentina y premios FIFA. Cada pregunta se guarda por separado y después impacta en el ranking general."
         >
-          <div className="rounded-[1rem] border border-dashed border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
-            Esta sección queda lista para la próxima etapa. Cuando habilitemos especiales, vas a ver tus picks acá sin perder el historial de partidos.
-          </div>
+          {hasSpecialQuestions ? (
+            <SpecialPredictionBoard
+              questions={specialQuestions}
+              initialPredictions={specialPredictions}
+              isAuthenticated={Boolean(currentUserId)}
+              participationActive={participationActive}
+            />
+          ) : (
+            <div className="rounded-[1rem] border border-dashed border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
+              Todavía no cargamos las preguntas especiales en la base. Apenas estén publicadas, vas a poder completarlas desde acá.
+            </div>
+          )}
         </SurfaceCard>
       ) : null}
     </PageStack>
