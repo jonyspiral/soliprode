@@ -384,11 +384,11 @@ export async function saveSpecialPredictionAction(
 
   const closesAt = new Date(questionRow.closes_at).getTime();
 
-  if (questionRow.status !== "open") {
+  if (questionRow.status === "resolved") {
     return {
       ok: false,
-      error: "QUESTION_NOT_OPEN",
-      message: "Este pronóstico especial todavía no está habilitado.",
+      error: "QUESTION_CLOSED",
+      message: "Este pronóstico especial ya fue resuelto.",
     };
   }
 
@@ -523,3 +523,10 @@ export async function saveSpecialPredictionAction(
     prediction: data,
   };
 }
+  if (questionRow.status === "closed") {
+    return {
+      ok: false,
+      error: "QUESTION_CLOSED",
+      message: "Este pronóstico especial ya cerró.",
+    };
+  }

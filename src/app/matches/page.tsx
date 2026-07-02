@@ -252,6 +252,14 @@ function normalizeMatchesTab(value: string | undefined): MatchesTabKey | null {
   return MATCH_TABS.find((tab) => tab.key === value)?.key ?? null;
 }
 
+function resolveRequestedTab(params: { tab?: string; view?: string } | undefined) {
+  if (params?.view === "especiales") {
+    return "specials" as const;
+  }
+
+  return normalizeMatchesTab(params?.tab);
+}
+
 function getAvailableTabs(matches: MatchBoardItem[]) {
   const available = new Set<MatchesTabKey>();
 
@@ -561,7 +569,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const participationActive = participationStatus === "paid";
   const hasSpecialQuestions = specialQuestions.length > 0;
   const hasPredictionContent = matches.length > 0 || hasSpecialQuestions;
-  const requestedTab = normalizeMatchesTab(params?.tab);
+  const requestedTab = resolveRequestedTab(params);
   const availableTabs = getAvailableTabs(matches);
   const defaultTab = pickDefaultTab(matches);
   const currentTab = availableTabs.some((tab) => tab.key === requestedTab)

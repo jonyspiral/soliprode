@@ -77,10 +77,6 @@ function getQuestionState(question: SpecialPredictionQuestion, nowMs: number) {
     return "resolved" as const;
   }
 
-  if (question.status === "scheduled") {
-    return "scheduled" as const;
-  }
-
   if (!Number.isFinite(closesAtMs) || closesAtMs <= nowMs || question.status === "closed") {
     return "closed" as const;
   }
@@ -94,8 +90,6 @@ function getStatusLabel(question: SpecialPredictionQuestion, nowMs: number) {
   switch (state) {
     case "resolved":
       return "Resuelto";
-    case "scheduled":
-      return "Programado";
     case "closed":
       return "Cerrado";
     default:
@@ -171,8 +165,8 @@ export function SpecialPredictionBoard({
         [question.id]: {
           tone: "error",
           message:
-            questionState === "scheduled"
-              ? "Este pronóstico especial todavía no está habilitado."
+            questionState === "resolved"
+              ? "Este pronóstico especial ya fue resuelto."
               : "Este pronóstico especial ya cerró.",
         },
       }));
@@ -315,8 +309,10 @@ export function SpecialPredictionBoard({
               ? "Elegí una opción"
               : !isOpen
                 ? questionState === "scheduled"
-                  ? "Todavía no abre"
-                  : "Cerrado"
+                ? "Todavía no abre"
+                  : questionState === "resolved"
+                    ? "Resuelto"
+                    : "Cerrado"
                 : isDirty || !current?.predictionId
                   ? "Guardar selección"
                   : "Guardado";
