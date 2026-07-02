@@ -392,6 +392,14 @@ export async function saveSpecialPredictionAction(
     };
   }
 
+  if (questionRow.status === "closed") {
+    return {
+      ok: false,
+      error: "QUESTION_CLOSED",
+      message: "Este pronóstico especial ya cerró.",
+    };
+  }
+
   if (!Number.isFinite(closesAt) || closesAt <= Date.now()) {
     return {
       ok: false,
@@ -523,10 +531,3 @@ export async function saveSpecialPredictionAction(
     prediction: data,
   };
 }
-  if (questionRow.status === "closed") {
-    return {
-      ok: false,
-      error: "QUESTION_CLOSED",
-      message: "Este pronóstico especial ya cerró.",
-    };
-  }

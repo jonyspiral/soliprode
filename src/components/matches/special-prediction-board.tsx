@@ -308,11 +308,9 @@ export function SpecialPredictionBoard({
             : !selectedOptionId
               ? "Elegí una opción"
               : !isOpen
-                ? questionState === "scheduled"
-                ? "Todavía no abre"
-                  : questionState === "resolved"
-                    ? "Resuelto"
-                    : "Cerrado"
+                ? questionState === "resolved"
+                  ? "Resuelto"
+                  : "Cerrado"
                 : isDirty || !current?.predictionId
                   ? "Guardar selección"
                   : "Guardado";
