@@ -1,4 +1,5 @@
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { fetchAllRowsByRange } from "@/lib/supabase/pagination";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 type MatchRow = {
@@ -48,6 +49,7 @@ function buildPrimaryParticipationMap(rows: ParticipationRow[]) {
 }
 
 type RankingPredictionRow = {
+  id: string;
   profile_id: string;
   points: number;
   match:
@@ -108,27 +110,30 @@ function scorePrediction(
 export async function rebuildGeneralRankings() {
   const service = createServiceRoleSupabaseClient();
 
-  const [{ data: participations, error: participationError }, { data: rankingPredictions, error: predictionError }] =
-    await Promise.all([
-      service
-        .from("participations")
-        .select("profile_id, payment_status, eligible_from, created_at")
-        .eq("payment_status", "paid")
-        .order("created_at", { ascending: false }),
-      service
-        .from("predictions")
-        .select("profile_id, points, match:matches!inner(starts_at, status)"),
-    ]);
+  const [participations, rankingPredictions] = await Promise.all([
+    fetchAllRowsByRange<ParticipationRow>({
+      queryName: "participations_paid_general_rankings",
+      fetchPage: async (from, to) =>
+        service
+          .from("participations")
+          .select("profile_id, payment_status, eligible_from, created_at")
+          .eq("payment_status", "paid")
+          .order("created_at", { ascending: false })
+          .order("profile_id", { ascending: true })
+          .range(from, to),
+    }),
+    fetchAllRowsByRange<RankingPredictionRow>({
+      queryName: "predictions_general_rankings",
+      fetchPage: async (from, to) =>
+        service
+          .from("predictions")
+          .select("id, profile_id, points, match:matches!inner(starts_at, status)")
+          .order("id", { ascending: true })
+          .range(from, to),
+    }),
+  ]);
 
-  if (participationError) {
-    throw participationError;
-  }
-
-  if (predictionError) {
-    throw predictionError;
-  }
-
-  const paidMap = buildPrimaryParticipationMap((participations ?? []) as ParticipationRow[]);
+  const paidMap = buildPrimaryParticipationMap(participations);
   const paidParticipations = [...paidMap.values()];
 
   const totals = new Map<string, number>();
@@ -137,7 +142,7 @@ export async function rebuildGeneralRankings() {
     totals.set(participation.profile_id, 0);
   }
 
-  for (const row of (rankingPredictions ?? []) as RankingPredictionRow[]) {
+  for (const row of rankingPredictions) {
     const participation = paidMap.get(row.profile_id);
     const match = normalizeRankingPredictionMatch(row.match);
 
@@ -178,19 +183,19 @@ export async function rebuildGeneralRankings() {
 
 export async function rebuildFinishedMatchScoresAndRankings() {
   const service = createServiceRoleSupabaseClient();
-  const { data: matches, error: matchesError } = await service
-    .from("matches")
-    .select("id, starts_at, status, score_home, score_away")
-    .eq("status", "finished")
-    .not("score_home", "is", null)
-    .not("score_away", "is", null)
-    .order("starts_at", { ascending: true });
-
-  if (matchesError) {
-    throw matchesError;
-  }
-
-  const finishedMatches = (matches ?? []) as MatchRow[];
+  const finishedMatches = await fetchAllRowsByRange<MatchRow>({
+    queryName: "matches_finished_for_scoring",
+    fetchPage: async (from, to) =>
+      service
+        .from("matches")
+        .select("id, starts_at, status, score_home, score_away")
+        .eq("status", "finished")
+        .not("score_home", "is", null)
+        .not("score_away", "is", null)
+        .order("starts_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  });
 
   if (finishedMatches.length === 0) {
     await rebuildGeneralRankings();
@@ -203,33 +208,33 @@ export async function rebuildFinishedMatchScoresAndRankings() {
   }
 
   const matchIds = finishedMatches.map((match) => match.id);
-  const { data: predictions, error: predictionError } = await service
-    .from("predictions")
-    .select("id, match_id, profile_id, predicted_home, predicted_away, locked_at")
-    .in("match_id", matchIds);
-
-  if (predictionError) {
-    throw predictionError;
-  }
-
-  const predictionRows = (predictions ?? []) as PredictionRow[];
+  const predictionRows = await fetchAllRowsByRange<PredictionRow>({
+    queryName: "predictions_finished_matches",
+    fetchPage: async (from, to) =>
+      service
+        .from("predictions")
+        .select("id, match_id, profile_id, predicted_home, predicted_away, locked_at")
+        .in("match_id", matchIds)
+        .order("id", { ascending: true })
+        .range(from, to),
+  });
   const profileIds = [...new Set(predictionRows.map((row) => row.profile_id))];
-  const participationRows =
+  const participationRows: ParticipationRow[] =
     profileIds.length > 0
-      ? await service
-          .from("participations")
-          .select("profile_id, payment_status, eligible_from, created_at")
-          .in("profile_id", profileIds)
-          .order("created_at", { ascending: false })
-      : { data: [], error: null };
+      ? await fetchAllRowsByRange<ParticipationRow>({
+          queryName: "participations_for_finished_match_rebuild",
+          fetchPage: async (from, to) =>
+            service
+              .from("participations")
+              .select("profile_id, payment_status, eligible_from, created_at")
+              .in("profile_id", profileIds)
+              .order("created_at", { ascending: false })
+              .order("profile_id", { ascending: true })
+              .range(from, to),
+        })
+      : [];
 
-  if (participationRows.error) {
-    throw participationRows.error;
-  }
-
-  const participationMap = buildPrimaryParticipationMap(
-    (participationRows.data ?? []) as ParticipationRow[],
-  );
+  const participationMap = buildPrimaryParticipationMap(participationRows);
   const matchMap = new Map(finishedMatches.map((match) => [match.id, match]));
 
   for (const prediction of predictionRows) {
@@ -299,34 +304,36 @@ export async function publishMatchResultAndScore(input: {
     throw matchError ?? new Error("match_update_failed");
   }
 
-  const { data: predictions, error: predictionError } = await service
-    .from("predictions")
-    .select("id, profile_id, predicted_home, predicted_away, locked_at")
-    .eq("match_id", input.matchId);
+  const predictionRows = await fetchAllRowsByRange<PredictionRow>({
+    queryName: "predictions_single_match_publish",
+    fetchPage: async (from, to) =>
+      service
+        .from("predictions")
+        .select("id, profile_id, predicted_home, predicted_away, locked_at")
+        .eq("match_id", input.matchId)
+        .order("id", { ascending: true })
+        .range(from, to),
+  });
 
-  if (predictionError) {
-    throw predictionError;
-  }
-
-  const profileIds = [...new Set(((predictions ?? []) as PredictionRow[]).map((row) => row.profile_id))];
-  const participationRows =
+  const profileIds = [...new Set(predictionRows.map((row) => row.profile_id))];
+  const participationRows: ParticipationRow[] =
     profileIds.length > 0
-      ? await service
-          .from("participations")
-          .select("profile_id, payment_status, eligible_from, created_at")
-          .in("profile_id", profileIds)
-          .order("created_at", { ascending: false })
-      : { data: [], error: null };
+      ? await fetchAllRowsByRange<ParticipationRow>({
+          queryName: "participations_single_match_publish",
+          fetchPage: async (from, to) =>
+            service
+              .from("participations")
+              .select("profile_id, payment_status, eligible_from, created_at")
+              .in("profile_id", profileIds)
+              .order("created_at", { ascending: false })
+              .order("profile_id", { ascending: true })
+              .range(from, to),
+        })
+      : [];
 
-  if (participationRows.error) {
-    throw participationRows.error;
-  }
+  const participationMap = buildPrimaryParticipationMap(participationRows);
 
-  const participationMap = buildPrimaryParticipationMap(
-    (participationRows.data ?? []) as ParticipationRow[],
-  );
-
-  for (const prediction of (predictions ?? []) as PredictionRow[]) {
+  for (const prediction of predictionRows) {
     const participation = participationMap.get(prediction.profile_id);
     const isEligible = participation?.payment_status === "paid";
 
