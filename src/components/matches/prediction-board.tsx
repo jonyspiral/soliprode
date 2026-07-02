@@ -25,8 +25,16 @@ export type MatchBoardItem = {
   status: string;
   venue: string | null;
   city: string | null;
-  home_team: MatchTeam;
-  away_team: MatchTeam;
+  home_score: number | null;
+  away_score: number | null;
+  home_slot_rule: string | null;
+  away_slot_rule: string | null;
+  home_slot_label: string | null;
+  away_slot_label: string | null;
+  bracket_position: string | null;
+  bracket_side: string | null;
+  home_team: MatchTeam | null;
+  away_team: MatchTeam | null;
 };
 
 type PredictionSnapshot = {
@@ -54,6 +62,8 @@ type PredictionBoardProps = {
   currentUserId: string | null;
   isAuthenticated: boolean;
   participationActive: boolean;
+  compactClosedCards?: boolean;
+  showAccessNotice?: boolean;
 };
 
 function formatKickoff(startsAt: string) {
@@ -67,6 +77,10 @@ function formatKickoff(startsAt: string) {
 }
 
 function formatStatus(match: MatchBoardItem) {
+  if (!isMatchReady(match)) {
+    return "Por definir";
+  }
+
   if (!isMatchOpen(match)) {
     return "Cerrado";
   }
@@ -97,7 +111,36 @@ function buildState(predictions: PredictionSnapshot[]) {
 }
 
 function isMatchOpen(match: MatchBoardItem) {
+  return (
+    isMatchReady(match) &&
+    match.status === "scheduled" &&
+    new Date(match.prediction_closes_at).getTime() > Date.now()
+  );
+}
+
+function isMatchReady(match: MatchBoardItem) {
+  return Boolean(match.home_team && match.away_team);
+}
+
+function isFutureScheduled(match: MatchBoardItem) {
   return match.status === "scheduled" && new Date(match.prediction_closes_at).getTime() > Date.now();
+}
+
+function hasOfficialScore(match: MatchBoardItem) {
+  return match.home_score !== null && match.away_score !== null;
+}
+
+function getDisplayTeam(match: MatchBoardItem, side: "home" | "away") {
+  const team = side === "home" ? match.home_team : match.away_team;
+  const slotLabel = side === "home" ? match.home_slot_label : match.away_slot_label;
+
+  return {
+    team,
+    slotLabel,
+    displayCode: team?.fifa_code ?? "TBD",
+    displayName: team?.short_name ?? slotLabel ?? "Equipo por definir",
+    subtitle: team?.name ?? "Se define al cierre de la fase de zonas.",
+  };
 }
 
 function parseScore(value: string) {
@@ -122,6 +165,8 @@ export function PredictionBoard({
   currentUserId,
   isAuthenticated,
   participationActive,
+  compactClosedCards = false,
+  showAccessNotice = true,
 }: PredictionBoardProps) {
   const [predictionState, setPredictionState] = useState<Record<string, PredictionState>>(
     buildState(initialPredictions),
@@ -176,7 +221,9 @@ export function PredictionBoard({
         ...current,
         [match.id]: {
           tone: "error",
-          message: "Este partido ya cerró.",
+          message: isMatchReady(match)
+            ? "Este partido ya cerró."
+            : "Vas a poder pronosticar cuando se definan los equipos.",
         },
       }));
       return;
@@ -277,7 +324,7 @@ export function PredictionBoard({
 
   return (
     <div className="grid gap-3">
-      {!isAuthenticated ? (
+      {showAccessNotice && !isAuthenticated ? (
         <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
           Mirá el fixture ahora. Para guardar pronósticos,{" "}
           <Link href="/login" className="font-semibold text-[var(--color-primary)]">
@@ -286,7 +333,7 @@ export function PredictionBoard({
           .
         </div>
       ) : null}
-      {isAuthenticated && !participationActive ? (
+      {showAccessNotice && isAuthenticated && !participationActive ? (
         <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm leading-6 text-[var(--color-muted)]">
           Tus picks se pueden mirar, pero para competir necesitás activar tu Pase Solidario.{" "}
           <Link href="/activar-pase" className="font-semibold text-[var(--color-primary)]">
@@ -302,13 +349,17 @@ export function PredictionBoard({
         const awayValue = state?.awayValue ?? "0";
         const note = feedback[match.id];
         const open = isMatchOpen(match);
+        const ready = isMatchReady(match);
+        const compactCard = compactClosedCards && !isFutureScheduled(match);
         const homeSavedValue = state?.predicted_home ?? 0;
         const awaySavedValue = state?.predicted_away ?? 0;
         const isDirty = homeValue !== String(homeSavedValue) || awayValue !== String(awaySavedValue);
         const buttonLabel =
           savingMatchId === match.id
             ? "Guardando..."
-            : !open
+            : !ready
+              ? "Esperando clasificados"
+              : !open
               ? "Este partido ya cerró"
               : isDirty || !state?.id
                 ? "Guardar"
@@ -319,18 +370,26 @@ export function PredictionBoard({
         return (
           <article
             key={match.id}
-            className="overflow-hidden rounded-[1.1rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_8px_18px_rgba(0,50,125,0.05)]"
+            className={[
+              "overflow-hidden rounded-[1.1rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_8px_18px_rgba(0,50,125,0.05)]",
+              compactCard ? "shadow-none" : "",
+            ].join(" ")}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2.5">
+            <div
+              className={[
+                "flex items-start justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface-muted)]",
+                compactCard ? "px-3 py-2" : "px-3 py-2.5",
+              ].join(" ")}
+            >
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
                   {match.group_code ? `${formatZoneLabel(match.group_code)} · ` : ""}
                   {match.round_name}
                 </p>
-                <p className="mt-1 text-[13px] font-semibold text-[var(--color-ink)]">
+                <p className={compactCard ? "mt-0.5 text-[12px] font-semibold text-[var(--color-ink)]" : "mt-1 text-[13px] font-semibold text-[var(--color-ink)]"}>
                   {formatKickoff(match.starts_at)}
                 </p>
-                <p className="mt-0.5 text-[11px] leading-5 text-[var(--color-muted)]">
+                <p className={compactCard ? "mt-0.5 text-[10px] leading-4 text-[var(--color-muted)]" : "mt-0.5 text-[11px] leading-5 text-[var(--color-muted)]"}>
                   {match.venue && match.city ? `${match.venue} • ${match.city}` : match.venue ?? match.city ?? "Sede por confirmar"}
                 </p>
               </div>
@@ -346,72 +405,121 @@ export function PredictionBoard({
               </span>
             </div>
 
-            <div className="grid gap-2.5 p-3">
+            <div className={compactCard ? "grid gap-2 p-3" : "grid gap-2.5 p-3"}>
               {[
                 {
                   key: `${match.id}-home`,
-                  team: match.home_team,
                   side: "home" as const,
                   value: homeValue,
                 },
                 {
                   key: `${match.id}-away`,
-                  team: match.away_team,
                   side: "away" as const,
                   value: awayValue,
                 },
-              ].map(({ key, team, side, value }) => (
+              ].map(({ key, side, value }) => {
+                const { team, displayCode, displayName, slotLabel, subtitle } = getDisplayTeam(match, side);
+
+                return (
                 <div key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <CountryFlag
-                      country={team.name}
-                      label={team.name}
-                      size="sm"
-                      emoji={team.flag_emoji}
-                      countryCode={team.country_code}
-                      className="shrink-0"
-                    />
+                    {team ? (
+                      <CountryFlag
+                        country={team.name}
+                        label={team.name}
+                        size="sm"
+                        emoji={team.flag_emoji}
+                        countryCode={team.country_code}
+                        className="shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-dashed border-[var(--color-line)] bg-[var(--color-surface-muted)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                        TBD
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-baseline gap-2">
-                        <p className="shrink-0 font-serif text-[1.1rem] font-bold uppercase leading-none text-[var(--color-primary)]">
-                          {team.fifa_code}
+                        <p className={compactCard ? "shrink-0 font-serif text-[1rem] font-bold uppercase leading-none text-[var(--color-primary)]" : "shrink-0 font-serif text-[1.1rem] font-bold uppercase leading-none text-[var(--color-primary)]"}>
+                          {displayCode}
                         </p>
-                        <p className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
-                          {team.short_name}
+                        <p className={compactCard ? "truncate text-[13px] font-semibold text-[var(--color-ink)]" : "truncate text-[14px] font-semibold text-[var(--color-ink)]"}>
+                          {displayName}
                         </p>
                       </div>
-                      <p className="truncate text-[11px] leading-5 text-[var(--color-muted)]">{team.name}</p>
+                      <p className={compactCard ? "truncate text-[10px] leading-4 text-[var(--color-muted)]" : "truncate text-[11px] leading-5 text-[var(--color-muted)]"}>
+                        {slotLabel && !team ? subtitle : team?.name ?? subtitle}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => adjustValue(match.id, side, -1)}
-                      disabled={!open || savingMatchId === match.id}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
-                      aria-label={`Restar gol ${team.name}`}
-                    >
-                      -
-                    </button>
-                    <span
-                      className="flex h-9 min-w-[2.6rem] items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1.2rem] font-bold text-[var(--color-primary)]"
-                      aria-label={`Goles ${team.name}`}
-                    >
-                      {value}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => adjustValue(match.id, side, 1)}
-                      disabled={!open || savingMatchId === match.id}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
-                      aria-label={`Sumar gol ${team.name}`}
-                    >
-                      +
-                    </button>
-                  </div>
+                  {compactCard ? (
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="flex h-8 min-w-[2.35rem] items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1rem] font-bold text-[var(--color-primary)]"
+                        aria-label={`Goles ${displayName}`}
+                      >
+                        {hasOfficialScore(match)
+                          ? side === "home"
+                            ? match.home_score
+                            : match.away_score
+                          : value}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => adjustValue(match.id, side, -1)}
+                        disabled={!open || savingMatchId === match.id}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={`Restar gol ${displayName}`}
+                      >
+                        -
+                      </button>
+                      <span
+                        className="flex h-9 min-w-[2.6rem] items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2 text-center font-serif text-[1.2rem] font-bold text-[var(--color-primary)]"
+                        aria-label={`Goles ${displayName}`}
+                      >
+                        {value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => adjustValue(match.id, side, 1)}
+                        disabled={!open || savingMatchId === match.id}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] text-base font-bold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={`Sumar gol ${displayName}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
+              )})}
+
+              {!ready ? (
+                <p className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm leading-6 text-[var(--color-muted)]">
+                  Vas a poder pronosticar cuando se definan los equipos.
+                </p>
+              ) : null}
+
+              {compactCard ? (
+                <div className="flex flex-wrap items-center gap-2 text-[11px] leading-5 text-[var(--color-muted)]">
+                  {hasOfficialScore(match) ? (
+                    <span className="rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                      Resultado: {match.home_score} - {match.away_score}
+                    </span>
+                  ) : null}
+                  {state?.id ? (
+                    <span className="rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                      Tu pronóstico: {state.predicted_home} - {state.predicted_away}
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                      Sin pronóstico guardado
+                    </span>
+                  )}
+                </div>
+              ) : null}
 
               {note ? (
                 <p
@@ -426,7 +534,7 @@ export function PredictionBoard({
                 </p>
               ) : null}
 
-              {!participationActive && isAuthenticated ? (
+              {compactCard ? null : !participationActive && isAuthenticated ? (
                 <Link
                   href="/activar-pase"
                   className="inline-flex min-h-9 items-center justify-center self-start rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"

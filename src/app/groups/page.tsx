@@ -44,8 +44,14 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
       : Array.isArray(resolvedSearchParams?.code)
         ? resolvedSearchParams?.code[0] ?? ""
         : "";
+  const teamPassCode =
+    typeof resolvedSearchParams?.slot === "string"
+      ? resolvedSearchParams.slot
+      : Array.isArray(resolvedSearchParams?.slot)
+        ? resolvedSearchParams?.slot[0] ?? ""
+        : "";
 
-  if (inviteCode) {
+  if (inviteCode || teamPassCode) {
     const supabase = await createServerSupabaseClient();
     const {
       data: { user },
@@ -72,6 +78,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
 
   if (
     state.inviteContext?.code &&
+    !state.teamPassInviteContext?.code &&
     state.authStatus === "member" &&
     (state.currentParticipationStatus !== "paid" || !state.currentAlias)
   ) {

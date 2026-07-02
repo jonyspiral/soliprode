@@ -5,10 +5,11 @@ type ParticipationLike = {
 
 const PAYMENT_STATUS_PRIORITY: Record<string, number> = {
   paid: 0,
-  payment_pending: 1,
-  payment_started: 2,
-  manual_review: 3,
-  pending: 4,
+  granted: 1,
+  payment_pending: 2,
+  payment_started: 3,
+  manual_review: 4,
+  pending: 5,
 };
 
 function getPaymentStatusPriority(paymentStatus: string | null | undefined) {

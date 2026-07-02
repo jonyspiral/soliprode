@@ -5,6 +5,7 @@ import {
   readPaymentReturnParams,
   resolvePaymentReturn,
 } from "@/lib/payments/payment-return";
+import { getCheckoutKindForAttempt } from "@/lib/payments/payment-attempts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 
@@ -105,6 +106,29 @@ export async function PaymentReturnScreen({ kind, searchParams }: PaymentReturnS
         primaryLabel={kind === "failure" ? "Intentar nuevamente" : "Intentar pagar nuevamente"}
         secondaryHref="/"
         secondaryLabel="Volver al inicio"
+      />
+    );
+  }
+
+  if (getCheckoutKindForAttempt(attempt) === "team_pass") {
+    if (syncResult?.syncResult.approved || attempt.status === "paid") {
+      redirect("/groups?notice=Los cupos prepagos del Team ya quedaron listos para invitar jugadores.");
+    }
+
+    return (
+      <PaymentStatusCard
+        title={kind === "failure" ? "No se pudo comprar el pase de equipo" : "Estamos confirmando los cupos del Team"}
+        description={
+          kind === "failure"
+            ? "La compra de cupos prepagos no quedó confirmada."
+            : "Cuando Mercado Pago confirme la operación, los links de invitación van a quedar disponibles en tu Team."
+        }
+        notice="Los cupos no crean jugadores automáticos. Cada invitado real tiene que reclamar su lugar con cuenta propia."
+        tone={kind === "failure" ? "error" : "info"}
+        primaryHref="/groups"
+        primaryLabel={kind === "failure" ? "Volver a mi Team" : "Ver mi Team"}
+        secondaryHref={kind === "failure" ? "/activar-pase" : "/"}
+        secondaryLabel={kind === "failure" ? "Volver al Pase" : "Volver al inicio"}
       />
     );
   }

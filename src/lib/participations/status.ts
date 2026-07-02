@@ -24,6 +24,18 @@ export function resolveParticipationUiState(paymentStatus: string | null | undef
     };
   }
 
+  if (paymentStatus === "granted") {
+    return {
+      isPaid: false,
+      isPendingReview: false,
+      isRetryableCheckout: false,
+      needsCompletion: false,
+      statusLabel: "Capitán bonificado",
+      supportText: "Tu Pase Capitán Bonificado ya está activo. Ahora tenés que completar el Team para competir por premios.",
+      shellBannerText: "Pase Capitán Bonificado activo",
+    };
+  }
+
   if (paymentStatus && RETRYABLE_PAYMENT_STATUSES.has(paymentStatus)) {
     return {
       isPaid: false,

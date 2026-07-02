@@ -13,7 +13,9 @@
     "qa:e2e:headed": "npm run qa:prepare-users && playwright test --headed",
     "qa:e2e:report": "playwright show-report",
     "fixture:validate": "node scripts/fixture/import-fixture.mjs --file scripts/fixture/worldcup-2026-group-stage.template.csv",
-    "fixture:import": "node scripts/fixture/import-fixture.mjs"
+    "fixture:import": "node scripts/fixture/import-fixture.mjs",
+    "fixture:validate:knockout": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-round-of-32.template.csv",
+    "fixture:import:knockout": "node scripts/fixture/import-knockout-fixture.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

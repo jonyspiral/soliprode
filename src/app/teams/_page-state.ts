@@ -8,6 +8,17 @@ import {
   normalizeInviteCode,
 } from "@/lib/groups/competition";
 import {
+  getTeamPassInviteByCode,
+  getTeamPassSummaryForGroup,
+} from "@/lib/team-passes/service";
+import {
+  countsForCaptainBonusProgress,
+  formatCaptainBonusDeadline,
+  isCaptainBonusParticipationStatus,
+  resolveCaptainBonusStatus,
+} from "@/lib/product/captain-bonus";
+import type { TeamPassSummary } from "@/lib/team-passes/contracts";
+import {
   buildTeamsScreenDataFromSnapshot,
   buildTeamsScreenFallbackData,
   type TeamsScreenData,
@@ -26,10 +37,23 @@ export type TeamsPageState = {
   currentParticipationStatus: string | null;
   screenData: TeamsScreenData;
   inviteContext: TeamInviteContext | null;
+  teamPassInviteContext: TeamPassInviteContext | null;
+  teamPassSummary: TeamPassSummary | null;
+  captainBonusState: CaptainBonusState | null;
   inviteCodePrefill: string;
+  teamPassCodePrefill: string;
   errorMessage: string | null;
   noticeMessage: string | null;
   prizePoolLabel: string;
+};
+
+export type CaptainBonusState = {
+  activeMembers: number;
+  deadlineLabel: string;
+  missingMembers: number;
+  requiredMembers: number;
+  status: "pending" | "completed" | "expired";
+  teamName: string;
 };
 
 export type TeamInviteContext = {
@@ -38,6 +62,14 @@ export type TeamInviteContext = {
   targetGroupName: string | null;
   status: "missing" | "ready" | "already-in-team" | "requires-confirmation";
   shouldAutoJoin: boolean;
+};
+
+export type TeamPassInviteContext = {
+  code: string;
+  targetGroupId: string | null;
+  targetGroupName: string | null;
+  status: "missing" | "ready" | "claimed" | "expired" | "already-paid";
+  canClaim: boolean;
 };
 
 function readSearchValue(
@@ -103,9 +135,77 @@ async function resolveInviteContext(params: {
   };
 }
 
+async function resolveTeamPassInviteContext(params: {
+  authStatus: "guest" | "member";
+  currentParticipationStatus: string | null;
+  inviteCode: string;
+}) {
+  if (!params.inviteCode) {
+    return null;
+  }
+
+  const invite = await getTeamPassInviteByCode(params.inviteCode);
+
+  if (!invite) {
+    return {
+      code: params.inviteCode,
+      targetGroupId: null,
+      targetGroupName: null,
+      status: "missing",
+      canClaim: false,
+    } satisfies TeamPassInviteContext;
+  }
+
+  const service = createServiceRoleSupabaseClient();
+  const { data: group } = await service
+    .from("groups")
+    .select("id, name")
+    .eq("id", invite.team_id)
+    .maybeSingle();
+
+  if (invite.status === "claimed") {
+    return {
+      code: invite.code,
+      targetGroupId: invite.team_id,
+      targetGroupName: group?.name ?? "Team",
+      status: "claimed",
+      canClaim: false,
+    } satisfies TeamPassInviteContext;
+  }
+
+  if (invite.expires_at && new Date(invite.expires_at).getTime() <= Date.now()) {
+    return {
+      code: invite.code,
+      targetGroupId: invite.team_id,
+      targetGroupName: group?.name ?? "Team",
+      status: "expired",
+      canClaim: false,
+    } satisfies TeamPassInviteContext;
+  }
+
+  if (params.currentParticipationStatus === "paid") {
+    return {
+      code: invite.code,
+      targetGroupId: invite.team_id,
+      targetGroupName: group?.name ?? "Team",
+      status: "already-paid",
+      canClaim: false,
+    } satisfies TeamPassInviteContext;
+  }
+
+  return {
+    code: invite.code,
+    targetGroupId: invite.team_id,
+    targetGroupName: group?.name ?? "Team",
+    status: "ready",
+    canClaim: params.authStatus === "member",
+  } satisfies TeamPassInviteContext;
+}
+
 export async function getTeamsPageState(searchParams?: RawSearchParams): Promise<TeamsPageState> {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const inviteCodePrefill = normalizeInviteCode(readSearchValue(resolvedSearchParams, "code"));
+  const teamPassCodePrefill = normalizeInviteCode(readSearchValue(resolvedSearchParams, "slot"));
   let errorMessage = readSearchValue(resolvedSearchParams, "error") || null;
   const noticeMessage = readSearchValue(resolvedSearchParams, "notice") || null;
 
@@ -145,6 +245,40 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       currentGroupId: snapshot.currentGroup?.groupId ?? null,
       inviteCode: inviteCodePrefill,
     });
+    const teamPassInviteContext = await resolveTeamPassInviteContext({
+      authStatus,
+      currentParticipationStatus: snapshot.currentParticipationStatus,
+      inviteCode: teamPassCodePrefill,
+    });
+    const teamPassSummary = snapshot.currentGroup
+      ? await getTeamPassSummaryForGroup({
+          teamId: snapshot.currentGroup.groupId,
+          activePlayers: snapshot.currentGroup.activeCount,
+        })
+      : null;
+    const captainBonusState =
+      userId &&
+      snapshot.currentGroup &&
+      snapshot.currentGroup.ownerProfileId === userId &&
+      isCaptainBonusParticipationStatus(snapshot.currentParticipationStatus)
+        ? (() => {
+            const activeMembers = snapshot.currentGroup.members.filter((member) =>
+              countsForCaptainBonusProgress(member.paymentStatus),
+            ).length;
+            const status = resolveCaptainBonusStatus({
+              activeMembers,
+            });
+
+            return {
+              activeMembers,
+              deadlineLabel: formatCaptainBonusDeadline(),
+              missingMembers: status.missingMembers,
+              requiredMembers: status.requiredMembers,
+              status: status.status,
+              teamName: snapshot.currentGroup.name,
+            } satisfies CaptainBonusState;
+          })()
+        : null;
 
     return {
       authStatus,
@@ -153,7 +287,11 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
       currentParticipationStatus: snapshot.currentParticipationStatus,
       screenData,
       inviteContext,
+      teamPassInviteContext,
+      teamPassSummary,
+      captainBonusState,
       inviteCodePrefill,
+      teamPassCodePrefill,
       errorMessage,
       noticeMessage,
       prizePoolLabel,
@@ -176,7 +314,15 @@ export async function getTeamsPageState(searchParams?: RawSearchParams): Promise
         currentGroupId: null,
         inviteCode: inviteCodePrefill,
       }),
+      teamPassInviteContext: await resolveTeamPassInviteContext({
+        authStatus,
+        currentParticipationStatus: null,
+        inviteCode: teamPassCodePrefill,
+      }),
+      teamPassSummary: null,
+      captainBonusState: null,
       inviteCodePrefill,
+      teamPassCodePrefill,
       errorMessage,
       noticeMessage,
       prizePoolLabel,

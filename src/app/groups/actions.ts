@@ -10,8 +10,10 @@ import {
   parseEmojiAvatarChoice,
   parsePresetAvatarReference,
 } from "@/lib/avatar/identity";
+import { syncCaptainBonusStateForGroup, syncCaptainBonusStateForProfile } from "@/lib/captain-bonus/service";
 import { normalizeInviteCode } from "@/lib/groups/competition";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import { claimTeamPassInvite } from "@/lib/team-passes/service";
 import {
   createServerSupabaseClient,
   createServiceRoleSupabaseClient,
@@ -136,6 +138,7 @@ function revalidateGroupSurfaces() {
   revalidatePath("/teams");
   revalidatePath("/rankings");
   revalidatePath("/dashboard");
+  revalidatePath("/admin");
 }
 
 export async function updateGroupAvatarAction(
@@ -257,7 +260,7 @@ export async function createGroupAction(formData: FormData) {
 
   const currentParticipation = participation!;
 
-  if (currentParticipation.payment_status !== "paid") {
+  if (!["paid", "granted"].includes(currentParticipation.payment_status)) {
     redirect("/activar-pase");
   }
 
@@ -302,6 +305,7 @@ export async function createGroupAction(formData: FormData) {
     });
   }
 
+  await syncCaptainBonusStateForProfile(user.id);
   revalidateGroupSurfaces();
   redirectToTeamSurface(returnPath, {
     notice: "Team creado. Ya quedó como tu Team principal.",
@@ -330,7 +334,7 @@ export async function joinGroupAction(formData: FormData) {
 
   const currentParticipation = participation!;
 
-  if (currentParticipation.payment_status !== "paid") {
+  if (!["paid", "granted"].includes(currentParticipation.payment_status)) {
     redirect("/activar-pase");
   }
 
@@ -393,8 +397,70 @@ export async function joinGroupAction(formData: FormData) {
     });
   }
 
+  await syncCaptainBonusStateForGroup(targetGroupId);
   revalidateGroupSurfaces();
   redirectToTeamSurface(returnPath, {
     notice: `${targetGroupName} ya quedó como tu Team principal.`,
   });
+}
+
+export async function claimTeamPassInviteAction(formData: FormData) {
+  const returnPath = resolveGroupsReturnPath(formData.get("return_to"));
+  const user = await ensureAuthenticatedUser(returnPath);
+  const inviteCode = normalizeInviteCode(String(formData.get("team_pass_code") ?? ""));
+
+  if (!inviteCode) {
+    redirectToTeamSurface(returnPath, {
+      slot: inviteCode,
+      error: "No encontramos un cupo prepago válido para reclamar.",
+    });
+  }
+
+  try {
+    const claimResult = await claimTeamPassInvite({
+      code: inviteCode,
+      profileId: user.id,
+    });
+
+    await syncCaptainBonusStateForGroup(claimResult.teamId);
+    revalidateGroupSurfaces();
+    redirectToTeamSurface(returnPath, {
+      notice: "Tu cupo prepago quedó activo. Ya entraste al Team con tu cuenta real.",
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "No pudimos activar ese cupo prepago ahora.";
+
+    if (errorMessage === "already_paid") {
+      redirectToTeamSurface(returnPath, {
+        slot: inviteCode,
+        error: "Tu cuenta ya tiene el Pase activo. Ese cupo prepago no se puede reclamar otra vez.",
+      });
+    }
+
+    if (
+      errorMessage === "team_invite_expired" ||
+      errorMessage === "team_invite_unavailable" ||
+      errorMessage === "team_invite_incompatible"
+    ) {
+      redirectToTeamSurface(returnPath, {
+        slot: inviteCode,
+        error: "Ese cupo prepago ya no está disponible.",
+      });
+    }
+
+    if (errorMessage === "team_invite_not_found") {
+      redirectToTeamSurface(returnPath, {
+        slot: inviteCode,
+        error: "No encontramos ese cupo prepago.",
+      });
+    }
+
+    redirectToTeamSurface(returnPath, {
+      slot: inviteCode,
+      error: "No pudimos activar ese cupo prepago ahora. Intentá de nuevo.",
+    });
+  }
 }

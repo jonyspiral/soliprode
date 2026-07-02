@@ -1,0 +1,17 @@
+match_number,stage,round_name,home_slot_rule,home_slot_label,away_slot_rule,away_slot_label,starts_at,prediction_closes_at,venue,city,status,bracket_position,bracket_side
+73,round_of_32,Dieciseisavos,1A,1.º Zona A,2C,2.º Zona C,2026-06-28T16:00:00-03:00,2026-06-28T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-01,left
+74,round_of_32,Dieciseisavos,1B,1.º Zona B,2E,2.º Zona E,2026-06-28T20:00:00-03:00,2026-06-28T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-02,left
+75,round_of_32,Dieciseisavos,1C,1.º Zona C,BEST_3_D_E_F_I_J,Mejor 3.º D/E/F/I/J,2026-06-29T16:00:00-03:00,2026-06-29T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-03,left
+76,round_of_32,Dieciseisavos,1D,1.º Zona D,BEST_3_B_E_F_I_J,Mejor 3.º B/E/F/I/J,2026-06-29T20:00:00-03:00,2026-06-29T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-04,left
+77,round_of_32,Dieciseisavos,1E,1.º Zona E,2I,2.º Zona I,2026-06-30T16:00:00-03:00,2026-06-30T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-05,left
+78,round_of_32,Dieciseisavos,1F,1.º Zona F,2L,2.º Zona L,2026-06-30T20:00:00-03:00,2026-06-30T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-06,left
+79,round_of_32,Dieciseisavos,1G,1.º Zona G,BEST_3_A_E_H_I_J,Mejor 3.º A/E/H/I/J,2026-07-01T16:00:00-03:00,2026-07-01T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-07,left
+80,round_of_32,Dieciseisavos,1H,1.º Zona H,BEST_3_C_D_F_G_J,Mejor 3.º C/D/F/G/J,2026-07-01T20:00:00-03:00,2026-07-01T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-08,left
+81,round_of_32,Dieciseisavos,1I,1.º Zona I,BEST_3_C_D_F_G_H,Mejor 3.º C/D/F/G/H,2026-07-02T16:00:00-03:00,2026-07-02T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-09,right
+82,round_of_32,Dieciseisavos,1J,1.º Zona J,2H,2.º Zona H,2026-07-02T20:00:00-03:00,2026-07-02T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-10,right
+83,round_of_32,Dieciseisavos,1K,1.º Zona K,BEST_3_D_E_F_I_J,Mejor 3.º D/E/F/I/J,2026-07-03T16:00:00-03:00,2026-07-03T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-11,right
+84,round_of_32,Dieciseisavos,1L,1.º Zona L,2F,2.º Zona F,2026-07-03T20:00:00-03:00,2026-07-03T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-12,right
+85,round_of_32,Dieciseisavos,2A,2.º Zona A,2B,2.º Zona B,2026-07-04T16:00:00-03:00,2026-07-04T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-13,right
+86,round_of_32,Dieciseisavos,2D,2.º Zona D,2E,2.º Zona E,2026-07-04T20:00:00-03:00,2026-07-04T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-14,right
+87,round_of_32,Dieciseisavos,2G,2.º Zona G,2I,2.º Zona I,2026-07-05T16:00:00-03:00,2026-07-05T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-15,right
+88,round_of_32,Dieciseisavos,2J,2.º Zona J,2K,2.º Zona K,2026-07-05T20:00:00-03:00,2026-07-05T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,R32-16,right

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { PredictionBoard, type MatchBoardItem } from "@/components/matches/prediction-board";
+import { SpecialPredictionBoard } from "@/components/matches/special-prediction-board";
 import { PageStack } from "@/components/placeholder-primitives";
 import { SurfaceCard } from "@/components/surface-card";
 import { formatZoneLabel, normalizeZoneCode, NO_ZONE_KEY } from "@/lib/fixture/zone-labels";
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
+import type {
+  SpecialPredictionOption,
+  SpecialPredictionPick,
+  SpecialPredictionQuestion,
+} from "@/lib/special-predictions/contracts";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
 
@@ -19,8 +25,16 @@ type MatchRow = {
   status: string;
   venue: string | null;
   city: string | null;
-  home_team_id: string;
-  away_team_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  home_slot_rule: string | null;
+  away_slot_rule: string | null;
+  home_slot_label: string | null;
+  away_slot_label: string | null;
+  bracket_position: string | null;
+  bracket_side: string | null;
+  home_team_id: string | null;
+  away_team_id: string | null;
   home_team:
     | {
         id: string;
@@ -77,13 +91,41 @@ type PredictionRow = {
   points: number;
 };
 
+type SpecialPredictionQuestionRow = Omit<SpecialPredictionQuestion, "options">;
+
+type SpecialPredictionOptionRow = SpecialPredictionOption;
+
+type SpecialPredictionRow = SpecialPredictionPick;
+
 type MatchesPageProps = {
   searchParams?: Promise<{
     zona?: string;
     zone?: string;
     view?: string;
+    tab?: string;
   }>;
 };
+
+type MatchesTabKey =
+  | "upcoming"
+  | "round_of_32"
+  | "group_stage"
+  | "specials"
+  | "round_of_16"
+  | "quarter_finals"
+  | "semi_finals"
+  | "final";
+
+const MATCH_TABS: Array<{ key: MatchesTabKey; label: string }> = [
+  { key: "upcoming", label: "Próximos" },
+  { key: "round_of_32", label: "Dieciseisavos" },
+  { key: "group_stage", label: "Fase de grupos" },
+  { key: "specials", label: "Especiales" },
+  { key: "round_of_16", label: "Octavos" },
+  { key: "quarter_finals", label: "Cuartos" },
+  { key: "semi_finals", label: "Semis" },
+  { key: "final", label: "Final" },
+];
 
 function sortMatchesByKickoff(matches: MatchBoardItem[]) {
   return [...matches].sort((a, b) => {
@@ -120,14 +162,26 @@ function groupMatches(matches: MatchBoardItem[]) {
   }, {});
 }
 
-function buildMatchesHref(zoneCode: string | null, viewMode: "fecha" | "zonas") {
+function buildMatchesHref({
+  tab,
+  zoneCode,
+  viewMode,
+}: {
+  tab: MatchesTabKey;
+  zoneCode?: string | null;
+  viewMode?: "fecha" | "zonas";
+}) {
   const params = new URLSearchParams();
 
-  if (zoneCode) {
+  params.set("tab", tab);
+
+  if (tab === "group_stage" && zoneCode) {
     params.set("zona", zoneCode);
   }
 
-  params.set("view", viewMode);
+  if (tab === "group_stage" && viewMode) {
+    params.set("view", viewMode);
+  }
 
   const queryString = params.toString();
   return queryString ? `/matches?${queryString}` : "/matches";
@@ -146,7 +200,7 @@ function normalizeRelatedTeam(team: MatchRow["home_team"] | MatchRow["away_team"
   return Array.isArray(team) ? (team[0] ?? null) : team;
 }
 
-function fallbackTeam(teamId: string): MatchBoardItem["home_team"] {
+function fallbackTeam(teamId: string): NonNullable<MatchBoardItem["home_team"]> {
   return {
     id: teamId,
     name: "Equipo",
@@ -166,6 +220,117 @@ function isDynamicServerUsageError(error: unknown) {
   );
 }
 
+function isFutureScheduledMatch(match: MatchBoardItem) {
+  return match.status === "scheduled" && new Date(match.prediction_closes_at).getTime() > Date.now();
+}
+
+function mapStageToTab(stage: string): MatchesTabKey | null {
+  switch (stage) {
+    case "group_stage":
+      return "group_stage";
+    case "round_of_32":
+      return "round_of_32";
+    case "round_of_16":
+      return "round_of_16";
+    case "quarter_finals":
+      return "quarter_finals";
+    case "semi_finals":
+      return "semi_finals";
+    case "third_place":
+    case "final":
+      return "final";
+    default:
+      return null;
+  }
+}
+
+function normalizeMatchesTab(value: string | undefined): MatchesTabKey | null {
+  if (!value) {
+    return null;
+  }
+
+  return MATCH_TABS.find((tab) => tab.key === value)?.key ?? null;
+}
+
+function resolveRequestedTab(params: { tab?: string; view?: string } | undefined) {
+  if (params?.view === "especiales") {
+    return "specials" as const;
+  }
+
+  return normalizeMatchesTab(params?.tab);
+}
+
+function getAvailableTabs(matches: MatchBoardItem[]) {
+  const available = new Set<MatchesTabKey>();
+
+  if (matches.some(isFutureScheduledMatch)) {
+    available.add("upcoming");
+  }
+
+  for (const match of matches) {
+    const tab = mapStageToTab(match.stage);
+
+    if (tab) {
+      available.add(tab);
+    }
+  }
+
+  available.add("specials");
+
+  return MATCH_TABS.filter((tab) => available.has(tab.key));
+}
+
+function pickDefaultTab(matches: MatchBoardItem[]) {
+  if (matches.some(isFutureScheduledMatch)) {
+    return "upcoming" as const;
+  }
+
+  if (matches.some((match) => match.stage === "round_of_32")) {
+    return "round_of_32" as const;
+  }
+
+  return (getAvailableTabs(matches)[0]?.key ?? "group_stage") as MatchesTabKey;
+}
+
+function getTabMatches(matches: MatchBoardItem[], tab: MatchesTabKey) {
+  if (tab === "upcoming") {
+    return matches.filter(isFutureScheduledMatch);
+  }
+
+  if (tab === "specials") {
+    return [];
+  }
+
+  return matches.filter((match) => mapStageToTab(match.stage) === tab);
+}
+
+function normalizeMatchRow(match: MatchRow): MatchBoardItem {
+  const homeTeam = normalizeRelatedTeam(match.home_team);
+  const awayTeam = normalizeRelatedTeam(match.away_team);
+
+  return {
+    id: match.id,
+    stage: match.stage,
+    round_name: match.round_name,
+    group_code: match.group_code,
+    starts_at: match.starts_at,
+    prediction_closes_at: match.prediction_closes_at,
+    status: match.status,
+    venue: match.venue,
+    city: match.city,
+    home_score: match.home_score,
+    away_score: match.away_score,
+    home_slot_rule: match.home_slot_rule,
+    away_slot_rule: match.away_slot_rule,
+    home_slot_label: match.home_slot_label,
+    away_slot_label: match.away_slot_label,
+    bracket_position: match.bracket_position,
+    bracket_side: match.bracket_side,
+    home_team: homeTeam ?? (match.home_team_id ? fallbackTeam(match.home_team_id) : null),
+    away_team: awayTeam ?? (match.away_team_id ? fallbackTeam(match.away_team_id) : null),
+  };
+}
+
 async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
   const directMatchQuery = supabase
     .from("matches")
@@ -180,6 +345,14 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
         status,
         venue,
         city,
+        home_score,
+        away_score,
+        home_slot_rule,
+        away_slot_rule,
+        home_slot_label,
+        away_slot_label,
+        bracket_position,
+        bracket_side,
         home_team_id,
         away_team_id,
         home_team:teams!matches_home_team_id_fkey(
@@ -209,40 +382,26 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
       console.error("[matches] direct join query failed", directError);
     }
   } else if (directRows) {
-    const normalizedMatches = (directRows as MatchRow[]).map((match) => {
-      const homeTeam = normalizeRelatedTeam(match.home_team);
-      const awayTeam = normalizeRelatedTeam(match.away_team);
+    const rawMatches = directRows as MatchRow[];
+    const normalizedMatches = rawMatches.map(normalizeMatchRow);
 
-      return {
-        id: match.id,
-        stage: match.stage,
-        round_name: match.round_name,
-        group_code: match.group_code,
-        starts_at: match.starts_at,
-        prediction_closes_at: match.prediction_closes_at,
-        status: match.status,
-        venue: match.venue,
-        city: match.city,
-        home_team: homeTeam ?? fallbackTeam(match.home_team_id),
-        away_team: awayTeam ?? fallbackTeam(match.away_team_id),
-      };
-    });
-
-    const hasMissingTeams = normalizedMatches.some(
-      (match) => match.home_team.fifa_code === "TBD" || match.away_team.fifa_code === "TBD",
+    const hasBrokenTeamJoin = rawMatches.some(
+      (match) =>
+        (match.home_team_id && !normalizeRelatedTeam(match.home_team)) ||
+        (match.away_team_id && !normalizeRelatedTeam(match.away_team)),
     );
 
-    if (!hasMissingTeams) {
+    if (!hasBrokenTeamJoin) {
       return { matches: normalizedMatches, usedFallback: false };
     }
 
-    console.warn("[matches] direct join returned matches with missing teams, switching to two-step fallback");
+    console.warn("[matches] direct join returned unresolved team references, switching to two-step fallback");
   }
 
   const { data: baseMatchRows, error: baseMatchError } = await supabase
     .from("matches")
     .select(
-      "id, stage, round_name, group_code, starts_at, prediction_closes_at, status, venue, city, home_team_id, away_team_id",
+      "id, stage, round_name, group_code, starts_at, prediction_closes_at, status, venue, city, home_score, away_score, home_slot_rule, away_slot_rule, home_slot_label, away_slot_label, bracket_position, bracket_side, home_team_id, away_team_id",
     )
     .order("starts_at", { ascending: true });
 
@@ -250,7 +409,13 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
     throw baseMatchError;
   }
 
-  const teamIds = [...new Set(((baseMatchRows ?? []) as MatchRow[]).flatMap((match) => [match.home_team_id, match.away_team_id]))];
+  const teamIds = [
+    ...new Set(
+      ((baseMatchRows ?? []) as MatchRow[])
+        .flatMap((match) => [match.home_team_id, match.away_team_id])
+        .filter((teamId): teamId is string => Boolean(teamId)),
+    ),
+  ];
   const { data: teamRows, error: teamError } = teamIds.length
     ? await supabase
         .from("teams")
@@ -265,10 +430,10 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
   const teamMap = new Map(((teamRows ?? []) as TeamRow[]).map((team) => [team.id, team]));
 
   const matches = ((baseMatchRows ?? []) as MatchRow[]).map((match) => {
-    const homeTeam = teamMap.get(match.home_team_id);
-    const awayTeam = teamMap.get(match.away_team_id);
+    const homeTeam = match.home_team_id ? teamMap.get(match.home_team_id) : null;
+    const awayTeam = match.away_team_id ? teamMap.get(match.away_team_id) : null;
 
-    if (!homeTeam || !awayTeam) {
+    if ((match.home_team_id && !homeTeam) || (match.away_team_id && !awayTeam)) {
       console.warn("[matches] missing team data for match", {
         matchId: match.id,
         homeTeamId: match.home_team_id,
@@ -276,28 +441,61 @@ async function loadMatchesWithTeams(supabase: Awaited<ReturnType<typeof createSe
       });
     }
 
-    return {
-      id: match.id,
-      stage: match.stage,
-      round_name: match.round_name,
-      group_code: match.group_code,
-      starts_at: match.starts_at,
-      prediction_closes_at: match.prediction_closes_at,
-      status: match.status,
-      venue: match.venue,
-      city: match.city,
-      home_team: homeTeam ?? fallbackTeam(match.home_team_id),
-      away_team: awayTeam ?? fallbackTeam(match.away_team_id),
-    };
+    return normalizeMatchRow({
+      ...match,
+      home_team: homeTeam ?? null,
+      away_team: awayTeam ?? null,
+    });
   });
 
   return { matches, usedFallback: true };
+}
+
+async function loadSpecialQuestions(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  const [{ data: questionRows, error: questionError }, { data: optionRows, error: optionError }] =
+    await Promise.all([
+      supabase
+        .from("special_prediction_questions")
+        .select("id, code, title, description, points, closes_at, status, result_value, created_at")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("special_prediction_options")
+        .select("id, question_id, value, label, sort_order, active")
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+  if (questionError) {
+    throw questionError;
+  }
+
+  if (optionError) {
+    throw optionError;
+  }
+
+  const optionsByQuestion = ((optionRows ?? []) as SpecialPredictionOptionRow[]).reduce<
+    Map<string, SpecialPredictionOptionRow[]>
+  >((acc, option) => {
+    const existing = acc.get(option.question_id) ?? [];
+    existing.push(option);
+    acc.set(option.question_id, existing);
+    return acc;
+  }, new Map());
+
+  return ((questionRows ?? []) as SpecialPredictionQuestionRow[]).map((question) => ({
+    ...question,
+    options: optionsByQuestion.get(question.id) ?? [],
+  }));
 }
 
 export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const params = searchParams ? await searchParams : undefined;
   let matches: MatchBoardItem[] = [];
   let predictions: PredictionRow[] = [];
+  let specialQuestions: SpecialPredictionQuestion[] = [];
+  let specialPredictions: SpecialPredictionRow[] = [];
   let currentUserId: string | null = null;
   let participationStatus = "pending";
   let dataNotice: string | null = null;
@@ -326,14 +524,35 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           .eq("profile_id", currentUserId)
       : Promise.resolve({ data: [], error: null });
 
-    const [{ matches: loadedMatches }, { data: participationRows }, { data: predictionRows }] =
+    const specialPredictionQuery = currentUserId
+      ? supabase
+          .from("special_predictions")
+          .select("id, profile_id, question_id, option_id, points, locked_at, created_at, updated_at")
+          .eq("profile_id", currentUserId)
+      : Promise.resolve({ data: [], error: null });
+
+    const [
+      { matches: loadedMatches },
+      specialQuestionRows,
+      { data: participationRows },
+      { data: predictionRows },
+      { data: specialPredictionRows },
+    ] =
       await withSupabaseTimeout(
-        Promise.all([loadMatchesWithTeams(supabase), participationQuery, predictionQuery]),
+        Promise.all([
+          loadMatchesWithTeams(supabase),
+          loadSpecialQuestions(supabase),
+          participationQuery,
+          predictionQuery,
+          specialPredictionQuery,
+        ]),
         "Supabase matches query timed out",
       );
 
     matches = loadedMatches;
+    specialQuestions = specialQuestionRows;
     predictions = (predictionRows ?? []) as PredictionRow[];
+    specialPredictions = (specialPredictionRows ?? []) as SpecialPredictionRow[];
     participationStatus =
       pickPrimaryParticipation(
         (participationRows ?? []) as Array<{ created_at: string; payment_status: string }>,
@@ -348,36 +567,76 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   }
 
   const participationActive = participationStatus === "paid";
-  const existingZoneCodes = getExistingZoneCodes(matches);
+  const hasSpecialQuestions = specialQuestions.length > 0;
+  const hasPredictionContent = matches.length > 0 || hasSpecialQuestions;
+  const requestedTab = resolveRequestedTab(params);
+  const availableTabs = getAvailableTabs(matches);
+  const defaultTab = pickDefaultTab(matches);
+  const currentTab = availableTabs.some((tab) => tab.key === requestedTab)
+    ? (requestedTab as MatchesTabKey)
+    : defaultTab;
+  const selectedTabLabel = MATCH_TABS.find((tab) => tab.key === currentTab)?.label ?? "Partidos";
+  const existingZoneCodes = getExistingZoneCodes(
+    matches.filter((match) => match.stage === "group_stage"),
+  );
   const requestedZoneCode = normalizeZoneCode(params?.zona ?? params?.zone);
-  const isGroupedView = params?.view === "zonas";
-  const currentView: "fecha" | "zonas" = isGroupedView ? "zonas" : "fecha";
+  const currentView: "fecha" | "zonas" = params?.view === "zonas" ? "zonas" : "fecha";
   const selectedZoneCode =
-    requestedZoneCode && existingZoneCodes.includes(requestedZoneCode) ? requestedZoneCode : null;
-  const zoneFilteredMatches = selectedZoneCode
-    ? matches.filter((match) => normalizeZoneCode(match.group_code) === selectedZoneCode)
-    : matches;
-  const sortedMatches = sortMatchesByKickoff(zoneFilteredMatches);
-  const groupedMatches = groupMatches(sortedMatches);
+    currentTab === "group_stage" && requestedZoneCode && existingZoneCodes.includes(requestedZoneCode)
+      ? requestedZoneCode
+      : null;
+  const upcomingMatches = sortMatchesByKickoff(getTabMatches(matches, "upcoming"));
+  const historicalMatches = sortMatchesByKickoff(matches.filter((match) => !isFutureScheduledMatch(match)));
+  const currentTabMatches = sortMatchesByKickoff(getTabMatches(matches, currentTab));
+  const currentTabZoneFilteredMatches =
+    currentTab === "group_stage" && selectedZoneCode
+      ? currentTabMatches.filter((match) => normalizeZoneCode(match.group_code) === selectedZoneCode)
+      : currentTabMatches;
+  const groupedMatches = groupMatches(currentTabZoneFilteredMatches);
   const orderedGroupCodes = Object.keys(groupedMatches).sort();
+  const hasGroupStageHistory =
+    matches.some((match) => match.stage === "group_stage") &&
+    matches
+      .filter((match) => match.stage === "group_stage")
+      .every((match) => !isFutureScheduledMatch(match));
   const subcopy = currentUserId
     ? participationActive
       ? "Tus pronósticos ya compiten en el ranking."
       : "Tus pronósticos quedan guardados. Activá tu Pase Solidario para competir."
     : "Entrá al Prode para guardar tus pronósticos cuando esté el fixture.";
+  const tabDescription =
+    currentTab === "upcoming"
+      ? "Estos son los partidos activos para cargar tus pronósticos."
+      : currentTab === "group_stage" && hasGroupStageHistory
+        ? "Fase de grupos finalizada. Podés revisar tus pronósticos anteriores."
+        : currentTab === "specials"
+          ? "Guardá campeón, subcampeón, recorrido de Argentina y premios FIFA antes del cierre."
+          : currentTab === "round_of_32"
+            ? "Estos son los partidos activos para cargar tus pronósticos."
+            : `Revisá los partidos de ${selectedTabLabel.toLowerCase()} y preparate para la próxima ronda.`;
+  const heroTitle =
+    currentTab === "upcoming" ? "Pronosticá lo que viene" : `Pronosticá ${selectedTabLabel.toLowerCase()}`;
 
   return (
     <PageStack>
-      <section className="rounded-[1.4rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] p-4 text-white shadow-[0_12px_28px_rgba(0,50,125,0.18)]">
+      <section
+        className={[
+          "rounded-[1.4rem] bg-[linear-gradient(180deg,#0047ab_0%,#00327d_100%)] text-white shadow-[0_12px_28px_rgba(0,50,125,0.18)]",
+          currentUserId ? "p-4" : "p-5",
+        ].join(" ")}
+      >
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#dfe6ff]">
           Mundial 2026
         </p>
-        <h1 className="mt-2 font-serif text-[2.15rem] font-bold uppercase leading-[0.92] tracking-[-0.03em]">
-          Cargá tus
-          <br />
-          pronósticos
+        <h1
+          className={[
+            "mt-2 font-serif font-bold uppercase leading-[0.92] tracking-[-0.03em]",
+            currentUserId ? "text-[1.8rem] sm:text-[2rem]" : "text-[2.15rem]",
+          ].join(" ")}
+        >
+          {heroTitle}
         </h1>
-        <p className="mt-3 max-w-[34rem] text-sm leading-6 text-[#dfe6ff]">{subcopy}</p>
+        <p className="mt-2 max-w-[34rem] text-sm leading-6 text-[#dfe6ff]">{subcopy}</p>
       </section>
 
       {dataNotice ? (
@@ -391,10 +650,10 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length === 0 ? (
+      {!dataNotice && !hasPredictionContent ? (
         <SurfaceCard
-          title="Todavía no hay partidos cargados"
-          description="Cuando esté el fixture, vas a poder cargar tus pronósticos acá."
+          title="Todavía no hay pronósticos cargados"
+          description="Cuando terminemos de cargar fixture y especiales, vas a poder jugar desde acá."
         >
           <Link
             href="/dashboard"
@@ -405,13 +664,35 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length > 0 ? (
+      {!dataNotice && hasPredictionContent ? (
         <nav
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
-          aria-label="Modo de visualización de partidos"
+          aria-label="Instancias del fixture"
+        >
+          {availableTabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={buildMatchesHref({ tab: tab.key })}
+              className={[
+                "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
+                currentTab === tab.key
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                  : "border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-muted)]",
+              ].join(" ")}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 && currentTab === "group_stage" ? (
+        <nav
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
+          aria-label="Modo de visualización de fase de grupos"
         >
           <Link
-            href={buildMatchesHref(selectedZoneCode, "fecha")}
+            href={buildMatchesHref({ tab: "group_stage", zoneCode: selectedZoneCode, viewMode: "fecha" })}
             className={[
               "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
               currentView === "fecha"
@@ -422,7 +703,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
             Por fecha
           </Link>
           <Link
-            href={buildMatchesHref(selectedZoneCode, "zonas")}
+            href={buildMatchesHref({ tab: "group_stage", zoneCode: selectedZoneCode, viewMode: "zonas" })}
             className={[
               "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
               currentView === "zonas"
@@ -435,13 +716,13 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </nav>
       ) : null}
 
-      {!dataNotice && matches.length > 0 ? (
+      {!dataNotice && matches.length > 0 && currentTab === "group_stage" ? (
         <nav
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
           aria-label="Filtrar partidos por zona"
         >
           <Link
-            href={buildMatchesHref(null, currentView)}
+            href={buildMatchesHref({ tab: "group_stage", viewMode: currentView })}
             className={[
               "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
               selectedZoneCode
@@ -454,7 +735,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
           {existingZoneCodes.map((zoneCode) => (
             <Link
               key={zoneCode}
-              href={buildMatchesHref(zoneCode, currentView)}
+              href={buildMatchesHref({ tab: "group_stage", zoneCode, viewMode: currentView })}
               className={[
                 "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold",
                 selectedZoneCode === zoneCode
@@ -468,29 +749,110 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
         </nav>
       ) : null}
 
-      {!dataNotice && matches.length > 0 && currentView === "fecha" ? (
+      {!dataNotice && hasPredictionContent ? (
+        <section className="overflow-hidden rounded-[1.1rem] border border-[rgba(0,71,171,0.12)] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] px-4 py-3 shadow-[0_8px_18px_rgba(0,50,125,0.05)]">
+          <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                Ahora empieza lo fuerte
+              </p>
+              <p className="text-[13px] leading-5 text-[var(--color-ink)] md:max-w-[44rem]">
+                En eliminatorias tambi&eacute;n pronostic&aacute;s qu&eacute; equipo clasifica. Marcador exacto + clasificado correcto suma 5 pts; clasificado correcto suma 3 pts.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 md:min-w-[20rem] md:items-end">
+              <div className="rounded-xl border border-[rgba(0,71,171,0.14)] bg-white/80 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+                  Pron&oacute;sticos Especiales
+                </p>
+                <p className="mt-1 text-[12px] leading-4 text-[var(--color-muted)]">
+                  Campe&oacute;n 20 pts · Subcampe&oacute;n 10 pts · Argentina 10 pts · Premios FIFA 7 pts
+                </p>
+              </div>
+
+              <Link
+                href="/reglamento"
+                className="inline-flex min-h-9 items-center justify-center self-start rounded-full border border-[rgba(0,71,171,0.14)] bg-white px-3 py-2 text-[12px] font-semibold text-[var(--color-primary)] md:self-auto"
+              >
+                Ver reglamento
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 && currentTab === "upcoming" ? (
         <SurfaceCard
-          title={
-            selectedZoneCode ? `Fixture · ${formatZoneLabel(selectedZoneCode)}` : "Fixture por fecha"
-          }
-          description={`${sortedMatches.length} partido${sortedMatches.length === 1 ? "" : "s"} ordenado${sortedMatches.length === 1 ? "" : "s"} por fecha de juego.`}
+          title="Próximos partidos para pronosticar"
+          description={tabDescription}
         >
           <PredictionBoard
-            matches={sortedMatches}
+            matches={upcomingMatches}
             initialPredictions={predictions}
             currentUserId={currentUserId}
             isAuthenticated={Boolean(currentUserId)}
             participationActive={participationActive}
+            compactClosedCards
           />
         </SurfaceCard>
       ) : null}
 
-      {!dataNotice && matches.length > 0 && currentView === "zonas"
+      {!dataNotice && matches.length > 0 && currentTab === "upcoming" && historicalMatches.length > 0 ? (
+        <details className="group rounded-[1.25rem] border-[1.5px] border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-[0_10px_24px_rgba(0,50,125,0.05)] md:p-5">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <h2 className="font-serif text-[1.55rem] font-bold uppercase leading-none text-[var(--color-ink)]">
+                Partidos anteriores
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                Fase de grupos finalizada. Podés revisar tus pronósticos anteriores.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+              Ver historial
+            </span>
+          </summary>
+          <div className="mt-4">
+            <PredictionBoard
+              matches={historicalMatches}
+              initialPredictions={predictions}
+              currentUserId={currentUserId}
+              isAuthenticated={Boolean(currentUserId)}
+              participationActive={participationActive}
+              compactClosedCards
+              showAccessNotice={false}
+            />
+          </div>
+        </details>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 && currentTab === "group_stage" && currentView === "fecha" ? (
+        <SurfaceCard
+          title={selectedZoneCode ? `Fase de grupos · ${formatZoneLabel(selectedZoneCode)}` : "Fase de grupos"}
+          description={tabDescription}
+        >
+          <PredictionBoard
+            matches={currentTabZoneFilteredMatches}
+            initialPredictions={predictions}
+            currentUserId={currentUserId}
+            isAuthenticated={Boolean(currentUserId)}
+            participationActive={participationActive}
+            compactClosedCards
+          />
+        </SurfaceCard>
+      ) : null}
+
+      {!dataNotice && matches.length > 0 && currentTab === "group_stage" && currentView === "zonas"
         ? orderedGroupCodes.map((groupCode) => (
             <SurfaceCard
               key={groupCode}
               title={groupCode === NO_ZONE_KEY ? "Partidos" : formatZoneLabel(groupCode)}
-              description={`${groupedMatches[groupCode]?.length ?? 0} partido${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"} cargado${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"}.`}
+              description={
+                groupCode === orderedGroupCodes[0]
+                  ? tabDescription
+                  : `${groupedMatches[groupCode]?.length ?? 0} partido${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"} cargado${(groupedMatches[groupCode]?.length ?? 0) === 1 ? "" : "s"}.`
+              }
             >
               <PredictionBoard
                 matches={groupedMatches[groupCode] ?? []}
@@ -498,10 +860,49 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
                 currentUserId={currentUserId}
                 isAuthenticated={Boolean(currentUserId)}
                 participationActive={participationActive}
+                compactClosedCards
+                showAccessNotice={groupCode === orderedGroupCodes[0]}
               />
             </SurfaceCard>
           ))
         : null}
+
+      {!dataNotice &&
+      matches.length > 0 &&
+      currentTab !== "upcoming" &&
+      currentTab !== "group_stage" &&
+      currentTab !== "specials" ? (
+        <SurfaceCard title={selectedTabLabel} description={tabDescription}>
+          <PredictionBoard
+            matches={currentTabMatches}
+            initialPredictions={predictions}
+            currentUserId={currentUserId}
+            isAuthenticated={Boolean(currentUserId)}
+            participationActive={participationActive}
+            compactClosedCards
+          />
+        </SurfaceCard>
+      ) : null}
+
+      {!dataNotice && currentTab === "specials" ? (
+        <SurfaceCard
+          title="Pronósticos especiales"
+          description="Campeón, subcampeón, Argentina y premios FIFA. Cada pregunta se guarda por separado y después impacta en el ranking general."
+        >
+          {hasSpecialQuestions ? (
+            <SpecialPredictionBoard
+              questions={specialQuestions}
+              initialPredictions={specialPredictions}
+              isAuthenticated={Boolean(currentUserId)}
+              participationActive={participationActive}
+            />
+          ) : (
+            <div className="rounded-[1rem] border border-dashed border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 text-sm leading-6 text-[var(--color-muted)]">
+              Todavía no cargamos las preguntas especiales en la base. Apenas estén publicadas, vas a poder completarlas desde acá.
+            </div>
+          )}
+        </SurfaceCard>
+      ) : null}
     </PageStack>
   );
 }

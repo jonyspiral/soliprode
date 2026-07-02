@@ -6,6 +6,7 @@ import {
   buildSuggestedTransferReference,
   type BankTransferConfig,
 } from "@/lib/payments/bank-transfer";
+import { formatCaptainBonusDeadline } from "@/lib/product/captain-bonus";
 import { SOLIPRODE_RULES_VERSION } from "@/lib/rules";
 import { entryConfig, formatEntryCountdown, formatEntryPrice } from "@/lib/product/entry-config";
 import { resolveParticipationUiState } from "@/lib/participations/status";
@@ -88,6 +89,7 @@ export function ActivationPanel({
     initialIsAdultConfirmed && initialRulesAcceptedAt && initialRulesVersion === SOLIPRODE_RULES_VERSION,
   );
   const participationUiState = resolveParticipationUiState(participationStatus);
+  const captainBonusDeadlineLabel = useMemo(() => formatCaptainBonusDeadline(), []);
 
   if (participationStatus === "paid") {
     return (
@@ -109,6 +111,31 @@ export function ActivationPanel({
           className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
         >
           Ir a mis pronósticos
+        </Link>
+      </div>
+    );
+  }
+
+  if (participationStatus === "granted") {
+    return (
+      <div className="grid gap-4 rounded-[1.25rem] border border-[#cdb56d] bg-[#fff9df] p-4 sm:p-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-primary)]">
+            Pase Capitán Bonificado
+          </p>
+          <h2 className="mt-2 font-serif text-[1.9rem] font-bold leading-none text-[var(--color-primary)]">
+            Tu pase ya está activo
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+            Ya podés armar tu Team. Para competir por premios, necesitás completarlo antes del {captainBonusDeadlineLabel}.
+          </p>
+        </div>
+
+        <Link
+          href="/groups"
+          className="inline-flex items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+        >
+          Ir a mi Team
         </Link>
       </div>
     );

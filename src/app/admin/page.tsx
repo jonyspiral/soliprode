@@ -1,20 +1,29 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
-import { AdminRebuildRankingsButton } from "@/app/admin/admin-rebuild-rankings-button";
 import {
-  confirmParticipationAction,
+  AdminResultsScoringPanel,
+  type MatchAdminRow,
+  type MatchSummaryCounts,
+} from "@/app/admin/admin-results-scoring-panel";
+import { ManualRecoveryPanel, type ManualRecoveryPanelRow } from "@/app/admin/manual-recovery-panel";
+import {
+  confirmParticipationFormAction,
+  createCaptainBonusInviteAction,
   publishMatchResultAction,
-  rejectParticipationAction,
+  rejectParticipationFormAction,
+  revokeCaptainBonusInviteAction,
   sendBrevoRecoveryEmailsAction,
   sendBrevoRecoveryTestAction,
 } from "@/app/admin/actions";
+import { CaptainBonusShareActions } from "@/components/admin/captain-bonus-share-actions";
+import { PaymentReviewActions } from "@/components/admin/payment-review-actions";
 import { PageHero } from "@/components/page-hero";
 import { InfoNotice, PageStack, StatCard } from "@/components/placeholder-primitives";
 import { PlayerAvatar } from "@/components/profile/player-avatar";
 import { SurfaceCard } from "@/components/surface-card";
 import { getBrevoAdminStatus } from "@/lib/admin/brevo";
 import { requireAdminUser } from "@/lib/admin/access";
+import { getAdminCaptainBonusCampaignSummaries, type AdminCaptainBonusCampaignSummary } from "@/lib/captain-bonus/service";
 import {
   MANUAL_RECOVERY_TEMPLATE_OPTIONS,
   buildManualRecoveryTemplateContent,
@@ -26,8 +35,11 @@ import { getPlayerAvatarModel, getPlayerDisplayName } from "@/lib/player/identit
 import { pickPrimaryParticipation } from "@/lib/participations/primary";
 import { formatEntryPrice } from "@/lib/product/entry-config";
 import { getPromotersAdminSnapshot } from "@/lib/promoters/admin";
+import { getBaseUrl } from "@/lib/payments/config";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
+import { getAdminTeamPassSummaries } from "@/lib/team-passes/service";
+import type { AdminTeamPassSummary } from "@/lib/team-passes/contracts";
 
 type AdminPageProps = {
   searchParams?: Promise<{
@@ -74,7 +86,9 @@ type PromoterRefRow = {
 
 type GroupRefRow = {
   id: string;
+  invite_code: string | null;
   name: string;
+  owner_profile_id: string | null;
 };
 
 type MatchTeamRef = {
@@ -99,21 +113,6 @@ type MatchQueryRow = {
   away_team: MatchTeamRef | MatchTeamRef[] | null;
 };
 
-type MatchAdminRow = {
-  id: string;
-  homeTeamName: string;
-  awayTeamName: string;
-  homeTeamCode: string;
-  awayTeamCode: string;
-  startsAt: string;
-  status: string;
-  stage: string | null;
-  roundName: string | null;
-  groupCode: string | null;
-  scoreHome: number | null;
-  scoreAway: number | null;
-};
-
 type PaymentAttemptAdminRow = {
   id: string;
   participation_id: string;
@@ -127,7 +126,7 @@ type RegisteredWithoutPassRow = {
   participation: ParticipationAdminRow | null;
   promoterLabel: string | null;
   groupLabel: string | null;
-  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo" | "Revisión manual";
+  stateLabel: "Sin Pase" | "Pago pendiente" | "Pase activo" | "Revisión manual" | "Capitán bonificado";
   paymentStatusLabel: string;
   latestPaymentAttemptLabel: string | null;
   paymentAttempt: PaymentAttemptAdminRow | null;
@@ -227,66 +226,20 @@ function resolveAdminTeamCode(team: MatchTeamRef | MatchTeamRef[] | null | undef
   return normalized?.code?.trim() || normalized?.fifa_code?.trim() || fallback;
 }
 
-function formatMatchDateTime(startsAt: string) {
-  const date = new Date(startsAt);
-
-  if (!Number.isFinite(date.getTime())) {
-    return startsAt;
-  }
-
-  const weekday = new Intl.DateTimeFormat("es-AR", {
-    weekday: "short",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-  const day = new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-  const time = new Intl.DateTimeFormat("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
-
-  const safeWeekday = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1).replace(".", "") : "";
-  return `${safeWeekday} ${day} · ${time}`;
-}
-
-function formatAdminMatchStatus(status: string | null | undefined) {
-  if (!status) {
-    return "pending";
-  }
-
-  return status.replaceAll("_", " ");
-}
-
-function formatAdminMatchMeta(match: Pick<MatchAdminRow, "stage" | "roundName" | "groupCode" | "startsAt">) {
-  const parts: string[] = [];
-
-  if (match.roundName?.trim()) {
-    parts.push(match.roundName.trim());
-  } else if (match.stage?.trim()) {
-    parts.push(match.stage.trim());
-  }
-
-  if (match.groupCode?.trim()) {
-    parts.push(`Zona ${match.groupCode.trim()}`);
-  }
-
-  parts.push(formatMatchDateTime(match.startsAt));
-
-  return parts.join(" · ");
-}
-
 function resolveAdminPaymentState(paymentStatus: string | null | undefined) {
   if (paymentStatus === "paid") {
     return {
       isActive: true,
       canCreateDraft: false,
       label: "Pase activo" as const,
+    };
+  }
+
+  if (paymentStatus === "granted") {
+    return {
+      isActive: false,
+      canCreateDraft: false,
+      label: "Capitán bonificado" as const,
     };
   }
 
@@ -363,26 +316,7 @@ function ManualReviewRow({ row }: { row: RegisteredWithoutPassRow }) {
             Revisión manual
           </span>
           {row.participation ? (
-            <>
-              <form action={confirmParticipationAction}>
-                <input type="hidden" name="participation_id" value={row.participation.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                >
-                  Confirmar pago
-                </button>
-              </form>
-              <form action={rejectParticipationAction}>
-                <input type="hidden" name="participation_id" value={row.participation.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
-                >
-                  Rechazar pago
-                </button>
-              </form>
-            </>
+            <PaymentReviewActions participationId={row.participation.id} participantName={label} />
           ) : null}
         </div>
       </div>
@@ -431,6 +365,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let matchRows: MatchAdminRow[] = [];
   let paymentAttempts: PaymentAttemptAdminRow[] = [];
   let promotersSnapshot: Awaited<ReturnType<typeof getPromotersAdminSnapshot>> | null = null;
+  let teamPassRows: AdminTeamPassSummary[] = [];
+  let captainBonusCampaignRows: AdminCaptainBonusCampaignSummary[] = [];
+  let matchSummaryCounts: MatchSummaryCounts = {
+    total: 0,
+    withResult: 0,
+    withoutResult: 0,
+    finished: 0,
+    scheduled: 0,
+    byStage: {},
+    byStatus: {},
+  };
+  const baseUrl = getBaseUrl();
 
   try {
     const adminSupabase = createServiceRoleSupabaseClient();
@@ -450,7 +396,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           .order("created_at", { ascending: false })
           .limit(1000),
         adminSupabase.from("promoters").select("id, name, code"),
-        adminSupabase.from("groups").select("id, name"),
+        adminSupabase.from("groups").select("id, name, invite_code, owner_profile_id"),
         adminSupabase.from("predictions").select("id", { count: "exact", head: true }),
         adminSupabase
           .from("matches")
@@ -470,9 +416,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               away_team:teams!matches_away_team_id_fkey(code, fifa_code, name, short_name)
             `,
           )
-          .order("starts_at", { ascending: true })
-          .limit(12),
+          .order("starts_at", { ascending: true }),
         getPromotersAdminSnapshot(),
+        getAdminTeamPassSummaries(12),
+        getAdminCaptainBonusCampaignSummaries(baseUrl),
       ]),
       "Supabase admin query timed out",
     );
@@ -483,21 +430,84 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     promoters = (adminResults[3].data ?? []) as PromoterRefRow[];
     groups = (adminResults[4].data ?? []) as GroupRefRow[];
     predictionCount = adminResults[5].count ?? 0;
-    matchRows = ((adminResults[6].data ?? []) as MatchQueryRow[]).map((match) => ({
-      id: match.id,
-      homeTeamName: resolveAdminTeamName(match.home_team, "Equipo local"),
-      awayTeamName: resolveAdminTeamName(match.away_team, "Equipo visitante"),
-      homeTeamCode: resolveAdminTeamCode(match.home_team, "LOC"),
-      awayTeamCode: resolveAdminTeamCode(match.away_team, "VIS"),
-      startsAt: match.starts_at,
-      status: match.status,
-      stage: match.stage ?? match.phase ?? null,
-      roundName: match.round_name ?? null,
-      groupCode: match.group_code ?? match.group_name ?? null,
-      scoreHome: match.score_home,
-      scoreAway: match.score_away,
-    }));
+    matchRows = ((adminResults[6].data ?? []) as MatchQueryRow[])
+      .map((match) => {
+        const homeTeamName = resolveAdminTeamName(match.home_team, "Equipo pendiente");
+        const awayTeamName = resolveAdminTeamName(match.away_team, "Equipo pendiente");
+        const homeTeamCode = resolveAdminTeamCode(match.home_team, "TBD");
+        const awayTeamCode = resolveAdminTeamCode(match.away_team, "TBD");
+        const groupCode = match.group_code ?? match.group_name ?? null;
+        const stage = match.stage ?? match.phase ?? null;
+        const roundName = match.round_name ?? null;
+        const hasResult = match.score_home !== null && match.score_away !== null;
+
+        return {
+          id: match.id,
+          homeTeamName,
+          awayTeamName,
+          homeTeamCode,
+          awayTeamCode,
+          startsAt: match.starts_at,
+          status: match.status,
+          stage,
+          roundName,
+          groupCode,
+          scoreHome: match.score_home,
+          scoreAway: match.score_away,
+          hasResult,
+          searchIndex: [homeTeamName, awayTeamName, homeTeamCode, awayTeamCode, groupCode ?? ""]
+            .join(" ")
+            .toLowerCase(),
+        };
+      })
+      .sort((a, b) => {
+        const startsAtDiff = new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+
+        if (startsAtDiff !== 0) {
+          return startsAtDiff;
+        }
+
+        return a.id.localeCompare(b.id);
+      });
+    matchSummaryCounts = matchRows.reduce<MatchSummaryCounts>(
+      (summary, match) => {
+        summary.total += 1;
+
+        if (match.hasResult) {
+          summary.withResult += 1;
+        } else {
+          summary.withoutResult += 1;
+        }
+
+        if (match.status === "finished") {
+          summary.finished += 1;
+        }
+
+        if (match.status === "scheduled") {
+          summary.scheduled += 1;
+        }
+
+        summary.byStatus[match.status] = (summary.byStatus[match.status] ?? 0) + 1;
+
+        if (match.stage) {
+          summary.byStage[match.stage] = (summary.byStage[match.stage] ?? 0) + 1;
+        }
+
+        return summary;
+      },
+      {
+        total: 0,
+        withResult: 0,
+        withoutResult: 0,
+        finished: 0,
+        scheduled: 0,
+        byStage: {},
+        byStatus: {},
+      },
+    );
     promotersSnapshot = adminResults[7];
+    teamPassRows = adminResults[8];
+    captainBonusCampaignRows = adminResults[9];
   } catch {
     adminNotice =
       "No pudimos cargar el panel operativo completo. Reintentá en unos minutos o revisá la configuración del service role.";
@@ -595,8 +605,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         initialTestProof={params?.test_proof ?? null}
         sendRealAction={sendBrevoRecoveryEmailsAction}
         sendTestAction={sendBrevoRecoveryTestAction}
-        confirmParticipationAction={confirmParticipationAction}
-        rejectParticipationAction={rejectParticipationAction}
+        confirmParticipationAction={confirmParticipationFormAction}
+        rejectParticipationAction={rejectParticipationFormAction}
       />
 
       {manualReviewRows.length > 0 ? (
@@ -667,85 +677,205 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       </SurfaceCard>
 
       <SurfaceCard
+        title="Pases de equipo"
+        description="Resumen operativo de cupos prepagos comprados por capitanes, sin convertir invitaciones pendientes en jugadores."
+      >
+        {teamPassRows.length > 0 ? (
+          <div className="grid gap-3">
+            {teamPassRows.map((row) => (
+              <div
+                key={row.id}
+                className="flex flex-col gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="grid gap-1">
+                  <p className="font-semibold text-[var(--color-ink)]">{row.teamName}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Capitán: {row.purchasedByLabel} · Estado: {row.status.replaceAll("_", " ")}
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Comprado: {new Date(row.createdAt).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)]">Jugadores activos reales: {row.activePlayers}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Comprados</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.totalSlots}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Usados</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.usedSlots}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Pendientes</p>
+                    <p className="text-lg font-bold text-[var(--color-ink)]">{row.pendingSlots}</p>
+                  </div>
+                </div>
+                <div className="grid gap-2 md:min-w-[320px]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                    Códigos y links
+                  </p>
+                  {row.invites.length > 0 ? (
+                    row.invites.map((invite) => (
+                      <div key={invite.id} className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs text-[var(--color-muted)]">
+                        <p className="font-semibold text-[var(--color-ink)]">
+                          {invite.code} · {invite.status.replaceAll("_", " ")}
+                        </p>
+                        <p>{invite.inviteUrl}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-xs text-[var(--color-muted)]">
+                      Sin invitaciones asociadas.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay pases de equipo comprados.
+          </p>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Campañas de Capitán Bonificado"
+        description="Creá una invitación con cupos, compartila por WhatsApp y dejá que los capitanes reclamen su pase. La selección de contactos se hace dentro de WhatsApp."
+      >
+        <div className="grid gap-4">
+          <form action={createCaptainBonusInviteAction} className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
+            <div className="grid gap-1">
+              <p className="font-semibold text-[var(--color-ink)]">Crear invitación</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                Cada campaña genera un link único con cupos limitados para que distintos capitanes reclamen su pase.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <label className="grid gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Nombre de campaña</span>
+                <input
+                  name="campaign_name"
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                  placeholder="Capitanes Bonificados UADE"
+                  minLength={3}
+                  required
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Cupos</span>
+                <input
+                  name="total_slots"
+                  type="number"
+                  min="1"
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                  placeholder="10"
+                  required
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Vencimiento opcional</span>
+                <input
+                  name="expires_at"
+                  type="datetime-local"
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">Notas</span>
+                <input
+                  name="notes"
+                  className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
+                  placeholder="Campaña para amigos de Avril"
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="inline-flex w-fit items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
+            >
+              Crear invitación
+            </button>
+          </form>
+
+        {captainBonusCampaignRows.length > 0 ? (
+          <div className="grid gap-3">
+            {captainBonusCampaignRows.map((row) => (
+              <div
+                key={row.id}
+                className="grid gap-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
+              >
+                <div className="grid gap-1">
+                  <p className="font-semibold text-[var(--color-ink)]">{row.name}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Estado: {row.status.replaceAll("_", " ")} · Reclamados: {row.claimedSlots} / {row.totalSlots} · Disponibles: {row.availableSlots}
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Creada: {row.createdAtLabel}
+                    {row.expiresAtLabel ? ` · Vencimiento: ${row.expiresAtLabel}` : " · Sin vencimiento manual"}
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)] break-all">{row.claimUrl}</p>
+                  {row.notes ? (
+                    <p className="text-sm text-[var(--color-muted)]">Notas: {row.notes}</p>
+                  ) : null}
+                </div>
+                <CaptainBonusShareActions
+                  claimUrl={row.claimUrl}
+                  inviteMessage={row.inviteMessage}
+                  whatsappHref={row.whatsappHref}
+                />
+                {row.claims.length > 0 ? (
+                  <details className="rounded-lg border border-[var(--color-line)] bg-white px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-[var(--color-ink)]">
+                      Ver reclamados ({row.claims.length})
+                    </summary>
+                    <div className="mt-3 grid gap-2 text-sm text-[var(--color-muted)]">
+                      {row.claims.map((claim) => (
+                        <div key={`${row.id}-${claim.claimedAt}-${claim.claimedByLabel}`} className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-3 py-2">
+                          <p className="font-semibold text-[var(--color-ink)]">{claim.claimedByLabel}</p>
+                          <p>
+                            Claim: {claim.claimedAtLabel}
+                            {claim.groupName ? ` · Team: ${claim.groupName}` : " · Todavía sin Team"}
+                            {claim.progressStatus ? ` · Progreso: ${claim.progressStatus}` : ""}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+                {row.status === "active" ? (
+                  <form action={revokeCaptainBonusInviteAction}>
+                    <input type="hidden" name="campaign_id" value={row.id} />
+                    <button
+                      type="submit"
+                      className="inline-flex w-fit items-center justify-center rounded-lg border border-[var(--color-line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+                    >
+                      Cancelar campaña
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Todavía no hay campañas de Capitán Bonificado creadas.
+          </p>
+        )}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard
         title="Resultados y scoring"
         description="Publicá resultados finales, recalculá puntos y reconstruí el ranking oficial desde la misma jugada."
         className="relative z-10"
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4">
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Si ya hay resultados oficiales cargados, podés re-scorear los partidos finalizados y reconstruir el ranking general sin tocar KO, especiales ni mediana.
-          </p>
-          <AdminRebuildRankingsButton />
-        </div>
-        {matchRows.length === 0 ? (
-          <p className="text-sm leading-6 text-[var(--color-muted)]">
-            Todavía no hay partidos cargados para operar.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {matchRows.map((match) => {
-              return (
-                <div
-                  key={match.id}
-                  className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-muted)] p-4"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="grid gap-1">
-                      <p className="font-serif text-[1.35rem] font-bold uppercase text-[var(--color-primary)]">
-                        {match.homeTeamName} vs {match.awayTeamName}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        {formatAdminMatchMeta(match)}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        Estado actual: {formatAdminMatchStatus(match.status)}
-                        {match.scoreHome !== null && match.scoreAway !== null
-                          ? ` · ${match.scoreHome} - ${match.scoreAway}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <form action={publishMatchResultAction} className="grid gap-3 sm:min-w-[260px]">
-                      <input type="hidden" name="match_id" value={match.id} />
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {match.homeTeamCode}
-                          </span>
-                          <input
-                            name="score_home"
-                            type="number"
-                            min="0"
-                            defaultValue={match.scoreHome ?? 0}
-                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-                            {match.awayTeamCode}
-                          </span>
-                          <input
-                            name="score_away"
-                            type="number"
-                            min="0"
-                            defaultValue={match.scoreAway ?? 0}
-                            className="min-h-11 rounded-lg border border-[var(--color-line)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] outline-none"
-                          />
-                        </label>
-                      </div>
-                      <button
-                        type="submit"
-                        className="inline-flex w-full items-center justify-center rounded-lg border border-[#e7ca55] bg-[#ffe16d] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink)]"
-                      >
-                        Publicar resultado y recalcular
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <AdminResultsScoringPanel
+          matches={matchRows}
+          publishMatchResultAction={publishMatchResultAction}
+          summaryCounts={matchSummaryCounts}
+        />
       </SurfaceCard>
 
       <SurfaceCard
