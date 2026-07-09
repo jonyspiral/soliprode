@@ -1,5 +1,5 @@
 match_number,stage,round_name,home_slot_rule,home_slot_label,away_slot_rule,away_slot_label,starts_at,prediction_closes_at,venue,city,status,bracket_position,bracket_side
-97,quarter_finals,Cuartos de final,WINNER_89,Ganador Partido 89,WINNER_90,Ganador Partido 90,2026-07-10T16:00:00-03:00,2026-07-10T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-01,left
-98,quarter_finals,Cuartos de final,WINNER_91,Ganador Partido 91,WINNER_92,Ganador Partido 92,2026-07-10T20:00:00-03:00,2026-07-10T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-02,left
-99,quarter_finals,Cuartos de final,WINNER_93,Ganador Partido 93,WINNER_94,Ganador Partido 94,2026-07-11T16:00:00-03:00,2026-07-11T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-03,right
-100,quarter_finals,Cuartos de final,WINNER_95,Ganador Partido 95,WINNER_96,Ganador Partido 96,2026-07-11T20:00:00-03:00,2026-07-11T20:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-04,right
+97,quarter_finals,Cuartos de final,WINNER_89,Ganador Partido 89,WINNER_90,Ganador Partido 90,2026-07-09T17:00:00-03:00,2026-07-09T17:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-01,left
+98,quarter_finals,Cuartos de final,WINNER_93,Ganador Partido 93,WINNER_94,Ganador Partido 94,2026-07-10T16:00:00-03:00,2026-07-10T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-02,left
+99,quarter_finals,Cuartos de final,WINNER_91,Ganador Partido 91,WINNER_92,Ganador Partido 92,2026-07-11T18:00:00-03:00,2026-07-11T18:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-03,right
+100,quarter_finals,Cuartos de final,WINNER_95,Ganador Partido 95,WINNER_96,Ganador Partido 96,2026-07-11T22:00:00-03:00,2026-07-11T22:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,QF-04,right
