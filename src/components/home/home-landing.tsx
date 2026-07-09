@@ -1,6 +1,7 @@
 import { AboutHomeCard } from "@/components/home/about-home-card";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList } from "@/components/home/home-match-list";
+import { HomePredictionNotice } from "@/components/home/home-prediction-notice";
 import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
@@ -66,6 +67,7 @@ export async function HomeLanding({
       </div>
 
       <div className="home-landing-sheet">
+        <HomePredictionNotice />
         <RankingPodiumBlocks
           hasComputedResults={
             communityFeed.rankings.individual.some((entry) => entry.points > 0) ||
