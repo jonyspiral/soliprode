@@ -287,37 +287,49 @@ function validateRows(rows) {
 
 async function fetchExistingMatches(supabase, rows) {
   const matchNumbers = rows.map((row) => row.matchNumber);
-  const { data, error } = await supabase.from("matches").select("match_number").in("match_number", matchNumbers);
+
+  if (matchNumbers.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("match_number, home_team_id, away_team_id")
+    .in("match_number", matchNumbers);
 
   if (error) {
     throw error;
   }
 
-  return new Set((data ?? []).map((match) => match.match_number));
+  return new Map((data ?? []).map((match) => [match.match_number, match]));
 }
 
-async function upsertMatches(supabase, rows) {
-  const matchPayloads = rows.map((row) => ({
-    match_number: row.matchNumber,
-    phase: row.roundName,
-    round_name: row.roundName,
-    stage: row.stage,
-    group_name: null,
-    group_code: null,
-    home_team_id: null,
-    away_team_id: null,
-    home_slot_rule: row.homeSlotRule,
-    away_slot_rule: row.awaySlotRule,
-    home_slot_label: row.homeSlotLabel,
-    away_slot_label: row.awaySlotLabel,
-    starts_at: row.startsAt,
-    prediction_closes_at: row.predictionClosesAt,
-    venue: row.venue,
-    city: row.city,
-    status: row.status,
-    bracket_position: row.bracketPosition,
-    bracket_side: row.bracketSide,
-  }));
+async function upsertMatches(supabase, rows, existingMatches) {
+  const matchPayloads = rows.map((row) => {
+    const existingMatch = existingMatches.get(row.matchNumber);
+
+    return {
+      match_number: row.matchNumber,
+      phase: row.roundName,
+      round_name: row.roundName,
+      stage: row.stage,
+      group_name: null,
+      group_code: null,
+      home_team_id: existingMatch?.home_team_id ?? null,
+      away_team_id: existingMatch?.away_team_id ?? null,
+      home_slot_rule: row.homeSlotRule,
+      away_slot_rule: row.awaySlotRule,
+      home_slot_label: row.homeSlotLabel,
+      away_slot_label: row.awaySlotLabel,
+      starts_at: row.startsAt,
+      prediction_closes_at: row.predictionClosesAt,
+      venue: row.venue,
+      city: row.city,
+      status: row.status,
+      bracket_position: row.bracketPosition,
+      bracket_side: row.bracketSide,
+    };
+  });
 
   const { error } = await supabase.from("matches").upsert(matchPayloads, {
     onConflict: "match_number",
@@ -328,8 +340,8 @@ async function upsertMatches(supabase, rows) {
   }
 }
 
-function printSummary({ filePath, apply, rows, existingMatchNumbers }) {
-  const createdMatches = rows.filter((row) => !existingMatchNumbers.has(row.matchNumber)).length;
+function printSummary({ filePath, apply, rows, existingMatches }) {
+  const createdMatches = rows.filter((row) => !existingMatches.has(row.matchNumber)).length;
   const updatedMatches = rows.length - createdMatches;
 
   console.log("");
@@ -370,13 +382,13 @@ async function main() {
   }
 
   const supabase = buildSupabaseClient();
-  const existingMatchNumbers = await fetchExistingMatches(supabase, normalizedRows);
+  const existingMatches = await fetchExistingMatches(supabase, normalizedRows);
 
   printSummary({
     filePath,
     apply: args.apply,
     rows: normalizedRows,
-    existingMatchNumbers,
+    existingMatches,
   });
 
   if (!args.apply) {
@@ -384,7 +396,7 @@ async function main() {
     return;
   }
 
-  await upsertMatches(supabase, normalizedRows);
+  await upsertMatches(supabase, normalizedRows, existingMatches);
   console.log("Knockout matches were upserted successfully.");
 }
 
