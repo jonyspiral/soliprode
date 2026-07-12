@@ -1,0 +1,3 @@
+match_number,stage,round_name,home_slot_rule,home_slot_label,away_slot_rule,away_slot_label,starts_at,prediction_closes_at,venue,city,status,bracket_position,bracket_side
+101,semi_finals,Semifinales,WINNER_97,Ganador Partido 97,WINNER_98,Ganador Partido 98,2026-07-14T16:00:00-03:00,2026-07-14T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,SF-01,left
+102,semi_finals,Semifinales,WINNER_99,Ganador Partido 99,WINNER_100,Ganador Partido 100,2026-07-15T16:00:00-03:00,2026-07-15T16:00:00-03:00,Estadio TBD,Ciudad TBD,scheduled,SF-02,right
