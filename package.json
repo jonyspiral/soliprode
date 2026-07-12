@@ -17,7 +17,9 @@
     "fixture:validate:knockout": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-round-of-32.template.csv",
     "fixture:import:knockout": "node scripts/fixture/import-knockout-fixture.mjs",
     "fixture:validate:quarters": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-quarter-finals.template.csv",
-    "fixture:import:quarters": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-quarter-finals.template.csv"
+    "fixture:import:quarters": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-quarter-finals.template.csv",
+    "fixture:validate:semis": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-semi-finals.template.csv",
+    "fixture:import:semis": "node scripts/fixture/import-knockout-fixture.mjs --file scripts/fixture/worldcup-2026-semi-finals.template.csv"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
