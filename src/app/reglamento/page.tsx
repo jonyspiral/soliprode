@@ -135,7 +135,22 @@ const ruleSections: readonly RuleSection[] = [
   },
   {
     title: "Premio del torneo",
-    body: "El premio individual inicial es de $300.000 ARS y crece con la recaudación confirmada del torneo.",
+    body: "El pozo individual inicial es de $300.000 ARS y crece con la recaudación confirmada del torneo. El primer puesto recibe el 90% del pozo individual y el segundo puesto recibe el 10%. El tercer puesto recibe medalla o premio sorpresa definido por la organización. También pueden agregarse premios sorpresa extra durante el torneo sin modificar el reparto principal del pozo individual.",
+    bullets: [
+      "1º puesto: 90% del pozo individual.",
+      "2º puesto: 10% del pozo individual.",
+      "3º puesto: medalla o premio sorpresa.",
+      "Premios sorpresa extra: pueden sumarse durante el torneo.",
+    ],
+  },
+  {
+    title: "Premio grupal",
+    body: "El Team ganador recibe un premio grupal de hasta 11 camisetas. Si el Team ganador tiene menos de 11 Jugadores activos, recibe una cantidad equivalente a sus jugadores activos. Las camisetas pueden ser de la Selección o de catálogo para el equipo de fútbol del grupo.",
+    bullets: [
+      "7 Jugadores activos: 7 camisetas.",
+      "11 Jugadores activos: 11 camisetas.",
+      "Más de 11 Jugadores activos: máximo 11 camisetas.",
+    ],
   },
   {
     title: "Pagos y aportes",
@@ -264,14 +279,22 @@ export default async function RulesPage({ searchParams }: RulesPageProps) {
       >
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-4">
-            <strong className="text-base text-[var(--color-ink)]">Premio del torneo</strong>
+            <strong className="text-base text-[var(--color-ink)]">Premio individual</strong>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-              El premio individual inicial es de $300.000 ARS y crece con la recaudación confirmada.
+              El pozo individual inicial es de $300.000 ARS y crece con la recaudación confirmada.
             </p>
+            <ul className="mt-3 grid gap-1.5 pl-5 text-sm leading-6 text-[var(--color-muted)]">
+              <li>1º puesto: 90% del pozo individual.</li>
+              <li>2º puesto: 10% del pozo individual.</li>
+              <li>3º puesto: medalla o premio sorpresa.</li>
+            </ul>
           </div>
           <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-muted)] px-4 py-4">
-            <strong className="text-base text-[var(--color-ink)]">Regla simple de Team</strong>
+            <strong className="text-base text-[var(--color-ink)]">Premio grupal</strong>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+              El Team ganador recibe hasta 11 camisetas, o una cantidad equivalente a sus Jugadores activos si tiene menos de 11.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
               Para competir necesitan mínimo 7 Jugadores activos. Si el Plantel tiene más de 11, para el ranking cuentan solo los mejores 11.
             </p>
           </div>
