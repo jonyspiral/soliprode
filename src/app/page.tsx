@@ -1,4 +1,4 @@
-import { FinalTournamentScreen } from "@/components/final/final-tournament-screen";
+import { CompactFinalTournamentScreen } from "@/components/final/compact-final-tournament-screen";
 import { PageStack } from "@/components/placeholder-primitives";
 import { readPromoterCodeFromSearchParams } from "@/lib/auth/promoter-attribution";
 import { buildEnterHref } from "@/lib/invite-flow";
@@ -32,7 +32,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <PageStack>
-      <FinalTournamentScreen />
+      <CompactFinalTournamentScreen />
     </PageStack>
   );
 }
