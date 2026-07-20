@@ -34,5 +34,5 @@ export const closingAnnouncementConfig: ClosingAnnouncementConfig = {
   title: "Estamos validando el ranking final",
   description:
     "Revisamos los últimos partidos y los pronósticos especiales antes de anunciar oficialmente a los ganadores de SoliProde.",
-  rankingHref: "/ranking",
+  rankingHref: "/rankings",
 };
