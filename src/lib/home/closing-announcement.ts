@@ -25,14 +25,20 @@ export type ClosingAnnouncementConfig =
 /**
  * Estado editorial del cierre del torneo.
  *
- * Mantener `mode: "review"` hasta completar la auditoría y aprobar
- * expresamente el ranking final y el valor del premio.
+ * El ranking fue recalculado desde los 104 partidos finalizados y los siete
+ * pronósticos especiales resueltos el 20 de julio de 2026.
  */
 export const closingAnnouncementConfig: ClosingAnnouncementConfig = {
-  mode: "review",
-  eyebrow: "Mundial finalizado",
-  title: "Estamos validando el ranking final",
+  mode: "official",
+  eyebrow: "Resultados oficiales",
+  title: "Pablo Mundial es el campeón de SoliProde 2026",
   description:
-    "Revisamos los últimos partidos y los pronósticos especiales antes de anunciar oficialmente a los ganadores de SoliProde.",
-  rankingHref: "/rankings",
+    "El torneo terminó. Ya podés ver el podio definitivo, el Top 10, los premios y el impacto solidario de esta edición.",
+  prizeLabel: "Pozo individual: $ 300.000",
+  winners: [
+    { position: 1, alias: "Pablo Mundial", points: 295 },
+    { position: 2, alias: "Salvador Pirolo", points: 288 },
+    { position: 3, alias: "Tomas Kilian", points: 173 },
+  ],
+  rankingHref: "/final",
 };

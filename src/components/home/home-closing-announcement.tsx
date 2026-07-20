@@ -78,7 +78,7 @@ export function HomeClosingAnnouncement({ config }: HomeClosingAnnouncementProps
             href={config.rankingHref}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#ffe16d] px-5 py-3 text-sm font-extrabold text-[#1a1c1c] shadow-[0_8px_24px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:bg-[#fff0a6]"
           >
-            {isOfficial ? "Ver ranking completo" : "Ver ranking actual"}
+            {isOfficial ? "Ver cierre del Mundial" : "Ver ranking actual"}
           </Link>
         </div>
       </div>
