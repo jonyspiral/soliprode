@@ -1,4 +1,5 @@
 import { AboutHomeCard } from "@/components/home/about-home-card";
+import { HomeClosingAnnouncement } from "@/components/home/home-closing-announcement";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeMatchList } from "@/components/home/home-match-list";
 import { HomePredictionNotice } from "@/components/home/home-prediction-notice";
@@ -6,6 +7,7 @@ import { RulesHomeCard } from "@/components/home/rules-home-card";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeSteps, type HomeLandingStep } from "@/components/home/home-steps";
 import { RankingPodiumBlocks } from "@/components/rankings/ranking-podium-blocks";
+import { closingAnnouncementConfig } from "@/lib/home/closing-announcement";
 import { getHomeCommunityFeed } from "@/lib/home/community-feed";
 import type { HomeHeroState } from "@/lib/home/player-hero-state";
 import { formatEntryPrice } from "@/lib/product/entry-config";
@@ -68,6 +70,7 @@ export async function HomeLanding({
 
       <div className="home-landing-sheet">
         <HomePredictionNotice />
+        <HomeClosingAnnouncement config={closingAnnouncementConfig} />
         <RankingPodiumBlocks
           hasComputedResults={
             communityFeed.rankings.individual.some((entry) => entry.points > 0) ||
