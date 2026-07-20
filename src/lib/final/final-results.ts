@@ -19,7 +19,6 @@ export const finalTournamentResults = {
     "Cerramos los 104 partidos, resolvimos los siete pronósticos especiales y recalculamos el ranking completo desde la fuente oficial.",
   metrics: [
     { label: "Personas registradas", value: "61" },
-    { label: "Jugadores activos", value: "42" },
     { label: "Partidos finalizados", value: "104" },
     { label: "Pronósticos cargados", value: "1.163" },
   ] satisfies readonly FinalMetric[],
