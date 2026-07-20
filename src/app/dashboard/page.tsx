@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { FinalTournamentScreen } from "@/components/final/final-tournament-screen";
+import { CompactFinalTournamentScreen } from "@/components/final/compact-final-tournament-screen";
 import { PageStack } from "@/components/placeholder-primitives";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withSupabaseTimeout } from "@/lib/supabase/timeouts";
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
 
   return (
     <PageStack>
-      <FinalTournamentScreen />
+      <CompactFinalTournamentScreen />
     </PageStack>
   );
 }
